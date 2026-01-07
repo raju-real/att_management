@@ -1,0 +1,73 @@
+<?php
+
+namespace App\Services;
+
+use App\Models\Device;
+use Carbon\Carbon;
+use Jmrashed\Zkteco\Lib\ZKTeco;
+
+class ZkTecoService
+{
+    public function connect(Device $device): ?ZKTeco
+    {
+        $zk = new ZKTeco($device->ip_address, $device->device_port);
+        return $zk->connect() ? $zk : null;
+    }
+
+    public function disconnect(ZKTeco $zk): void
+    {
+        $zk->disconnect();
+    }
+
+    /* ================= USERS ================= */
+
+    public function getUsers(ZKTeco $zk): array
+    {
+        return $zk->getUser() ?? [];
+    }
+
+    public function pushUser(ZKTeco $zk, string $employeeId, string $name): void
+    {
+        $zk->setUser($employeeId, $employeeId, $name, '', 0);
+    }
+
+    /**
+     * Soft delete = overwrite user
+     */
+    public function softDeleteUser(ZKTeco $zk, string $employeeId): void
+    {
+        $zk->setUser($employeeId, $employeeId, 'DELETED', '', 0);
+    }
+
+    /* ================= ATTENDANCE ================= */
+
+    public function getAttendance(ZKTeco $zk): array
+    {
+        return $zk->getAttendance() ?? [];
+    }
+
+    public function clearAttendance(ZKTeco $zk): void
+    {
+        $zk->clearAttendance();
+    }
+
+    /**
+     * Filter attendance logs by date & employee
+     */
+    public function filterAttendance(array   $logs, string  $from, string  $to, ?string $employeeId = null): array
+    {
+        return array_filter($logs, function ($log) use ($from, $to, $employeeId) {
+            $date = Carbon::parse($log['timestamp'])->toDateString();
+
+            if ($date < $from || $date > $to) {
+                return false;
+            }
+
+            if ($employeeId && $log['id'] != $employeeId) {
+                return false;
+            }
+
+            return true;
+        });
+    }
+}

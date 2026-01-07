@@ -1,0 +1,22 @@
+Testing ZKTeco Device at 192.168.0.201:4370
+===================================
+
+✅ Connected successfully!
+Response (hex): 
+Response (raw): 
+
+DEVICE NOTE::
+	MENU -> COMM
+ETHERNET 
+	IP ADDRESS -> 192.168.0.201
+	SUBNET MASK -> 255.255.255.0
+	GATEWAY-> 192.168.0.1
+	DNS -> 0.0.0.0
+	PORT-> 4370
+	DHCP ->OFF
+
+CLOUD SERVER SETTINGS
+	ENABLE DOMAIN NAME -> ON
+	SERVER Address-> 192.168.0.103(PC IP)
+	others -> default
+	
