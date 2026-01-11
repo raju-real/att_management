@@ -111,6 +111,7 @@ if (!function_exists('getDeviceFor')) {
     function getDeviceFor(): array
     {
         return [
+            (object)['value' => 'student_teacher', 'title' => 'Student and Teacher'],
             (object)['value' => 'student', 'title' => 'Student'],
             (object)['value' => 'teacher', 'title' => 'Teacher']
         ];
@@ -165,6 +166,13 @@ if (!function_exists('dateFormat')) {
     function dateFormat($date, $format = 'Y-m-d'): string
     {
         return Carbon::parse($date)->format($format);
+    }
+}
+
+if (!function_exists('timeFormat')) {
+    function timeFormat($time, $format = 'H:i'): string
+    {
+        return Carbon::parse($time)->format($format);
     }
 }
 
@@ -337,10 +345,19 @@ if (!function_exists('ucFirst')) {
 if (!function_exists('siteSettings')) {
     function siteSettings()
     {
-        $jsonString = file_get_contents('assets/common/json/site_setting.json');
-        return json_decode($jsonString, true);
+        return cache()->rememberForever('site_settings', function () {
+            $path = base_path('assets/common/json/site_setting.json');
+
+            if (!file_exists($path)) {
+                return (object) [];
+            }
+
+            return json_decode(file_get_contents($path));
+        });
     }
 }
+
+
 
 if (!function_exists('authUser')) {
     function authUser()

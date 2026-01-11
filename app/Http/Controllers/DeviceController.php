@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Device;
+use App\Services\ZkTecoService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
@@ -10,6 +11,12 @@ use Illuminate\Validation\Rule;
 
 class DeviceController extends Controller
 {
+    public function __construct(
+        protected ZkTecoService $zkService
+    )
+    {
+    }
+
     public function index()
     {
         $devices = Device::latest()->paginate(20);
@@ -48,7 +55,7 @@ class DeviceController extends Controller
             'device_port' => 'required|numeric|between:1,65535',
             'comm_key' => 'required|numeric|between:0,65535',
             'status' => 'required|in:active,inactive',
-            'device_for' => 'required|in:student,teacher',
+            'device_for' => 'required|in:student_teacher,student,teacher'
         ]);
 
         $device = new Device();
@@ -102,7 +109,7 @@ class DeviceController extends Controller
             'device_port' => 'required|numeric|between:1,65535',
             'comm_key' => 'required|numeric|between:0,65535',
             'status' => 'required|in:active,inactive',
-            'device_for' => 'required|in:student,teacher',
+            'device_for' => 'required|in:student_teacher,student,teacher'
         ]);
 
         $device = Device::findOrFail($id);
@@ -127,5 +134,16 @@ class DeviceController extends Controller
         $device->save();
         $device->delete();
         return redirect()->route('devices.index')->with(deleteMessage());
+    }
+
+    public function removeUsers($id): \Illuminate\Http\RedirectResponse
+    {
+        $device = Device::findOrFail($id);
+        $zk = $this->zkService->connect($device);
+        if (!$zk) {
+            return redirect()->back(with(warningMessage("Invalid device connection!")));
+        }
+        $zk->clearUsers();
+        return redirect()->route('devices.index')->with(successMessage("All users removed form device successfully"));
     }
 }

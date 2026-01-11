@@ -22,6 +22,7 @@ class SyncZkUsers extends Command
      */
     protected $signature = 'zkteco:sync-users {--direction=both}';
     protected $description = 'Sync users between ZKTeco devices and database';
+    protected $device_for = '';
 
     public function handle()
     {
@@ -54,7 +55,7 @@ class SyncZkUsers extends Command
                 }
 
                 if ($direction === 'db' || $direction === 'both') {
-                    $this->syncFromDbToDevice($zk, $device->deice_for);
+                    $this->syncFromDbToDevice($zk, $device->device_for);
                 }
 
                 $zk->disconnect();
@@ -100,7 +101,50 @@ class SyncZkUsers extends Command
     }
 
     /**
-     * Sync users FROM DATABASE → DEVICE
+     * Sync users FROM DATABASE → DEVICE (INSERT AND UPDATE)
+     */
+    protected function syncFromDbToDevice(ZKTeco $zk, $device_for)
+    {
+        // Get current users on device
+        $deviceUsers = collect($zk->getUser() ?? [])->keyBy('userid');
+        // ---------------------------
+        // 1️⃣ Sync Students
+        // ---------------------------
+        if ($device_for == 'student_teacher' || $device_for == 'student') {
+            $students = Student::select('student_no', 'firstname', 'middlename', 'lastname')->whereIn('student_no', [10001,10002,10003,10004,10005])->get();
+
+            foreach ($students as $student) {
+                $deviceUserId = $student->student_no;
+                $name = showStudentFullName($student->firstname, $student->middlename, $student->lastname);
+                $zk->setUser((int)$student->student_no, $deviceUserId, $name, '', 0);
+
+                $this->info($deviceUsers->has($deviceUserId)
+                    ? "   🔄 Updated student {$deviceUserId} on device"
+                    : "   ➕ Added student {$deviceUserId} to device");
+            }
+        }
+
+        // ---------------------------
+        // 2️⃣ Sync Teachers its best practice to use another device for teacher to generate uuid
+        // ---------------------------
+        if ($device_for == 'student_teacher' || $device_for == 'teacher') {
+            $teachers = Teacher::select('teacher_no', 'name')->whereIn('teacher_no', [101,102,103,104,105])->get();
+
+            foreach ($teachers as $teacher) {
+                $deviceUserId = $teacher->teacher_no;
+                $zk->setUser((int)$teacher->teacher_no, $deviceUserId, $teacher->name ?? 'Unknown', '', 0);
+
+                $this->info($deviceUsers->has($deviceUserId)
+                    ? "   🔄 Updated teacher {$deviceUserId} on device"
+                    : "   ➕ Added teacher {$deviceUserId} to device");
+            }
+
+            $this->info('   ✔ Students & Teachers synced to device');
+        }
+    }
+
+    /**
+     * Sync users FROM DATABASE → DEVICE (INSERT ONLY)
      */
     protected function syncFromDbToDeviceInsertOnly(ZKTeco $zk)
     {
@@ -137,47 +181,6 @@ class SyncZkUsers extends Command
         }
 
         $this->info('   ✔ Synced users FROM DB to device');
-    }
-
-    protected function syncFromDbToDevice(ZKTeco $zk, $device_for = null)
-    {
-        // Get current users on device
-        $deviceUsers = collect($zk->getUser() ?? [])->keyBy('userid');
-
-        // ---------------------------
-        // 1️⃣ Sync Students
-        // ---------------------------
-        if ($device_for == 'student') {
-            $students = Student::select('student_sl_no', 'firstname', 'middlename', 'lastname')->get();
-
-            foreach ($students as $student) {
-                $deviceUserId = 'S' . $student->student_sl_no;
-                $name = showStudentFullName($student->firstname, $student->middlename, $student->lastname);
-                $zk->setUser((int)$student->student_sl_no, $deviceUserId, $name, '', 0);
-
-                $this->info($deviceUsers->has($deviceUserId)
-                    ? "   🔄 Updated student {$deviceUserId} on device"
-                    : "   ➕ Added student {$deviceUserId} to device");
-            }
-        }
-
-        // ---------------------------
-        // 2️⃣ Sync Teachers its best practice to use another device for teacher to generate uuid
-        // ---------------------------
-        if ($device_for == 'teacher') {
-            $teachers = Teacher::select('teacher_sl_no', 'name')->get();
-
-            foreach ($teachers as $teacher) {
-                $deviceUserId = 'T' . $teacher->teacher_sl_no;
-                $zk->setUser((int)$teacher->teacher_sl_no, $deviceUserId, $teacher->name ?? 'Unknown', '', 0);
-
-                $this->info($deviceUsers->has($deviceUserId)
-                    ? "   🔄 Updated teacher {$deviceUserId} on device"
-                    : "   ➕ Added teacher {$deviceUserId} to device");
-            }
-
-            $this->info('   ✔ Students & Teachers synced to device');
-        }
     }
 
 

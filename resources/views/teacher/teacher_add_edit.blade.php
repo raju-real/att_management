@@ -1,24 +1,29 @@
 @extends('layouts.app')
-@section('title','Update Profile')
+@section('title','Teacher Add/Edit')
 
 @section('content')
     <div class="d-flex justify-content-between align-items-center mb-2">
-        <h3>Update Profile</h3>
+        <h3>{{ isset($teacher) ? 'Edit' : 'Add' }} Teacher</h3>
+        <a href="{{ route('teachers.index') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left mr-2"></i> Back
+        </a>
     </div>
 
     <div class="card admin-card">
         <div class="card-header">
-            <h5 class="card-title"><i class="fas fa-plus-circle mr-2"></i> Basic Information</h5>
+            <h5 class="card-title"><i class="fas fa-plus-circle mr-2"></i> Teacher Information</h5>
         </div>
         <div class="card-body">
-            <form action="{{ route('update-profile') }}" id="prevent-form" method="POST" enctype="multipart/form-data">
+            <form action="{{ $route }}" id="prevent-form" method="POST">
                 @csrf
-                @method('PUT')
+                @isset($teacher)
+                    @method('PUT')
+                @endisset
                 <div class="row">
                     <div class="col-md-4">
                         <div class="form-group">
                             <label class="form-label">Name {!! starSign() !!}</label>
-                            <input type="text" name="name" value="{{ old('name') ?? authUser()->name ?? '' }}"
+                            <input type="text" name="name" value="{{ old('name') ?? $teacher->name ?? '' }}"
                                    class="form-control {{ hasError('name') }}"
                                    placeholder="Name">
                             @error('name')
@@ -29,7 +34,7 @@
                     <div class="col-md-4">
                         <div class="form-group">
                             <label class="form-label">Email {!! starSign() !!}</label>
-                            <input type="text" name="email" value="{{ old('email') ?? authUser()->email ?? '' }}"
+                            <input type="text" name="email" value="{{ old('email') ?? $teacher->email ?? '' }}"
                                    class="form-control {{ hasError('email') }}"
                                    placeholder="Email">
                             @error('email')
@@ -40,7 +45,7 @@
                     <div class="col-md-4">
                         <div class="form-group">
                             <label class="form-label">Mobile {!! starSign() !!}</label>
-                            <input type="text" name="mobile" value="{{ old('mobile') ?? authUser()->mobile ?? '' }}"
+                            <input type="text" name="mobile" value="{{ old('mobile') ?? $teacher->mobile ?? '' }}"
                                    class="form-control {{ hasError('mobile') }}"
                                    placeholder="Mobile">
                             @error('mobile')
@@ -48,31 +53,17 @@
                             @enderror
                         </div>
                     </div>
-
                     <div class="col-md-4">
                         <div class="form-group">
-                            <label class="form-label">Image</label>
-                            <input type="file" name="image"
-                                   class="form-control"
-                                   placeholder="Image" accept=".jpg,.jpeg,.png">
-                            @error('image')
+                            <label class="form-label">Designation {!! starSign() !!}</label>
+                            <input type="text" name="designation" value="{{ old('designation') ?? $teacher->designation ?? '' }}"
+                                   class="form-control {{ hasError('designation') }}"
+                                   placeholder="Designation">
+                            @error('designation')
                             {!! displayError($message) !!}
                             @enderror
                         </div>
                     </div>
-
-                    <div class="col-md-4">
-                        <div class="form-group">
-                            <label class="form-label">Password</label>
-                            <input type="password" name="password"
-                                   class="form-control"
-                                   placeholder="Password">
-                            @error('password')
-                            {!! displayError($message) !!}
-                            @enderror
-                        </div>
-                    </div>
-
                 </div>
 
                 <div class="text-right mt-2">

@@ -34,12 +34,20 @@
                         <tr>
                             <td>{{ $loop->index + 1 }}</td>
                             <td>{{ $device->name ?? '' }}</td>
-                            <td>{{ $device->serial_no ?? '' }} X</td>
+                            <td>{{ $device->serial_no ?? '' }}</td>
                             <td>{{ $device->ip_address ?? '' }}</td>
                             <td>{{ $device->device_port ?? '' }}</td>
-                            <td>{!! ucFirst($device->device_for) !!}</td>
-                            <td>{!! showStatus($device->status) !!}</td>
                             <td>
+                                @if($device->device_for == 'student_teacher')
+                                    Student and Teacher
+                                @elseif($device->device_for == 'student')
+                                    Student
+                                @elseif($device->device_for == 'teacher')
+                                    Teacher
+                                @endif
+                            </td>
+                            <td>{!! showStatus($device->status) !!}</td>
+                            <td class="text-nowrap">
                                 <a href="{{ route('devices.edit', $device->slug) }}"
                                    class="action-btn" {!! tooltip('Edit Device') !!}><i class="fas fa-edit"></i></a>
                                 <a {!! tooltip('Delete Device') !!}
@@ -47,8 +55,20 @@
                                    data-id="{{ 'delete-device-' . $device->id }}" href="javascript:void(0);">
                                     <i class="fas fa-trash-alt"></i>
                                 </a>
+                                 <a {!! tooltip('Delete Device Users') !!}
+                                   class="action-btn text-danger delete-data"
+                                   data-id="{{ 'delete-device-user-' . $device->id }}" href="javascript:void(0);">
+                                    <i class="fas fa-eraser"></i>
+                                </a>
                                 <form id="delete-device-{{ $device->id }}"
                                       action="{{ route('devices.destroy', $device->id) }}" method="POST">
+                                    @csrf
+                                    @method('DELETE')
+                                </form>
+
+
+                                <form id="delete-device-user-{{ $device->id }}"
+                                      action="{{ route('devices.remove-users', $device->id) }}" method="POST">
                                     @csrf
                                     @method('DELETE')
                                 </form>

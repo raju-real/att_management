@@ -8,6 +8,7 @@ use App\Http\Controllers\DeviceController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\StudentController;
+use App\Http\Controllers\TeacherController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Session;
@@ -38,8 +39,13 @@ Route::middleware('auth')->group(function(){
     });
     // Devices
     Route::resource('devices', DeviceController::class);
+    Route::controller(DeviceController::class)->group(function () {
+        Route::delete('remove-users/{device_id}','removeUsers')->name('devices.remove-users');
+    });
+    // Manage Student
     Route::resource('students', StudentController::class);
-
+    // Manage Teacher
+    Route::resource('teachers', TeacherController::class);
     // Attendance manage
     Route::controller(AttendanceController::class)->group(function () {
         Route::get('attendance-logs', 'attendanceLogs')->name('attendance-logs');

@@ -4,13 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 
 class ProfileController extends Controller
 {
     public function profile()
     {
-        return view('profile.edit_profile');
+        return view('edit_profile');
     }
 
     public function updateProfile(Request $request)
@@ -34,6 +35,7 @@ class ProfileController extends Controller
                 Rule::unique('users', 'mobile')->whereNull('deleted_at')->ignore(authUser()->id)
             ],
             'image' => 'nullable|sometimes|mimes:jpg,jpeg,png|max:1024',
+            'password' => 'nullable|sometimes|max:10|min:6',
         ]);
 
         $admin = User::find(authUser()->id);
@@ -42,6 +44,9 @@ class ProfileController extends Controller
                 unlink($admin->image);
             }
             $admin->image = uploadImage($request->file('image'), 'admin');
+        }
+        if($request->password && !empty($request->password)) {
+            $admin->password = Hash::make($request->password);
         }
         $admin->save();
         return redirect()->route('profile')->with(infoMessage());

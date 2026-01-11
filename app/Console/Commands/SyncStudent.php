@@ -21,10 +21,9 @@ class SyncStudent extends Command
             ->get();
 
         foreach ($students as $s) {
-            $student_sl_no = Student::getStudentNo();
+            $student_no = Student::getStudentNo();
             $data = [
-                'student_sl_no' => $student_sl_no,
-                'student_no' => 'S'. $student_sl_no,
+                'student_no' => $student_no,
                 'student_id' => $s->student_id,
                 'firstname' => trim($s->firstname),
                 'middlename' => $s->middlename,

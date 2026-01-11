@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\AttendanceLog;
 use App\Models\Student;
+use App\Models\Teacher;
 use Illuminate\Console\Command;
 use App\Models\Device;
 use App\Models\User;
@@ -107,10 +108,11 @@ class SyncZkAttendance extends Command
 
                 // ----------------------
                 // STUDENT
+                // PREVIOUS if (str_starts_with($userId, 'S'))
                 // ----------------------
-                if (str_starts_with($userId, 'S')) {
+                if ($userId > 1000) {
 
-                    $studentNo = $userId; // S00001
+                    $studentNo = $userId; // 10001
 
                     $student = Student::where('student_no', $studentNo)->first();
 
@@ -121,13 +123,14 @@ class SyncZkAttendance extends Command
 
                     AttendanceLog::firstOrCreate(
                         [
+                            'student_no' => $student->student_no,
                             'student_id' => $student->student_id,
+                            'name' => showStudentFullName($student->firstname, $student->middlename, $student->lastname) ?? null,
                             'device_id' => $device->id,
                             'punch_time' => $punchTime,
                         ],
                         $data + [
                             'user_type' => 'student',
-                            'std_no' => $student->student_no,
                         ]
                     );
 
@@ -136,14 +139,16 @@ class SyncZkAttendance extends Command
 
                 // ----------------------
                 // TEACHER
+                // PREVIOUS  if (str_starts_with($userId, 'T'))
                 // ----------------------
-                if (str_starts_with($userId, 'T')) {
+                if ($userId < 1000) {
 
-                    $teacherNo = $userId; // T00001
-
+                    $teacherNo = $userId; // 101
+                    $teacher = Teacher::whereTeacherNo($teacherNo)->first();
                     AttendanceLog::firstOrCreate(
                         [
                             'teacher_no' => $teacherNo,
+                            'name' => $teacher->name ?? null,
                             'device_id' => $device->id,
                             'punch_time' => $punchTime,
                         ],
@@ -151,8 +156,6 @@ class SyncZkAttendance extends Command
                             'user_type' => 'teacher',
                         ]
                     );
-
-                    continue;
                 }
             }
 

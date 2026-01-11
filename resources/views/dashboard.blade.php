@@ -14,13 +14,13 @@
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
                             <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                                Total Sales
+                                Total Students
                             </div>
-                            <div class="stats-number">$24,000</div>
-                            <div class="text-muted">Last 30 days</div>
+                            <div class="stats-number">{{ $total_students ?? 0 }}</div>
+                            <div class="text-muted">Active Students</div>
                         </div>
                         <div class="col-auto">
-                            <i class="fas fa-dollar-sign stats-icon text-primary"></i>
+                            <i class="fas fa-users stats-icon text-primary"></i>
                         </div>
                     </div>
                 </div>
@@ -33,13 +33,13 @@
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
                             <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                                Total Orders
+                                Total Teachers
                             </div>
-                            <div class="stats-number">1,250</div>
-                            <div class="text-muted">Completed orders</div>
+                            <div class="stats-number">{{ $total_teachers ?? 0 }}</div>
+                            <div class="text-muted">Active Teachers</div>
                         </div>
                         <div class="col-auto">
-                            <i class="fas fa-shopping-cart stats-icon text-success"></i>
+                            <i class="fas fa-user-plus stats-icon text-success"></i>
                         </div>
                     </div>
                 </div>
@@ -52,10 +52,10 @@
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
                             <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-                                New Customers
+                                Total Devices
                             </div>
-                            <div class="stats-number">324</div>
-                            <div class="text-muted">This month</div>
+                            <div class="stats-number">{{ $total_devices ?? 0 }}</div>
+                            <div class="text-muted">Active Devices</div>
                         </div>
                         <div class="col-auto">
                             <i class="fas fa-user-plus stats-icon text-warning"></i>
@@ -71,9 +71,9 @@
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
                             <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
-                                Pending Orders
+                                Today Present
                             </div>
-                            <div class="stats-number">18</div>
+                            <div class="stats-number">{{ $today_present ?? 0 }}</div>
                             <div class="text-muted">Awaiting processing</div>
                         </div>
                         <div class="col-auto">
@@ -91,56 +91,46 @@
             <div class="card admin-card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="card-title"><i class="fas fa-shopping-cart"></i> Today Attendance</h5>
-                    <a href="products.html" class="btn btn-primary-admin btn-sm">
-                        View All Products
+                    <a href="{{ route('attendance-logs') }}" class="btn btn-primary-admin btn-sm text-white">
+                        Show Logs
                     </a>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
-                        <table class="table table-hover">
+
+                        <table class="table table-hover table-striped">
                             <thead>
                             <tr>
-                                <th>Order ID</th>
-                                <th>Customer</th>
-                                <th>Date</th>
-                                <th>Amount</th>
-                                <th>Status</th>
-                                <th>Actions</th>
+                                <th>#</th>
+                                <th>User Type</th>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th class="text-center">In Time</th>
+                                <th class="text-center">Out Time</th>
+                                <th class="text-center">Punch Count</th>
                             </tr>
                             </thead>
                             <tbody>
-                            <tr>
-                                <td>#ORD-001</td>
-                                <td>John Smith</td>
-                                <td>2023-10-15</td>
-                                <td>$245.99</td>
-                                <td><span class="badge-status badge-active">Completed</span></td>
-                                <td>
-                                    <button class="action-btn" title="View"><i class="fas fa-eye"></i></button>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>#ORD-002</td>
-                                <td>Emma Johnson</td>
-                                <td>2023-10-14</td>
-                                <td>$120.50</td>
-                                <td><span class="badge-status badge-active">Shipped</span></td>
-                                <td>
-                                    <button class="action-btn" title="View"><i class="fas fa-eye"></i></button>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>#ORD-003</td>
-                                <td>Michael Brown</td>
-                                <td>2023-10-13</td>
-                                <td>$89.99</td>
-                                <td><span class="badge-status badge-inactive">Pending</span></td>
-                                <td>
-                                    <button class="action-btn" title="View"><i class="fas fa-eye"></i></button>
-                                </td>
-                            </tr>
+                            @forelse($today_logs as $attendance)
+                                <tr>
+                                    <td>{{ $loop->index + 1 }}</td>
+                                    <td>{{ ucFirst($attendance['user_type']) }}</td>
+                                    <td>{{ $attendance['user_no'] ?? '' }}</td>
+                                    <td>{{ $attendance['name'] ?? '' }}</td>
+                                    <td class="text-center">{{ timeFormat($attendance['in_time'], 'h:i a')  }}</td>
+                                    <td class="text-center">{{ timeFormat($attendance['out_time'], 'h:i a') ?? '-' }}</td>
+                                    <td class="text-center">{{ $attendance['total_punches'] ?? '-' }}</td>
+                                </tr>
+                            @empty
+                                <x-no-data-found/>
+                            @endforelse
                             </tbody>
                         </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    <div class="d-flex justify-content-center">
+                        {!! $today_logs->links('pagination::bootstrap-4') !!}
                     </div>
                 </div>
             </div>

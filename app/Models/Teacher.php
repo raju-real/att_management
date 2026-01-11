@@ -25,7 +25,7 @@ class Teacher extends Model
     public static function getTeacherNo(): int
     {
         // Get max teacher_sl_no and increment
-       $last = self::withTrashed()->max('teacher_sl_no') ?? 10001; // start from 1000
+       $last = self::withTrashed()->max('teacher_no') ?? 100; // start from 1000
         return $last + 1;
     }
 

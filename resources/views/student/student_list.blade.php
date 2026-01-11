@@ -17,7 +17,7 @@
                     <thead>
                     <tr>
                         <th>#</th>
-                        <th>Std Sl no</th>
+                        <th>Device ID</th>
                         <th>Student ID</th>
                         <th>Full Name</th>
                         <th>Nick Name</th>
@@ -32,7 +32,7 @@
                     @forelse($students as $student)
                         <tr>
                             <td>{{ $loop->index + 1 }}</td>
-                            <td>{{ $student->std_no ?? '' }} X</td>
+                            <td>{{ $student->student_no ?? '' }}</td>
                             <td>{{ $student->student_id ?? '' }} X</td>
                             <td>{{ showStudentFullName($student->firstname, $student->middlname, $student->lastname) ?? '' }}</td>
                             <td>{{ $student->nickname ?? '' }}</td>
@@ -41,15 +41,15 @@
                             <td>{{ $student->shift ?? '' }}</td>
                             <td>{{ $student->medium ?? '' }}</td>
                             <td>
-                                <a href="{{ route('students.show', $student->student_id) }}"
+                                <a href="{{ route('students.show', $student->student_no) }}"
                                    class="action-btn text-info" {!! tooltip('Show Details of Student') !!}><i class="fas fa-eye"></i></a>
-                                <a {!! tooltip('Delete Device') !!}
+                                <a {!! tooltip('Delete From List and Device') !!}
                                    class="action-btn text-danger delete-data"
-                                   data-id="{{ 'delete-device-' . $student->id }}" href="javascript:void(0);">
+                                   data-id="{{ 'delete-student-' . $student->id }}" href="javascript:void(0);">
                                     <i class="fas fa-trash-alt"></i>
                                 </a>
-                                <form id="delete-device-{{ $student->id }}"
-                                      action="{{ route('devices.destroy', $student->id) }}" method="POST">
+                                <form id="delete-student-{{ $student->id }}"
+                                      action="{{ route('students.destroy', $student->id) }}" method="POST">
                                     @csrf
                                     @method('DELETE')
                                 </form>

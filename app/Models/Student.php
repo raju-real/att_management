@@ -14,7 +14,7 @@ class Student extends Model
     public static function getStudentNo(): int
     {
         // Get max student_sl_no and increment
-       $last = self::withTrashed()->max('student_sl_no') ?? 10000; // start from 1000
+       $last = self::withTrashed()->max('student_no') ?? 10000; // start from 10001
         return $last + 1;
     }
 

@@ -14,12 +14,9 @@ class TeacherFactory extends Factory
 
     public function definition(): array
     {
-        //$serial_no = Teacher::getTeacherSlNo(); // get next serial
-        $serial_no = Teacher::getTeacherNo();
+        $teacher_no = Teacher::getTeacherNo();
         return [
-            // Unique teacher number like T1001, T1002, etc.
-            'teacher_sl_no' => $serial_no,
-            'teacher_no' => 'T' . $serial_no,
+            'teacher_no' => $teacher_no,
             'name'       => $this->faker->name(),
             'email'      => $this->faker->unique()->safeEmail(),
             'mobile'     => $this->faker->phoneNumber(),

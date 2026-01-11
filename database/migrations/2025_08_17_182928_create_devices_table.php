@@ -20,7 +20,7 @@ return new class extends Migration {
             $table->string('ip_address')->nullable();
             $table->string('device_port')->nullable();
             $table->string('comm_key')->nullable()->comment("Communication Key| Menu → Comm / Network → Comm Key/ Menu ->Pc Connection(Comm Key) | 0 (most devices) | Sometimes 12345");
-            $table->enum('device_for', ['student', 'teacher']);
+            $table->enum('device_for', ['student_teacher','student', 'teacher']);
             $table->enum('status', ['active', 'inactive'])->default("active");
             $table->timestamp('last_synced_at')->nullable();
             $table->timestamp('last_seen_at')->nullable();

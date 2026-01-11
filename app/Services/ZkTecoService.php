@@ -26,6 +26,20 @@ class ZkTecoService
         return $zk->getUser() ?? [];
     }
 
+    public function findUidByUserId(ZKTeco $zk, string $userId): ?int
+    {
+        $users = $zk->getUser() ?? [];
+
+        foreach ($users as $user) {
+            if (($user['userid'] ?? null) === $userId) {
+                return (int)$user['uid'];
+            }
+        }
+
+        return null;
+    }
+
+
     public function pushUser(ZKTeco $zk, string $employeeId, string $name): void
     {
         $zk->setUser($employeeId, $employeeId, $name, '', 0);
@@ -34,10 +48,11 @@ class ZkTecoService
     /**
      * Soft delete = overwrite user
      */
-    public function softDeleteUser(ZKTeco $zk, string $employeeId): void
+    public function deleteUser(ZKTeco $zk, int $uid): bool
     {
-        $zk->setUser($employeeId, $employeeId, 'DELETED', '', 0);
+        return $zk->removeUser($uid);
     }
+
 
     /* ================= ATTENDANCE ================= */
 
@@ -54,7 +69,7 @@ class ZkTecoService
     /**
      * Filter attendance logs by date & employee
      */
-    public function filterAttendance(array   $logs, string  $from, string  $to, ?string $employeeId = null): array
+    public function filterAttendance(array $logs, string $from, string $to, ?string $employeeId = null): array
     {
         return array_filter($logs, function ($log) use ($from, $to, $employeeId) {
             $date = Carbon::parse($log['timestamp'])->toDateString();
