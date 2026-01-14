@@ -91,7 +91,7 @@
             <div class="card admin-card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="card-title"><i class="fas fa-shopping-cart"></i> Today Attendance</h5>
-                    <a href="{{ route('attendance-logs') }}" class="btn btn-primary-admin btn-sm text-white">
+                    <a href="{{ route('attendance-summery') }}" class="btn btn-primary-admin btn-sm text-white">
                         Show Logs
                     </a>
                 </div>

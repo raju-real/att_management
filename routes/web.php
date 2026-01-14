@@ -48,7 +48,11 @@ Route::middleware('auth')->group(function(){
     Route::resource('teachers', TeacherController::class);
     // Attendance manage
     Route::controller(AttendanceController::class)->group(function () {
-        Route::get('attendance-logs', 'attendanceLogs')->name('attendance-logs');
+        Route::get('present-logs', 'presentLogs')->name('present-logs');
+        Route::get('attendance-summery', 'attendanceSummery')->name('attendance-summery');
+        // Report
+        Route::get('date-wise-present-report','dateWisePresentReport')->name('date-wise-present-report');
+        Route::get('month-wise-user-summery','monthWiseUserSummery')->name('month-wise-user-summery');
         Route::get('track-attendance-location', 'trackLocation')->name('track-attendance-location');
     });
     // Device Activity controller

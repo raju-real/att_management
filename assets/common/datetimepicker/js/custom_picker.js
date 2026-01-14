@@ -50,7 +50,8 @@ $(function () {
 
     flatpickr(".flat_datepicker", {
         dateFormat: "Y-m-d", // Only date
-        defaultDate: "today", // Optional: sets default to today
+        // Optional: sets default to today
+        // defaultDate: "today",
     });
 
     // Set custom or default date or time or date time
@@ -83,7 +84,8 @@ $(function () {
     document.querySelectorAll(".flat_datepicker").forEach(function (el) {
         flatpickr(el, {
             dateFormat: "Y-m-d",
-            defaultDate: el.dataset.default || new Date(), // fallback to today
+            defaultDate: el.dataset.default
+            // defaultDate: el.dataset.default || new Date(), // fallback to today
         });
     });
 });

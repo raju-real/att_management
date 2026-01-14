@@ -2,6 +2,6 @@
     "site_name": "Attendance Management",
     "email": "admin5@mail.com",
     "mobile": "12345679810",
-    "in_time": "12:00:00",
-    "out_time": "12:00:00"
+    "in_time": "09:30:00",
+    "out_time": "17:00:00"
 }

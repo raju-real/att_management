@@ -4,21 +4,21 @@
 @endpush
 
 @section('content')
-    <div class="d-flex justify-content-between align-items-center mb-2">
-        <h3>Attendance Management</h3>
+{{--    <div class="d-flex justify-content-between align-items-center mb-2">--}}
+{{--        <h3>Attendance Management</h3>--}}
 
-        <div class="btn-group">
-            <a href="{{ route('attendance-logs') }}"
-               class="btn btn-info text-white">
-                <i class="fas fa-list mr-1"></i> Detail Log
-            </a>
+{{--        <div class="btn-group">--}}
+{{--            <a href="{{ route('present-logs') }}"--}}
+{{--               class="btn btn-info text-white">--}}
+{{--                <i class="fas fa-list mr-1"></i> Detail Log--}}
+{{--            </a>--}}
 
-            <a href="{{ route('attendance-logs') }}"
-               class="btn btn-success text-white">
-                <i class="fas fa-chart-bar mr-1 ml-1"></i> Reports
-            </a>
-        </div>
-    </div>
+{{--            <a href="{{ route('present-logs') }}"--}}
+{{--               class="btn btn-success text-white">--}}
+{{--                <i class="fas fa-chart-bar mr-1 ml-1"></i> Reports--}}
+{{--            </a>--}}
+{{--        </div>--}}
+{{--    </div>--}}
 
     @php
         $filterOpen = request()->hasAny([
@@ -49,7 +49,7 @@
                  data-parent="#attendanceFilterAccordion">
 
                 <div class="card-body">
-                    <form method="GET" action="{{ route('attendance-logs') }}">
+                    <form method="GET" action="{{ route('present-logs') }}">
                         <div class="row g-2">
 
                             <!-- User Type -->
@@ -131,7 +131,7 @@
                             <div class="col-md-1 mt-2">
                                 <label class="form-label"></label>
                                 <div class="form-group">
-                                    <a href="{{ route('attendance-logs') }}"
+                                    <a href="{{ route('present-logs') }}"
                                        class="btn btn-secondary w-100">
                                         <i class="fas fa-undo"></i>
                                     </a>
@@ -148,8 +148,8 @@
 
     <div class="card admin-card">
         <div class="card-header">
-            <h5 class="card-title"><i class="fas fa-microchip mr-2"></i>Attendance Logs
-                ({{ dateFormat($from_date, 'd M, y') }})
+            <h5 class="card-title"><i class="fas fa-microchip mr-2"></i>Preset Attendance Logs of --
+                {{ dateFormat($from_date, 'd M, y') }}
                 @isset($to_date)
                     to {{ dateFormat($to_date, 'd M, y') }}
                 @endisset
@@ -167,6 +167,7 @@
                         <th>Name</th>
                         <th class="text-center">In Time</th>
                         <th class="text-center">Out Time</th>
+                        <th class="text-center">Work Hour</th>
                         <th class="text-center">Punch Count</th>
                     </tr>
                     </thead>
@@ -179,6 +180,7 @@
                             <td>{{ $attendance['name'] ?? '' }}</td>
                             <td class="text-center">{{ timeFormat($attendance['in_time'], 'h:i a')  }}</td>
                             <td class="text-center">{{ timeFormat($attendance['out_time'], 'h:i a') ?? '-' }}</td>
+                            <td class="text-center">{{ hourCount($attendance['out_time'], $attendance['in_time']) }}</td>
                             <td class="text-center">{{ $attendance['total_punches'] ?? '-' }}</td>
                         </tr>
                     @empty

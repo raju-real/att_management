@@ -382,5 +382,30 @@ if (!function_exists('showStudentFullName')) {
     }
 }
 
+if (!function_exists('minuteCount')) {
+    function minuteCount($check_out_time,$check_in_time) {
+        return ceil((strtotime($check_out_time) - strtotime($check_in_time)) / 60);
+    }
+}
+
+if (!function_exists('hourCount')) {
+    function hourCount($check_out_time, $check_in_time)
+    {
+        if (!$check_in_time || !$check_out_time) {
+            return '-';
+        }
+
+        $seconds = strtotime($check_out_time) - strtotime($check_in_time);
+
+        $hours   = floor($seconds / 3600);
+        $minutes = floor(($seconds % 3600) / 60);
+
+        return sprintf('%02d:%02d', $hours, $minutes);
+    }
+}
+
+
+
+
 
 
