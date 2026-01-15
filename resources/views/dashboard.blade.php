@@ -101,24 +101,26 @@
                         <table class="table table-hover table-striped">
                             <thead>
                             <tr>
-                                <th>#</th>
-                                <th>User Type</th>
+                                <th class="text-center">#</th>
+                                <th class="text-center">User Type</th>
                                 <th>ID</th>
                                 <th>Name</th>
                                 <th class="text-center">In Time</th>
                                 <th class="text-center">Out Time</th>
+                                <th class="text-center">Work Hour</th>
                                 <th class="text-center">Punch Count</th>
                             </tr>
                             </thead>
                             <tbody>
                             @forelse($today_logs as $attendance)
                                 <tr>
-                                    <td>{{ $loop->index + 1 }}</td>
-                                    <td>{{ ucFirst($attendance['user_type']) }}</td>
+                                    <td class="text-center">{{ $loop->index + 1 }}</td>
+                                    <td class="text-center">{{ ucFirst($attendance['user_type']) }}</td>
                                     <td>{{ $attendance['user_no'] ?? '' }}</td>
                                     <td>{{ $attendance['name'] ?? '' }}</td>
-                                    <td class="text-center">{{ timeFormat($attendance['in_time'], 'h:i a')  }}</td>
-                                    <td class="text-center">{{ timeFormat($attendance['out_time'], 'h:i a') ?? '-' }}</td>
+                                    <td class="text-center {{ isLateIn($attendance['in_time']) ? 'text-danger' : '' }}">{{ timeFormat($attendance['in_time'], 'h:i a')  }}</td>
+                                    <td class="text-center {{ isEarlyOut($attendance['out_time']) ? 'text-danger' : '' }}">{{ timeFormat($attendance['out_time'], 'h:i a') ?? '-' }}</td>
+                                    <td class="text-center">{{ hourCount($attendance['out_time'], $attendance['in_time']) }} </td>
                                     <td class="text-center">{{ $attendance['total_punches'] ?? '-' }}</td>
                                 </tr>
                             @empty

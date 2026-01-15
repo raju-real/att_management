@@ -21,7 +21,7 @@ class DashboardController extends Controller
             ->distinct()
             ->get()
             ->count();
-        $today_logs = AttendanceService::getDailyAttendance([]);
+        $today_logs = AttendanceService::getDailyAttendance([], 50);
         return view('dashboard', compact('total_students','total_teachers', 'total_devices', 'today_present', 'today_logs'));
     }
 }

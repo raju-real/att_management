@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\DB;
 class AttendanceService
 {
     // ======================= Log View Part ====================
-    public static function getDailyAttendance(array $filters = [])
+    public static function getDailyAttendance(array $filters = [], $paginate = 50)
     {
         $from = $filters['from_date'] ?? Carbon::today()->toDateString();
         $to = $filters['to_date'] ?? $filters['from_date'] ?? Carbon::today()->toDateString();
@@ -44,7 +44,7 @@ class AttendanceService
                 DB::raw('user_no')
             )
             ->orderBy('attendance_date', 'desc')
-            ->paginate(100);
+            ->paginate($paginate);
     }
 
     public static function attendanceSummery(array $filters = [])
@@ -55,19 +55,11 @@ class AttendanceService
          * ----------------------------
          */
         $from = $filters['from_date'] ?? Carbon::today()->toDateString();
-        $to = $filters['to_date'] ?? null;
-
-        if (!$from && !$to) {
-            $from = $to = now()->toDateString();
-        }
-
-        if ($from && !$to) {
-            $to = $from;
-        }
+        $to = $filters['to_date'] ?? $from;
 
         /**
          * ----------------------------
-         * 2️⃣ Attendance aggregation (PRESENT)
+         * 2️⃣ Attendance aggregation (PRESENT ONLY)
          * ----------------------------
          */
         $attendance = AttendanceLog::query()
@@ -81,10 +73,6 @@ class AttendanceService
             MAX(punch_time) as out_time
         ")
             ->whereBetween(DB::raw('DATE(punch_time)'), [$from, $to])
-            ->when($filters['user_type'] ?? null, fn($q, $v) => $q->where('user_type', $v))
-            ->when($filters['student_no'] ?? null, fn($q, $v) => $q->where('student_no', $v))
-            ->when($filters['student_id'] ?? null, fn($q, $v) => $q->where('student_id', $v))
-            ->when($filters['teacher_no'] ?? null, fn($q, $v) => $q->where('teacher_no', $v))
             ->groupBy(
                 'user_type',
                 'student_no',
@@ -100,17 +88,23 @@ class AttendanceService
 
         /**
          * ----------------------------
-         * 3️⃣ Expected users
+         * 3️⃣ Expected users (RESPECT user_type)
          * ----------------------------
          */
-        $students = Student::query()
-            ->when($filters['student_no'] ?? null, fn($q, $v) => $q->where('student_no', $v))
-            ->when($filters['student_id'] ?? null, fn($q, $v) => $q->where('student_id', $v))
-            ->get();
+        $students = collect();
+        $teachers = collect();
 
-        $teachers = Teacher::query()
-            ->when($filters['teacher_no'] ?? null, fn($q, $v) => $q->where('teacher_no', $v))
-            ->get();
+        if (empty($filters['user_type']) || $filters['user_type'] === 'student') {
+            $students = Student::query()
+                ->when($filters['student_id'] ?? null, fn($q, $v) => $q->where('student_no', $v)->orWhere('student_id', $v))
+                ->get();
+        }
+
+        if (empty($filters['user_type']) || $filters['user_type'] === 'teacher') {
+            $teachers = Teacher::query()
+                ->when($filters['teacher_no'] ?? null, fn($q, $v) => $q->where('teacher_no', $v))
+                ->get();
+        }
 
         /**
          * ----------------------------
@@ -132,7 +126,11 @@ class AttendanceService
                     'student_no' => $student->student_no,
                     'student_id' => $student->student_id,
                     'teacher_no' => null,
-                    'name' => showStudentFullName($student->firstname, $student->middlename, $student->lastname),
+                    'name' => showStudentFullName(
+                        $student->firstname,
+                        $student->middlename,
+                        $student->lastname
+                    ),
                     'status' => $log ? 'Present' : 'Absent',
                     'in_time' => $log?->in_time,
                     'out_time' => $log?->out_time,
@@ -157,16 +155,36 @@ class AttendanceService
             }
         }
 
-        //return collect($report);
-
         /**
          * ----------------------------
-         * 5️⃣ Filter by status (Present / Absent)
+         * 5️⃣ Filter by status
          * ----------------------------
          */
         if (!empty($filters['status'])) {
-            //dd($filters['status']);
-            $report = $report->where('status', ucfirst(strtolower($filters['status'])));
+            $status = strtolower($filters['status']);
+            if (in_array($status, ['present', 'absent'])) {
+                $report = $report->where('status', ucfirst($status));
+            }
+        }
+
+        /**
+         * ----------------------------
+         * 5️⃣ Filter by attendance type
+         * ----------------------------
+         */
+        if (!empty($filters['attendance_type'])) {
+            $status = strtolower($filters['attendance_type']);
+            if (in_array($status, ['late-in', 'early-out'])) {
+                if ($status === 'late-in') {
+                    $report = $report->filter(fn($row) => $row['status'] === 'Present' && !empty($row['in_time']) && isLateIn($row['in_time']));
+                } elseif ($status === 'early-out' && !empty(siteSettings()->out_time)) {
+                    $standardOut = Carbon::createFromFormat('H:i:s', siteSettings()->out_time);
+                    $report = $report->filter(fn($row) => $row['status'] === 'Present'
+                        && !empty($row['out_time'])
+                        && Carbon::parse($row['out_time'])->format('H:i:s') < $standardOut->format('H:i:s')
+                    );
+                }
+            }
         }
 
         /**
@@ -190,6 +208,7 @@ class AttendanceService
     }
 
 
+
     // ======================= Report Part =======================
 
     /**
@@ -197,28 +216,26 @@ class AttendanceService
      * @param array $filters
      * @return \Illuminate\Support\Collection
      */
-    public static function dateWisePresentReport(array $filters = [])
+    public static function monthWisePresentReport(array $filters = [])
     {
         /**
          * ----------------------------
-         * 1️⃣ Validate date input
+         * 1️⃣ Resolve date range
          * ----------------------------
          */
-//        if (empty($filters['from_date'])) {
-//            return collect(); // ❌ No date → empty
-//        }
-
         $from = $filters['from_date'] ?? Carbon::today()->toDateString();
-        $to = $filters['to_date'] ?? $filters['from_date'] ?? Carbon::today()->toDateString();
+        $to = $filters['to_date'] ?? $from;
+
+        $dataType = $filters['data_type'] ?? 'all_days'; // default
 
         /**
          * ----------------------------
-         * 2️⃣ Base query (PRESENT only)
+         * 2️⃣ Fetch PRESENT attendance
          * ----------------------------
          */
-        $query = AttendanceLog::query()
+        $rows = AttendanceLog::query()
             ->selectRaw("
-            DATE(punch_time) as attendance_date,
+            DATE_FORMAT(punch_time, '%Y-%m-%d') as attendance_date,
             user_type,
             name,
             COALESCE(student_no, teacher_no) as user_no,
@@ -228,50 +245,69 @@ class AttendanceService
         ")
             ->whereDate('punch_time', '>=', $from)
             ->whereDate('punch_time', '<=', $to)
+            ->when($filters['user_type'] ?? null,
+                fn($q, $v) => $q->where('user_type', $v)
+            )
+            ->when($filters['student_id'] ?? null,
+                fn($q, $v) => $q->where('student_id', $v)
+                    ->orWhere('student_no', $v)
+            )
+            ->when($filters['teacher_no'] ?? null,
+                fn($q, $v) => $q->where('teacher_no', $v)
+            )
             ->groupBy(
-                DB::raw('DATE(punch_time)'),
+                DB::raw("DATE_FORMAT(punch_time, '%Y-%m-%d')"),
                 'user_type',
                 'name',
                 DB::raw('COALESCE(student_no, teacher_no)')
             )
-            ->orderBy('attendance_date');
+            ->orderBy('attendance_date')
+            ->get()
+            ->groupBy('attendance_date');
 
         /**
          * ----------------------------
-         * 3️⃣ Optional filters
+         * 3️⃣ Build report by date type
          * ----------------------------
          */
-        $query->when($filters['user_type'] ?? null,
-            fn($q, $v) => $q->where('user_type', $v)
-        );
+        $report = collect();
 
-        $query->when($filters['student_no'] ?? null,
-            fn($q, $v) => $q->where('student_no', $v)
-        );
+        foreach (CarbonPeriod::create($from, $to) as $date) {
 
-        $query->when($filters['teacher_no'] ?? null,
-            fn($q, $v) => $q->where('teacher_no', $v)
-        );
+            $day = $date->format('Y-m-d');
+            $dayRows = $rows->get($day, collect());
 
-        /**
-         * ----------------------------
-         * 4️⃣ Execute & group by date
-         * ----------------------------
-         */
-        return $query->get()
-            ->groupBy('attendance_date')
-            ->map(function ($rows) {
-                return $rows->map(fn($row) => [
+            /**
+             * 🔹 working_days → skip empty dates
+             */
+            if ($dataType === 'working_days' && $dayRows->isEmpty()) {
+                continue;
+            }
+
+            if ($dataType === 'of_days' && $dayRows->isNotEmpty()) {
+                continue;
+            }
+
+            /**
+             * 🔹 all_days → include empty dates
+             */
+            $report->put(
+                $day,
+                $dayRows->map(fn($row) => [
                     'user_type' => $row->user_type,
                     'user_no' => $row->user_no,
-                    'name' => $row->name ?? null,
+                    'name' => $row->name,
                     'in_time' => $row->in_time,
                     'out_time' => $row->out_time,
                     'punch_count' => $row->punch_count,
                     'working_hours' => self::calculateHours($row->in_time, $row->out_time),
-                ]);
-            });
+                ])->values()
+            );
+        }
+
+        return $report;
     }
+
 
     /**
      * Month wise user summery
@@ -281,11 +317,11 @@ class AttendanceService
 
     public static function monthWiseUserSummery(array $filters = [])
     {
-        $from = $filters['from_date'] ?? now()->toDateString();
-        $to = $filters['to_date'] ?? $from;
+        $from = $filters['from_date'] ?? Carbon::now()->startOfMonth()->toDateString();
+        $to = $filters['to_date'] ?? Carbon::now()->toDateString();
 
-        $site_in_time = siteSettings()->in_time ?? '09:30:00';
-        $site_out_time = siteSettings()->out_time ?? '17:00:00';
+        $site_in_time = siteSettings()->in_time ?? '00:00:00';
+        $site_out_time = siteSettings()->out_time ?? '00:00:00';
 
         $query = AttendanceLog::query()
             ->selectRaw("

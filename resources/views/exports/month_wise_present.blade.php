@@ -10,6 +10,13 @@
             Date Range: {{ dateFormat($from_date,'d M, Y') }} to {{ dateFormat($to_date,'d M, Y') }}
         </th>
     </tr>
+    @if($user_type)
+        <tr>
+            <th colspan="6" style="background-color:#E9F2FF; text-align:center;">
+                User : {{ ucfirst($user_type) }}
+            </th>
+        </tr>
+    @endif
     <tr></tr> <!-- empty row for spacing -->
     </thead>
 
@@ -17,7 +24,7 @@
     @foreach($attendance_reports as $date => $records)
         <!-- Date Header -->
         <tr>
-            <td colspan="6" style="background-color:#DDEBF7; font-weight:bold;">
+            <td colspan="6" style="background-color:{{ count($records) ? '#DDEBF7' : '#BD5642' }}; font-weight:bold;">
                 {{ \Carbon\Carbon::parse($date)->format('d M, Y') }}
                 ({{ count($records) }} Present)
             </td>

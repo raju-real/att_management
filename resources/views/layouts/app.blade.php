@@ -37,8 +37,8 @@
 <nav class="navbar navbar-expand-lg navbar-admin">
     <div class="container-fluid">
         <!-- Logo/Brand on left -->
-        <a class="navbar-brand" href="{{ route('dashboard') }}">
-            <i class="fas fa-chart-line"></i> {{ siteSettings()->site_name ?? 'Attendance Management' }}
+        <a class="navbar-brand" href="{{ route('dashboard') }}" {!! tooltip(siteSettings()->site_name ?? 'Attendance Management') !!}>
+            <i class="fas fa-chart-line"></i> {{ textLimit(siteSettings()->site_name ?? 'Attendance Management',15) }}
         </a>
 
         <!-- Mobile toggle button -->
@@ -50,35 +50,36 @@
         <div class="collapse navbar-collapse" id="navbarNav">
             {{--                menus from left side--}}
             <ul class="navbar-nav mr-auto">
-{{--                <li class="nav-item">--}}
-{{--                    <a class="nav-link {{ segmentOne() == 'present-logs' ? 'active' : '' }}"--}}
-{{--                       href="{{ route('present-logs') }}">--}}
-{{--                        <i class="fas fa-user-clock"></i> Present Logs--}}
-{{--                    </a>--}}
-{{--                </li>--}}
+                {{--                <li class="nav-item">--}}
+                {{--                    <a class="nav-link {{ segmentOne() == 'present-logs' ? 'active' : '' }}"--}}
+                {{--                       href="{{ route('present-logs') }}">--}}
+                {{--                        <i class="fas fa-user-clock"></i> Present Logs--}}
+                {{--                    </a>--}}
+                {{--                </li>--}}
 
             </ul>
             {{-- menus from right side --}}
             <ul class="navbar-nav">
+                <li class="nav-item">
+                    <a class="nav-link {{ segmentOne() == 'attendance-summery' ? 'active' : '' }}"
+                       href="{{ route('attendance-summery') }}">
+                        <i class="fas fa-clock"></i> Attendance Logs
+                    </a>
+                </li>
                 <li class="nav-item">
                     <a class="nav-link {{ segmentOne() == 'present-logs' ? 'active' : '' }}"
                        href="{{ route('present-logs') }}">
                         <i class="fas fa-user-clock"></i> Present Logs
                     </a>
                 </li>
-                <li class="nav-item">
-                    <a class="nav-link {{ segmentOne() == 'attendance-summery' ? 'active' : '' }}"
-                       href="{{ route('attendance-summery') }}">
-                        <i class="fas fa-user-clock"></i> Attendance Summery
-                    </a>
-                </li>
+
                 <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle {{ segmentOne() == 'date-wise-present-report' ? 'active' : '' }}"
+                    <a class="nav-link dropdown-toggle {{ segmentOne() == 'month-wise-present-report' || segmentOne() == 'month-wise-user-summery' ? 'active' : '' }}"
                        href="#" id="configDropdown" role="button" data-toggle="dropdown">
                         <i class="fas fa-cog mr-1"></i> Reports
                     </a>
                     <div class="dropdown-menu dropdown-menu-right">
-                        <a class="dropdown-item" href="{{ route('date-wise-present-report') }}">
+                        <a class="dropdown-item" href="{{ route('month-wise-present-report') }}">
                             <i class="fas fa-gift mr-2"></i> Month Wise Present (by Date Range)
                         </a>
                         <a class="dropdown-item" href="{{ route('month-wise-user-summery') }}">
@@ -110,14 +111,14 @@
             <ul class="navbar-nav">
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle {{ segmentOne() == 'profile' || segmentOne() == 'site-settings' ? 'active' : '' }}"
-                       href="#" id="userDropdown" role="button" data-toggle="dropdown">
+                       href="#" id="userDropdown" role="button" data-toggle="dropdown" >
                         @if(authUser()->image && file_exists(authUser()->image))
                             <img src="{{ asset(authUser()->image) }}" alt=""
                                  class="img-fluid rounded-circle img-30 mr-2">
                         @else
                             <i class="fas fa-user-circle mr-1"></i>
                         @endif
-                        Admin User
+                        {{ textLimit(authUser()->name,10) ?? 'Admin User' }}
                     </a>
                     <div class="dropdown-menu dropdown-menu-right">
                         <a class="dropdown-item" href="{{ route('profile') }}">
@@ -141,7 +142,9 @@
 <div class="main-content">
     <x-alert-message/>
 
-    @yield('content')
+    <div class="main-portion" style="min-height: 100vh">
+        @yield('content')
+    </div>
 
     <!-- Footer -->
     <footer class="footer">

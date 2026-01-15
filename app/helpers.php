@@ -170,9 +170,10 @@ if (!function_exists('dateFormat')) {
 }
 
 if (!function_exists('timeFormat')) {
-    function timeFormat($time, $format = 'H:i'): string
+    function timeFormat($time = null, $format = 'H:i'): string
     {
-        return Carbon::parse($time)->format($format);
+
+        return $time ? Carbon::parse($time)->format($format) : '-';
     }
 }
 
@@ -404,6 +405,29 @@ if (!function_exists('hourCount')) {
     }
 }
 
+if(! function_exists('isLateIn')) {
+    function isLateIn($in_time = null): bool
+    {
+        if(!$in_time || empty(siteSettings()->in_time)) {
+            return false;
+        }
+        $standard_in = Carbon::parse(siteSettings()->in_time);
+        $user_in =  Carbon::parse($in_time);
+        return $user_in->gt($standard_in);
+    }
+}
+
+if(! function_exists('isEarlyOut')) {
+    function isEarlyOut($check_out = null): bool
+    {
+        if(!$check_out || empty(siteSettings()->out_time)) {
+            return false;
+        }
+        $standard_out = Carbon::parse(siteSettings()->out_time);
+        $user_out =  Carbon::parse($check_out);
+        return $user_out->lt($standard_out);
+    }
+}
 
 
 

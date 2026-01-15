@@ -34,7 +34,7 @@
                  data-parent="#attendanceFilterAccordion">
 
                 <div class="card-body">
-                    <form method="GET" action="{{ route('date-wise-present-report') }}">
+                    <form method="GET" action="{{ route('month-wise-present-report') }}">
                         <div class="row g-2">
                             <!-- User Type -->
                             <div class="col-md-4">
@@ -51,6 +51,27 @@
                                     </select>
                                 </div>
                             </div>
+
+                            <!-- Student ID -->
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label class="form-label">Student ID/Device ID</label>
+                                    <input type="search"
+                                           name="student_id"
+                                           class="form-control"
+                                           value="{{ request('student_id') }}" placeholder="Student ID">
+                                </div>
+                            </div>
+                            <!-- Teacher ID -->
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label class="form-label">Teacher ID</label>
+                                    <input type="search"
+                                           name="teacher_no"
+                                           class="form-control"
+                                           value="{{ request('teacher_no') }}" placeholder="Student ID">
+                                </div>
+                            </div>
                             <!-- From Date -->
                             <div class="col-md-4">
                                 <div class="form-group input-clearable">
@@ -59,9 +80,10 @@
                                            name="from_date"
                                            id="from_date"
                                            class="form-control flat_datepicker"
-                                           value="{{ request('from_date') }}">
+                                           value="{{ $from_date ?? '' }}">
                                     <span class="clear-btn"
-                                          onclick="document.getElementById('from_date').value='';">X</span>
+                                          onclick="document.getElementById('from_date').value='';"><i
+                                            class="fa fa-calendar"></i></span>
                                 </div>
                             </div>
                             <!-- To Date -->
@@ -72,9 +94,28 @@
                                            name="to_date"
                                            id="to_date"
                                            class="form-control flat_datepicker"
-                                           value="{{ request('to_date') ?? '' }}">
+                                           value="{{ $to_date ?? '' }}">
                                     <span class="clear-btn"
-                                          onclick="document.getElementById('to_date').value='';">X</span>
+                                          onclick="document.getElementById('to_date').value='';"><i
+                                            class="fa fa-calendar"></i></span>
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label class="form-label">Data Type</label>
+                                    <select name="data_type" class="form-control">
+                                        <option value="all_days" {{ request('data_type')=='all_days'?'selected':'' }}>
+                                            All Days
+                                        </option>
+                                        <option
+                                            value="working_days" {{ request('data_type')=='working_days'?'selected':'' }}>
+                                            Working Days
+                                        </option>
+                                        <option value="of_days" {{ request('data_type')=='of_days'?'selected':'' }}>Off
+                                            Days
+                                        </option>
+                                    </select>
                                 </div>
                             </div>
 
@@ -82,14 +123,17 @@
                                 <div class="form-group">
                                     <label class="form-label">Display Type</label>
                                     <select name="display_type" class="form-control">
-                                        <option value="show_data" {{ request('display_type')=='show_data'?'selected':'' }}>
+                                        <option
+                                            value="show_data" {{ request('display_type')=='show_data'?'selected':'' }}>
                                             Show Data
                                         </option>
-                                        <option value="download_as_xl" {{ request('display_type')=='download_as_xl'?'selected':'' }}>
+                                        <option
+                                            value="download_as_xl" {{ request('display_type')=='download_as_xl'?'selected':'' }}>
                                             Download as XL
                                         </option>
-                                        <option value="download_as_pdf" {{ request('display_type')=='download_as_xl'?'selected':'' }}>
-                                            Download as XL
+                                        <option
+                                            value="download_as_pdf" {{ request('display_type')=='download_as_pdf'?'selected':'' }}>
+                                            Download as PDF
                                         </option>
 
                                     </select>
@@ -108,7 +152,7 @@
                             <div class="col-md-1 mt-2">
                                 <label class="form-label"></label>
                                 <div class="form-group">
-                                    <a href="{{ route('date-wise-present-report') }}"
+                                    <a href="{{ route('month-wise-present-report') }}"
                                        class="btn btn-secondary w-100">
                                         <i class="fas fa-undo"></i>
                                     </a>
@@ -137,7 +181,7 @@
                 @forelse($attendance_reports as $attendance_date => $records)
                     <div class="col-xl-6 col-lg-6 col-md-12 mb-4">
                         <div class="card shadow-sm">
-                            <div class="card-header bg-light py-2">
+                            <div class="card-header bg-{{ count($records) ? 'light' : 'danger' }} py-2">
                                 <strong>
                                     <i class="fas fa-calendar-day mr-1"></i>
                                     {{ dateFormat($attendance_date, 'd M, Y') }}
@@ -149,10 +193,9 @@
 
                             <div class="card-body p-0">
                                 <div class="table-responsive">
-                                    <table class="table table-sm table-striped mb-0">
+                                    <table class="table table-sm table-striped mb-0 text-left">
                                         <thead>
                                         <tr>
-                                            <th>User</th>
                                             <th>ID</th>
                                             <th>Name</th>
                                             <th>In</th>
@@ -160,15 +203,14 @@
                                             <th>Hr</th>
                                         </tr>
                                         </thead>
-                                        <tbody>
+                                        <tbody class="table-bordered">
                                         @foreach($records as $record)
                                             <tr>
-                                                <td>{{ ucfirst($record['user_type']) }}</td>
                                                 <td>{{ $record['user_no'] }}</td>
                                                 <td>{{ $record['name'] }}</td>
-                                                <td>{{ timeFormat($record['in_time'], 'h:i a') }}</td>
-                                                <td>{{ timeFormat($record['out_time'], 'h:i a') ?? '-' }}</td>
-                                                <td>{{ hourCount($record['out_time'], $record['in_time']) }}</td>
+                                                <td class="text-nowrap {{ isLateIn($record['in_time']) ? 'text-danger' : '' }}">{{ timeFormat($record['in_time'], 'h:i a') }}</td>
+                                                <td class="text-nowrap {{ isEarlyOut($record['out_time']) ? 'text-danger' : '' }}">{{ timeFormat($record['out_time'], 'h:i a') ?? '-' }}</td>
+                                                <td class="text-nowrap">{{ hourCount($record['out_time'], $record['in_time']) }}</td>
                                             </tr>
                                         @endforeach
                                         </tbody>

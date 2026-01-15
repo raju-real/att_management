@@ -6,7 +6,7 @@ use Maatwebsite\Excel\Concerns\FromView;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Illuminate\Contracts\View\View;
 
-class DateWisePresentExport implements FromView, ShouldAutoSize
+class MonthWisePresentExport implements FromView, ShouldAutoSize
 {
     protected array $filters;
 
@@ -17,15 +17,14 @@ class DateWisePresentExport implements FromView, ShouldAutoSize
 
     public function view(): View
     {
-        $attendance_reports = AttendanceService::dateWisePresentReport($this->filters);
+        $attendance_reports = AttendanceService::monthWisePresentReport($this->filters);
 
         $from_date = $this->filters['from_date'] ?? '';
         $to_date   = $this->filters['to_date'] ?? $from_date;
+        $user_type = $this->filters['user_type'] ?? '';
+        $student_id = $this->filters['student_id'] ?? '';
+        $teacher_no = $this->filters['teacher_no'] ?? '';
 
-        return view('exports.date_wise_present', compact(
-            'attendance_reports',
-            'from_date',
-            'to_date'
-        ));
+        return view('exports.date_wise_present', compact('attendance_reports', 'from_date', 'to_date','user_type','student_id','teacher_no'));
     }
 }

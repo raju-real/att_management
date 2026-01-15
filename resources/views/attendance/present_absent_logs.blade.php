@@ -6,9 +6,7 @@
 @section('content')
 
     @php
-        $filterOpen = request()->hasAny([
-            'user_type','user_no','student_id','from_date','to_date'
-        ]);
+        $filterOpen = request()->hasAny(['user_type','user_no','student_id','from_date','to_date']);
     @endphp
 
     <div class="accordion mb-3" id="attendanceFilterAccordion">
@@ -53,6 +51,27 @@
                                 </div>
                             </div>
 
+                            <!-- Student ID -->
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label class="form-label">Student ID/Device ID</label>
+                                    <input type="search"
+                                           name="student_id"
+                                           class="form-control"
+                                           value="{{ request('student_id') }}" placeholder="Student ID">
+                                </div>
+                            </div>
+                            <!-- Teacher ID -->
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label class="form-label">Teacher ID</label>
+                                    <input type="search"
+                                           name="teacher_no"
+                                           class="form-control"
+                                           value="{{ request('teacher_no') }}" placeholder="Student ID">
+                                </div>
+                            </div>
+
                             <!-- From Date -->
                             <div class="col-md-4">
                                 <div class="form-group input-clearable">
@@ -61,9 +80,11 @@
                                            name="from_date"
                                            id="from_date"
                                            class="form-control flat_datepicker"
+                                           placeholder="{{ dateFormat(today()) }}"
                                            value="{{ request('from_date') }}">
                                     <span class="clear-btn"
-                                          onclick="document.getElementById('from_date').value='';">X</span>
+                                          onclick="document.getElementById('from_date').value='';"><i
+                                            class="fa fa-calendar"></i></span>
                                 </div>
                             </div>
 
@@ -75,9 +96,11 @@
                                            name="to_date"
                                            id="to_date"
                                            class="form-control flat_datepicker"
-                                           value="{{ request('to_date') ?? '' }}">
+                                           value="{{ request('to_date') ?? '' }}"
+                                           placeholder="{{ dateFormat(today()) }}">
                                     <span class="clear-btn"
-                                          onclick="document.getElementById('to_date').value='';">X</span>
+                                          onclick="document.getElementById('to_date').value='';"><i
+                                            class="fa fa-calendar"></i></span>
                                 </div>
                             </div>
 
@@ -92,6 +115,21 @@
                                         </option>
                                         <option value="absent" {{ request('status')=='absent'?'selected':'' }}>
                                             Absent
+                                        </option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label class="form-label">Attendance Type</label>
+                                    <select name="attendance_type" class="form-control">
+                                        <option value="">All</option>
+                                        <option value="late-in" {{ request('status')=='late-in'?'selected':'' }}>
+                                            Late In
+                                        </option>
+                                        <option value="early-out" {{ request('status')=='early-out'?'selected':'' }}>
+                                            Early Out
                                         </option>
                                     </select>
                                 </div>
@@ -139,39 +177,39 @@
                 <table class="table table-hover table-striped text-left">
                     <thead>
                     <tr>
-                        <th>#</th>
+                        <th class="text-center">#</th>
                         <th>Date</th>
                         <th>User Type</th>
                         <th>ID</th>
                         <th>Student ID</th>
                         <th>Name</th>
                         <th>Status</th>
-                        <th>In Time</th>
-                        <th>Out Time</th>
-                        <th>Work Hour</th>
+                        <th class="text-center">In Time</th>
+                        <th class="text-center">Out Time</th>
+                        <th class="text-center">Work Hour</th>
                     </tr>
                     </thead>
-                    <tbody>
+                    <tbody class="table-bordered">
                     @forelse($attendance_logs as $attendance)
                         <tr>
-                            <td>{{ $loop->index + 1 }}</td>
+                            <td class="text-center">{{ $loop->index + 1 }}</td>
                             <td>{{ $attendance['attendance_date'] }}</td>
                             <td>{{ ucFirst($attendance['user_type']) }}</td>
                             <td>
                                 @if($attendance['user_type'] == 'student')
-                                    {{ $attendance['student_no'] ?? '' }}
+                                    {{ $attendance['student_no'] ?? '-' }}
                                 @elseif($attendance['user_type'] == 'teacher')
-                                    {{ $attendance['teacher_no'] ?? '' }}
+                                    {{ $attendance['teacher_no'] ?? '-' }}
                                 @endif
                             </td>
-                            <td>{{ $attendance['student_id'] ?? '' }}</td>
+                            <td>{{ $attendance['student_id'] ?? '-' }}</td>
                             <td>{{ $attendance['name'] ?? '' }}</td>
                             <td>
                                 <span class="badge badge-{{ $attendance['status'] == 'Present' ? 'primary' : 'danger' }}">{{ $attendance['status'] ?? '' }}</span>
                             </td>
-                            <td>{{ timeFormat($attendance['in_time'], 'h:i a')  }}</td>
-                            <td>{{ timeFormat($attendance['out_time'], 'h:i a') ?? '-' }}</td>
-                            <td>{{ hourCount($attendance['out_time'], $attendance['in_time']) }}</td>
+                            <td class="text-center {{ isLateIn($attendance['in_time']) ? 'text-danger' : '' }}">{{ timeFormat($attendance['in_time'], 'h:i a')  }}</td>
+                            <td class="text-center {{ isEarlyOut($attendance['out_time']) ? 'text-danger' : '' }}">{{ timeFormat($attendance['out_time'], 'h:i a') ?? '-' }}</td>
+                            <td class="text-center">{{ hourCount($attendance['out_time'], $attendance['in_time']) }}</td>
                         </tr>
                     @empty
                         <x-no-data-found/>

@@ -41,11 +41,10 @@ $(function () {
     flatpickr(".flat_timepicker", {
         enableTime: true,
         noCalendar: true, // Disable calendar
-        dateFormat: "H:i:S", // 24-hour format
-        time_24hr: true, // Use 24-hour clock
+        dateFormat: "h:i:S K", // 24-hour format
+        // time_24hr: true, // Use 24-hour clock
         minuteIncrement: 1,
-
-        defaultDate: "12:00:00", // Optional default time
+        // defaultDate: "12:00:00", // Optional default time
     });
 
     flatpickr(".flat_datepicker", {
@@ -61,22 +60,20 @@ $(function () {
             enableTime: true,
             dateFormat: "Y-m-d H:i:S",
             time_24hr: true,
-                        minuteIncrement: 1,
-
+            minuteIncrement: 1,
             defaultDate: el.dataset.default || new Date(), // fallback to today
         });
     });
 
-    // Time only picker
+    // Time only picker with AM/PM format
     document.querySelectorAll(".flat_timepicker").forEach(function (el) {
         flatpickr(el, {
             enableTime: true,
             noCalendar: true,
-            dateFormat: "H:i:S",
+            dateFormat: "h:i:S K",  // Changed to AM/PM format
             minuteIncrement: 1,
-
-            time_24hr: true,
-            defaultDate: el.dataset.default || "12:00:00", // fallback to 12:00:00
+            time_24hr: false,       // Set to false for AM/PM
+            //defaultDate: el.dataset.default || "12:00:00",
         });
     });
 

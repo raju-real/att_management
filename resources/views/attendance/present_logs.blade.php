@@ -99,9 +99,10 @@
                                            name="from_date"
                                            id="from_date"
                                            class="form-control flat_datepicker"
+                                           placeholder="{{ dateFormat(today()) }}"
                                            value="{{ request('from_date') }}">
                                     <span class="clear-btn"
-                                          onclick="document.getElementById('from_date').value='';">X</span>
+                                          onclick="document.getElementById('from_date').value='';"><i class="fa fa-calendar"></i></span>
                                 </div>
                             </div>
 
@@ -113,9 +114,10 @@
                                            name="to_date"
                                            id="to_date"
                                            class="form-control flat_datepicker"
-                                           value="{{ request('to_date') ?? '' }}">
+                                           value="{{ request('to_date') ?? '' }}"
+                                           placeholder="{{ dateFormat(today()) }}">
                                     <span class="clear-btn"
-                                          onclick="document.getElementById('to_date').value='';">X</span>
+                                          onclick="document.getElementById('to_date').value='';"><i class="fa fa-calendar"></i></span>
                                 </div>
                             </div>
 
@@ -161,8 +163,8 @@
                 <table class="table table-hover table-striped">
                     <thead>
                     <tr>
-                        <th>#</th>
-                        <th>User Type</th>
+                        <th class="text-center">#</th>
+                        <th class="text-center">User Type</th>
                         <th>ID</th>
                         <th>Name</th>
                         <th class="text-center">In Time</th>
@@ -171,16 +173,16 @@
                         <th class="text-center">Punch Count</th>
                     </tr>
                     </thead>
-                    <tbody>
+                    <tbody class="table-bordered">
                     @forelse($attendance_logs as $attendance)
                         <tr>
-                            <td>{{ $loop->index + 1 }}</td>
-                            <td>{{ ucFirst($attendance['user_type']) }}</td>
+                            <td class="text-center">{{ $loop->index + 1 }}</td>
+                            <td class="text-center">{{ ucFirst($attendance['user_type']) }}</td>
                             <td>{{ $attendance['user_no'] ?? '' }}</td>
                             <td>{{ $attendance['name'] ?? '' }}</td>
-                            <td class="text-center">{{ timeFormat($attendance['in_time'], 'h:i a')  }}</td>
-                            <td class="text-center">{{ timeFormat($attendance['out_time'], 'h:i a') ?? '-' }}</td>
-                            <td class="text-center">{{ hourCount($attendance['out_time'], $attendance['in_time']) }}</td>
+                            <td class="text-center {{ isLateIn($attendance['in_time']) ? 'text-danger' : '' }}">{{ timeFormat($attendance['in_time'], 'h:i a')  }}</td>
+                            <td class="text-center {{ isEarlyOut($attendance['out_time']) ? 'text-danger' : '' }}">{{ timeFormat($attendance['out_time'], 'h:i a') ?? '-' }}</td>
+                            <td class="text-center">{{ hourCount($attendance['out_time'], $attendance['in_time']) }} </td>
                             <td class="text-center">{{ $attendance['total_punches'] ?? '-' }}</td>
                         </tr>
                     @empty

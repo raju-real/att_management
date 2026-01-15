@@ -39,6 +39,10 @@ class ProfileController extends Controller
         ]);
 
         $admin = User::find(authUser()->id);
+        $admin->name = $request->name;
+        $admin->email = $request->email;
+        $admin->mobile = $request->mobile;
+
         if ($request->file('image')) {
             if ($admin->image !== null and file_exists($admin->image)) {
                 unlink($admin->image);

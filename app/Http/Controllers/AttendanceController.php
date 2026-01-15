@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Exports\DateWisePresentExport;
+use App\Exports\MonthWisePresentExport;
 use App\Exports\UserWiseSummaryExport;
 use App\Services\AttendanceService;
 use Carbon\Carbon;
@@ -46,32 +47,34 @@ class AttendanceController extends Controller
         return view('attendance.present_absent_logs', compact('attendance_logs', 'from_date', 'to_date'));
     }
 
-    public function dateWisePresentReport()
+    public function monthWisePresentReport()
     {
         $filter = [];
         $filter['user_type'] = request()->get('user_type') ?? '';
-        $filter['student_no'] = request()->get('student_no') ?? '';
+        $filter['student_id'] = request()->get('student_id') ?? '';
         $filter['teacher_no'] = request()->get('teacher_no') ?? '';
-        $filter['from_date'] = request()->get('from_date') ?? Carbon::today()->toDateString();
+        $filter['from_date'] = request()->get('from_date') ?? Carbon::now()->startOfMonth()->toDateString();
         $filter['to_date'] = request()->get('to_date') ?? $filters['from_date'] ?? Carbon::today()->toDateString();
+        $filter['data_type'] = request()->get('data_type') ?? 'all_days';
 
         $from_date = $filter['from_date'];
         $to_date = $filter['to_date'];
+
         $display_type = request()->get('display_type') ?? 'show_data';
 
         if ($display_type === 'show_data') {
-            $attendance_reports = AttendanceService::dateWisePresentReport($filter);
-            return view('reports.date_wise_present', compact('attendance_reports', 'from_date', 'to_date'));
+            $attendance_reports = AttendanceService::monthWisePresentReport($filter);
+            return view('reports.month_wise_present', compact('attendance_reports', 'from_date', 'to_date'));
         } elseif ($display_type === 'download_as_xl') {
             $bas_file_name = dateFormat($from_date, 'd_m_y') . '_to_' . dateFormat($to_date, 'd_m_y');
             return Excel::download(
-                new DateWisePresentExport($filter),
+                new MonthWisePresentExport($filter),
                 $bas_file_name . '_attendance_report.xlsx'
             );
         } elseif ($display_type === 'download_as_pdf') {
-            $attendance_reports = AttendanceService::dateWisePresentReport($filter);
+            $attendance_reports = AttendanceService::monthWisePresentReport($filter);
             $bas_file_name = dateFormat($from_date, 'd_m_y') . '_to_' . dateFormat($to_date, 'd_m_y');
-            $report = PDF::loadView('pdf.date_wise_present_report', compact('attendance_reports', 'from_date', 'to_date'));
+            $report = PDF::loadView('pdf.month_wise_present_report', compact('attendance_reports', 'from_date', 'to_date'));
             return $report->stream();
             return $report->download('attendance report' . '.pdf');
         }
@@ -84,7 +87,7 @@ class AttendanceController extends Controller
         $filter['user_type'] = request()->get('user_type') ?? '';
         $filter['student_no'] = request()->get('student_no') ?? '';
         $filter['teacher_no'] = request()->get('teacher_no') ?? '';
-        $filter['from_date'] = request()->get('from_date') ?? Carbon::today()->toDateString();
+        $filter['from_date'] = request()->get('from_date') ?? Carbon::now()->startOfMonth()->toDateString();
         $filter['to_date'] = request()->get('to_date') ?? $filters['from_date'] ?? Carbon::today()->toDateString();
         $display_type = request()->get('display_type') ?? 'show_data';
 
@@ -103,7 +106,6 @@ class AttendanceController extends Controller
                 'user_wise_summary_' . now()->format('Ymd_His') . '.xlsx'
             );
         }
-        return $attendance_reports = AttendanceService::monthWiseUserSummery($filter);
     }
 
 }

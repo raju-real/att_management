@@ -18,8 +18,8 @@ class SettingController extends Controller
             'site_name' => 'required|string|max:100',
             'email' => 'nullable|email|max:100',
             'mobile' => 'nullable|string|max:15',
-            'in_time' => 'required|date_format:H:i:s',
-            'out_time' => 'required|date_format:H:i:s',
+            'in_time' => 'required',
+            'out_time' => 'required',
         ]);
 
         // ✅ Save as JSON
