@@ -53,6 +53,12 @@ $(function () {
         // defaultDate: "today",
     });
 
+    flatpickr(".flat_multi_datepicker", {
+        dateFormat: "Y-m-d",
+        mode: "multiple",
+        allowInput: false
+    });
+
     // Set custom or default date or time or date time
     // Date & time picker
     document.querySelectorAll(".flat_datetimepicker").forEach(function (el) {
@@ -83,6 +89,14 @@ $(function () {
             dateFormat: "Y-m-d",
             defaultDate: el.dataset.default
             // defaultDate: el.dataset.default || new Date(), // fallback to today
+        });
+    });
+
+    document.querySelectorAll(".flat_multi_datepicker").forEach(function (el) {
+        flatpickr(el, {
+            dateFormat: "Y-m-d",
+            mode: "multiple",
+            allowInput: false
         });
     });
 });

@@ -80,7 +80,8 @@
                                            class="form-control flat_datepicker"
                                            value="{{ $from_date }}">
                                     <span class="clear-btn"
-                                          onclick="document.getElementById('from_date').value='';"><i class="fa fa-calendar"></i></span>
+                                          onclick="document.getElementById('from_date').value='';"><i
+                                            class="fa fa-calendar"></i></span>
                                 </div>
                             </div>
                             <!-- To Date -->
@@ -93,7 +94,8 @@
                                            class="form-control flat_datepicker"
                                            value="{{ $to_date ?? '' }}">
                                     <span class="clear-btn"
-                                          onclick="document.getElementById('to_date').value='';"><i class="fa fa-calendar"></i></span>
+                                          onclick="document.getElementById('to_date').value='';"><i
+                                            class="fa fa-calendar"></i></span>
                                 </div>
                             </div>
 
@@ -119,7 +121,7 @@
                             </div>
 
                             <!-- Buttons -->
-                            <div class="col-md-1 mt-2">
+                            <div class="col-md-1">
                                 <div class="form-group">
                                     <label class="form-label"></label>
                                     <button class="btn btn-primary mr-2 w-100">
@@ -127,10 +129,10 @@
                                     </button>
                                 </div>
                             </div>
-                            <div class="col-md-1 mt-2">
+                            <div class="col-md-1">
                                 <label class="form-label"></label>
                                 <div class="form-group">
-                                    <a href="{{ route('date-wise-present-report') }}"
+                                    <a href="{{ route('month-wise-user-summery') }}"
                                        class="btn btn-secondary w-100">
                                         <i class="fas fa-undo"></i>
                                     </a>
@@ -148,23 +150,25 @@
         <div class="card-header">
             <h5 class="card-title">
                 <i class="fas fa-user-clock mr-2"></i> Monthly Summary
-                ({{ dateFormat($from_date,'d M, y') }} to {{ dateFormat($to_date,'d M, y') ?? dateFormat($from_date,'d M, y') }})
+                ({{ dateFormat($from_date,'d M, y') }}
+                to {{ dateFormat($to_date,'d M, y') ?? dateFormat($from_date,'d M, y') }})
             </h5>
         </div>
 
         <div class="card-body table-responsive">
-            <table class="table table-striped table-bordered table-sm text-center">
-                <thead class="thead-light">
+            <table class="table table-striped table-bordered table-sm text-left">
+                <thead class="thead-light text-nowrap">
                 <tr>
                     <th>User Type</th>
                     <th>ID</th>
-                    <th>First In</th>
-                    <th>Last Out</th>
-                    <th>Early In</th>
+                    <th>Name</th>
+                    <th>Earliest In</th>
                     <th>Late In</th>
-                    <th>Early Out</th>
+                    <th>Earliest Out</th>
                     <th>Late Out</th>
-                    <th>Total Hours</th>
+                    <th>Present</th>
+                    <th>Absent</th>
+                    <th>Working Hour</th>
                 </tr>
                 </thead>
                 <tbody class="table-bordered">
@@ -172,13 +176,14 @@
                     <tr>
                         <td>{{ ucfirst($row['user_type']) }}</td>
                         <td>{{ $row['user_no'] }}</td>
-                        <td>{{ $row['first_in'] }}</td>
-                        <td>{{ $row['last_out'] }}</td>
-                        <td>{{ $row['early_in'] }}</td>
-                        <td>{{ $row['late_in'] }}</td>
-                        <td>{{ $row['early_out'] }}</td>
-                        <td>{{ $row['late_out'] }}</td>
-                        <td>{{ $row['total_hours'] }}</td>
+                        <td>{{ $row['name'] }}</td>
+                        <td>{{ $row['earliest_in'] }}</td>
+                        <td>{{ $row['latest_late_in'] }}</td>
+                        <td>{{ $row['earliest_out'] }}</td>
+                        <td>{{ $row['latest_late_out'] }}</td>
+                        <td>{{ $row['total_present_days'] }}</td>
+                        <td>{{ $row['total_absent_days'] }}</td>
+                        <td>{{ $row['total_working_hours'] }}</td>
                     </tr>
                 @empty
                     <tr>

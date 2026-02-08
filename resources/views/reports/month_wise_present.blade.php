@@ -184,7 +184,7 @@
                             <div class="card-header bg-{{ count($records) ? 'light' : 'danger' }} py-2">
                                 <strong>
                                     <i class="fas fa-calendar-day mr-1"></i>
-                                    {{ dateFormat($attendance_date, 'd M, Y') }}
+                                    {{ dateFormat($attendance_date, 'd M, Y') }} ({{ dayNameFromDate($attendance_date) }})
                                 </strong>
                                 <span class="badge badge-primary ml-2">
                                     {{ count($records) }} Present

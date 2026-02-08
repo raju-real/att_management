@@ -71,7 +71,7 @@ if (!function_exists('displayError')) {
     {
         return '<div class="invalid-feedback d-block fw-bold">
             <i class="fas fa-exclamation-circle"></i>' . $error .
-        '</div>';
+            '</div>';
     }
 }
 
@@ -348,16 +348,53 @@ if (!function_exists('siteSettings')) {
     {
         return cache()->rememberForever('site_settings', function () {
             $path = base_path('assets/common/json/site_setting.json');
-
             if (!file_exists($path)) {
-                return (object) [];
+                return (object)[];
             }
-
             return json_decode(file_get_contents($path));
         });
     }
 }
 
+if (!function_exists('dayNameFromDate')) {
+    /**
+     * Get full day name (Monday, Tuesday, etc.) from a date
+     *
+     * @param \DateTimeInterface|string|null $date
+     * @return string|null
+     */
+    function dayNameFromDate(DateTimeInterface|string $date = null)
+    {
+        if (!$date) {
+            return null;
+        }
+        $carbonDate = $date instanceof \DateTimeInterface ? Carbon::instance($date) : Carbon::parse($date);
+        return $carbonDate->format('l'); // Full day name: Monday, Tuesday...
+    }
+}
+
+
+if (!function_exists('weeklyHolidays')) {
+    function weeklyHolidays()
+    {
+        $weeklyHolidays = [];
+        if (!empty(siteSettings()->weekly_holidays)) {
+            $weeklyHolidays = is_array(siteSettings()->weekly_holidays) ? siteSettings()->weekly_holidays : (array)siteSettings()->weekly_holidays;
+        }
+        return $weeklyHolidays;
+    }
+}
+
+if (!function_exists('officeHolidays')) {
+    function officeHolidays()
+    {
+        $officeHolidays = [];
+        if (!empty(siteSettings()->office_holidays)) {
+            $officeHolidays = is_array(siteSettings()->office_holidays) ? siteSettings()->office_holidays : (array)siteSettings()->office_holidays;
+        }
+        return $officeHolidays;
+    }
+}
 
 
 if (!function_exists('authUser')) {
@@ -369,6 +406,22 @@ if (!function_exists('authUser')) {
 
 // Project related
 
+if (!function_exists('weekDays')) {
+    function weekDays(): array
+    {
+        return ['Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+//        return [
+//            (object)['value' => 'Saturday', 'title' => 'Saturday'],
+//            (object)['value' => 'Sunday', 'title' => 'Sunday'],
+//            (object)['value' => 'Monday', 'title' => 'Monday'],
+//            (object)['value' => 'Tuesday', 'title' => 'Tuesday'],
+//            (object)['value' => 'Wednesday', 'title' => 'Wednesday'],
+//            (object)['value' => 'Thursday', 'title' => 'Thursday'],
+//            (object)['value' => 'Friday', 'title' => 'Friday'],
+//        ];
+    }
+}
+
 if (!function_exists('activeDevices')) {
     function activeDevices()
     {
@@ -379,12 +432,13 @@ if (!function_exists('activeDevices')) {
 if (!function_exists('showStudentFullName')) {
     function showStudentFullName($first_name, $middle_name, $last_name): string
     {
-        return $first_name. ' '. $middle_name. ' '. $last_name;
+        return $first_name . ' ' . $middle_name . ' ' . $last_name;
     }
 }
 
 if (!function_exists('minuteCount')) {
-    function minuteCount($check_out_time,$check_in_time) {
+    function minuteCount($check_out_time, $check_in_time)
+    {
         return ceil((strtotime($check_out_time) - strtotime($check_in_time)) / 60);
     }
 }
@@ -398,33 +452,33 @@ if (!function_exists('hourCount')) {
 
         $seconds = strtotime($check_out_time) - strtotime($check_in_time);
 
-        $hours   = floor($seconds / 3600);
+        $hours = floor($seconds / 3600);
         $minutes = floor(($seconds % 3600) / 60);
 
         return sprintf('%02d:%02d', $hours, $minutes);
     }
 }
 
-if(! function_exists('isLateIn')) {
+if (!function_exists('isLateIn')) {
     function isLateIn($in_time = null): bool
     {
-        if(!$in_time || empty(siteSettings()->in_time)) {
+        if (!$in_time || empty(siteSettings()->in_time)) {
             return false;
         }
         $standard_in = Carbon::parse(siteSettings()->in_time);
-        $user_in =  Carbon::parse($in_time);
+        $user_in = Carbon::parse($in_time);
         return $user_in->gt($standard_in);
     }
 }
 
-if(! function_exists('isEarlyOut')) {
+if (!function_exists('isEarlyOut')) {
     function isEarlyOut($check_out = null): bool
     {
-        if(!$check_out || empty(siteSettings()->out_time)) {
+        if (!$check_out || empty(siteSettings()->out_time)) {
             return false;
         }
         $standard_out = Carbon::parse(siteSettings()->out_time);
-        $user_out =  Carbon::parse($check_out);
+        $user_out = Carbon::parse($check_out);
         return $user_out->lt($standard_out);
     }
 }

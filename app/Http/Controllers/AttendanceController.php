@@ -69,14 +69,13 @@ class AttendanceController extends Controller
             $bas_file_name = dateFormat($from_date, 'd_m_y') . '_to_' . dateFormat($to_date, 'd_m_y');
             return Excel::download(
                 new MonthWisePresentExport($filter),
-                $bas_file_name . '_attendance_report.xlsx'
+                $bas_file_name .'_'. now()->format('Ymd_His'). '_attendance_report.xlsx'
             );
         } elseif ($display_type === 'download_as_pdf') {
             $attendance_reports = AttendanceService::monthWisePresentReport($filter);
             $bas_file_name = dateFormat($from_date, 'd_m_y') . '_to_' . dateFormat($to_date, 'd_m_y');
             $report = PDF::loadView('pdf.month_wise_present_report', compact('attendance_reports', 'from_date', 'to_date'));
-            return $report->stream();
-            return $report->download('attendance report' . '.pdf');
+            return $report->download($bas_file_name.'_'.now()->format('Ymd_His').'_attendance report' . '.pdf');
         }
 
     }
@@ -103,7 +102,7 @@ class AttendanceController extends Controller
             $bas_file_name = dateFormat($from_date, 'd_m_y') . '_to_' . dateFormat($to_date, 'd_m_y');
             return Excel::download(
                 new UserWiseSummaryExport($attendance_reports, $from_date, $to_date, $in_time, $out_time),
-                'user_wise_summary_' . now()->format('Ymd_His') . '.xlsx'
+                $bas_file_name.'month_user_wise_summary_' . now()->format('Ymd_His') . '.xlsx'
             );
         }
     }

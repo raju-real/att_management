@@ -31,7 +31,7 @@
         </tr>
 
         <!-- Column headers -->
-        <tr>
+        <tr style="text-align: left;">
             <th>User Type</th>
             <th>User No</th>
             <th>Name</th>
@@ -42,13 +42,13 @@
 
         <!-- Records -->
         @foreach($records as $record)
-            <tr>
-                <td>{{ ucfirst($record['user_type']) }}</td>
-                <td>{{ $record['user_no'] }}</td>
-                <td>{{ $record['name'] }}</td>
-                <td>{{ timeFormat($record['in_time'], 'h:i a') }}</td>
-                <td>{{ timeFormat($record['out_time'], 'h:i a') ?? '-' }}</td>
-                <td>{{ hourCount($record['out_time'], $record['in_time']) }}</td>
+            <tr style="text-align: left;">
+                <td style="text-align: left;">{{ ucfirst($record['user_type']) }}</td>
+                <td style="text-align: left;">{{ $record['user_no'] }}</td>
+                <td style="text-align: left;">{{ $record['name'] }}</td>
+                <td style="text-align: left;">{{ timeFormat($record['in_time'], 'h:i a') }}</td>
+                <td style="text-align: left;">{{ timeFormat($record['out_time'], 'h:i a') ?? '-' }}</td>
+                <td style="text-align: left;">{{ hourCount($record['out_time'], $record['in_time']) }}</td>
             </tr>
         @endforeach
 

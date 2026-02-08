@@ -13,6 +13,10 @@
         },
     });
 
+    $(".select2").select2();
+    $(".select2-search-disable").select2({ minimumResultsForSearch: 1 / 0 });
+    // $(".form-select").select2({ minimumResultsForSearch: 1 / 0 });
+
     /**
      * Image viewer modal
      */

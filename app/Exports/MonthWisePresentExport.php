@@ -25,6 +25,6 @@ class MonthWisePresentExport implements FromView, ShouldAutoSize
         $student_id = $this->filters['student_id'] ?? '';
         $teacher_no = $this->filters['teacher_no'] ?? '';
 
-        return view('exports.date_wise_present', compact('attendance_reports', 'from_date', 'to_date','user_type','student_id','teacher_no'));
+        return view('exports.month_wise_present', compact('attendance_reports', 'from_date', 'to_date','user_type','student_id','teacher_no'));
     }
 }

@@ -223,10 +223,15 @@ class AttendanceService
          * 1️⃣ Resolve date range
          * ----------------------------
          */
-        $from = $filters['from_date'] ?? Carbon::today()->toDateString();
-        $to = $filters['to_date'] ?? $from;
+        $from = !empty($filters['from_date'])
+            ? Carbon::parse($filters['from_date'])->toDateString()
+            : Carbon::now()->startOfMonth()->toDateString();
 
-        $dataType = $filters['data_type'] ?? 'all_days'; // default
+        $to = !empty($filters['to_date'])
+            ? Carbon::parse($filters['to_date'])->toDateString()
+            : Carbon::now()->toDateString();
+
+        $dataType = $filters['data_type'] ?? 'all_days'; // all_days | working_days | off_days
 
         /**
          * ----------------------------
@@ -235,7 +240,7 @@ class AttendanceService
          */
         $rows = AttendanceLog::query()
             ->selectRaw("
-            DATE_FORMAT(punch_time, '%Y-%m-%d') as attendance_date,
+            DATE(punch_time) as attendance_date,
             user_type,
             name,
             COALESCE(student_no, teacher_no) as user_no,
@@ -243,53 +248,79 @@ class AttendanceService
             MAX(punch_time) as out_time,
             COUNT(*) as punch_count
         ")
-            ->whereDate('punch_time', '>=', $from)
-            ->whereDate('punch_time', '<=', $to)
+            ->whereBetween(DB::raw('DATE(punch_time)'), [$from, $to])
             ->when($filters['user_type'] ?? null,
                 fn($q, $v) => $q->where('user_type', $v)
             )
             ->when($filters['student_id'] ?? null,
-                fn($q, $v) => $q->where('student_id', $v)
-                    ->orWhere('student_no', $v)
+                fn($q, $v) => $q->where('student_id', $v)->orWhere('student_no', $v)
             )
             ->when($filters['teacher_no'] ?? null,
                 fn($q, $v) => $q->where('teacher_no', $v)
             )
             ->groupBy(
-                DB::raw("DATE_FORMAT(punch_time, '%Y-%m-%d')"),
+                DB::raw('DATE(punch_time)'),
                 'user_type',
                 'name',
                 DB::raw('COALESCE(student_no, teacher_no)')
             )
-            ->orderBy('attendance_date')
             ->get()
             ->groupBy('attendance_date');
 
         /**
          * ----------------------------
-         * 3️⃣ Build report by date type
+         * 3️⃣ Holiday configuration
+         * ----------------------------
+         */
+        $officeHolidays = collect(officeHolidays()); // dates
+        $weeklyHolidays = collect(weeklyHolidays());
+
+        /**
+         * ----------------------------
+         * 4️⃣ Build final report
          * ----------------------------
          */
         $report = collect();
 
         foreach (CarbonPeriod::create($from, $to) as $date) {
 
-            $day = $date->format('Y-m-d');
+            $day = $date->toDateString();
+            $dayName = dayNameFromDate($date);
+
+            $isOfficeHoliday = $officeHolidays->contains($day);
+            $isWeeklyHoliday = $weeklyHolidays->contains($dayName);
+
             $dayRows = $rows->get($day, collect());
 
             /**
-             * 🔹 working_days → skip empty dates
+             * 🔹 WORKING DAYS
+             * Skip office holidays + weekly holidays + empty days
+             * if ($dataType === 'working_days' && $dayRows->isEmpty()) {
+             * continue;
+             * }
+             *
+             * if ($dataType === 'of_days' && $dayRows->isNotEmpty()) {
+             * continue;
+             * }
              */
-            if ($dataType === 'working_days' && $dayRows->isEmpty()) {
-                continue;
+            if ($dataType === 'working_days') {
+                //|| $dayRows->isEmpty() check if need working day but no attendance
+                if ($isOfficeHoliday || $isWeeklyHoliday) {
+                    continue;
+                }
             }
 
-            if ($dataType === 'of_days' && $dayRows->isNotEmpty()) {
+            /**
+             * 🔹 OFF DAYS (optional but useful)
+             * Only holidays / weekly off
+             */
+            // Skip the day ONLY if it is not an off day AND there is no attendance
+            if (!$isOfficeHoliday && !$isWeeklyHoliday && $dayRows->isEmpty()) {
                 continue;
             }
 
             /**
-             * 🔹 all_days → include empty dates
+             * 🔹 ALL DAYS → include everything
              */
             $report->put(
                 $day,
@@ -315,7 +346,7 @@ class AttendanceService
      * @return \Illuminate\Support\Collection
      */
 
-    public static function monthWiseUserSummery(array $filters = [])
+    public static function monthWiseUserSummeryOld(array $filters = [])
     {
         $from = $filters['from_date'] ?? Carbon::now()->startOfMonth()->toDateString();
         $to = $filters['to_date'] ?? Carbon::now()->toDateString();
@@ -370,6 +401,99 @@ class AttendanceService
                 'total_punch' => $row->total_punch,
             ];
         });
+
+        return $summary;
+    }
+
+    public static function monthWiseUserSummery(array $filters = [])
+    {
+        $from = $filters['from_date'] ?? Carbon::now()->startOfMonth()->toDateString();
+        $to = $filters['to_date'] ?? Carbon::now()->toDateString();
+
+        $site_in_time = siteSettings()->in_time ?? '00:00:00';
+        $site_out_time = siteSettings()->out_time ?? '23:59:59';
+
+        $officeHolidays = officeHolidays(); // array of 'Y-m-d'
+        $weeklyHolidays = weeklyHolidays(); // array of ['Sunday','Friday']
+
+        // 1️⃣ Fetch attendance
+        $query = AttendanceLog::query()
+            ->selectRaw("
+            user_type,
+            COALESCE(student_no, teacher_no) as user_no,
+            name,
+            DATE(punch_time) as punch_date,
+            MIN(punch_time) as first_in,
+            MAX(punch_time) as last_out
+        ")
+            ->whereBetween(DB::raw('DATE(punch_time)'), [$from, $to])
+            ->groupBy('user_type', DB::raw('COALESCE(student_no, teacher_no)'), 'name', DB::raw('DATE(punch_time)'))
+            ->orderBy('user_type');
+
+        if (!empty($filters['user_type'])) {
+            $query->where('user_type', $filters['user_type']);
+        }
+        if (!empty($filters['student_no'])) {
+            $query->where('student_no', $filters['student_no']);
+        }
+        if (!empty($filters['teacher_no'])) {
+            $query->where('teacher_no', $filters['teacher_no']);
+        }
+
+        $attendanceRows = $query->get();
+
+        // 2️⃣ Group by user
+        $attendanceByUser = $attendanceRows->groupBy('user_no');
+
+        $summary = collect();
+
+        foreach ($attendanceByUser as $user_no => $records) {
+            $user_type = $records->first()->user_type;
+            $name = $records->first()->name;
+
+            // Earliest and latest times
+            $first_in = $records->min(fn($r) => $r->first_in);
+            $late_in = $records->max(fn($r) => $r->first_in);
+            $early_out = $records->min(fn($r) => $r->last_out);
+            $late_out = $records->max(fn($r) => $r->last_out);
+
+            // Total present days
+            $presentDays = $records->count();
+
+            // Total working hours
+            $totalMinutes = 0;
+            foreach ($records as $r) {
+                if ($r->first_in && $r->last_out) {
+                    $totalMinutes += Carbon::parse($r->last_out)->diffInMinutes(Carbon::parse($r->first_in));
+                }
+            }
+            $totalHours = round($totalMinutes / 60, 2);
+
+            // Build all dates for month
+            $allDates = collect(CarbonPeriod::create($from, $to))
+                ->map(fn($d) => $d->toDateString());
+
+            // Total absent days excluding holidays
+            $absentDays = $allDates->filter(function ($day) use ($records, $officeHolidays, $weeklyHolidays) {
+                $isHoliday = in_array($day, $officeHolidays) ||
+                    in_array(Carbon::parse($day)->format('l'), $weeklyHolidays);
+                $hasAttendance = $records->contains(fn($r) => $r->punch_date == $day);
+                return !$isHoliday && !$hasAttendance;
+            })->count();
+
+            $summary->push([
+                'user_type' => $user_type,
+                'user_no' => $user_no,
+                'name' => $name,
+                'earliest_in' => Carbon::parse($first_in)->format('H:i:s'),
+                'latest_late_in' => Carbon::parse($late_in)->format('H:i:s'),
+                'earliest_out' => Carbon::parse($early_out)->format('H:i:s'),
+                'latest_late_out' => Carbon::parse($late_out)->format('H:i:s'),
+                'total_present_days' => $presentDays,
+                'total_absent_days' => $absentDays,
+                'total_working_hours' => $totalHours,
+            ]);
+        }
 
         return $summary;
     }

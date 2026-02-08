@@ -3,5 +3,18 @@
     "email": "admin5@mail.com",
     "mobile": "12345679810",
     "in_time": "9:30:00 AM",
-    "out_time": "8:00:00 PM"
+    "out_time": "7:00:00 PM",
+    "weekly_holidays": [
+        "Saturday",
+        "Friday"
+    ],
+    "office_holidays": [
+        "2026-01-01",
+        "2026-01-02",
+        "2026-01-03",
+        "2026-01-24",
+        "2026-01-26",
+        "2026-01-30",
+        "2026-01-31"
+    ]
 }

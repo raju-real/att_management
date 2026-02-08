@@ -22,7 +22,9 @@
           crossorigin="anonymous"/>
     {{-- Flat date time picker --}}
     <link rel="stylesheet" href="{{ asset('assets/common/flatpicker/flatpicker.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/common/select2/css/select2.min.css') }}">
     <link rel="stylesheet" href="{{ asset('assets/css/style.css') }}">
+    @stack('css')
 </head>
 <body>
 <!-- Animated background -->
@@ -168,10 +170,11 @@
 <script src="{{ asset('assets/common/datetimepicker/js/tempusdominus-bootstrap-4.min.js') }}"></script>
 {{-- Flat date time picker --}}
 <script src="{{ asset('assets/common/flatpicker/flatpicker.min.js') }}"></script>
+<script src="{{ asset('assets/common/select2/js/select2.min.js') }}"></script>
 
 <script src="{{ asset('assets/common/datetimepicker/js/custom_picker.js') }}"></script>
 <script src="{{ asset('assets/js/custom.js') }}"></script>
-
+@stack('js')
 
 </body>
 </html>

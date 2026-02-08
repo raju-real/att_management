@@ -22,7 +22,7 @@ class UserWiseSummaryExport implements \Maatwebsite\Excel\Concerns\FromView
 
     public function view(): View
     {
-        return view('exports.user_wise_summary', [
+        return view('exports.month_wise_user_summery', [
             'report'   => $this->report,
             'from_date'   => $this->from_date,
             'to_date'   => $this->to_date,
