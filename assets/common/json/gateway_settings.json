@@ -1,0 +1,31 @@
+{
+    "active_gateway": "rocket",
+    "gateways": {
+        "ssl_commerz": {
+            "name": "SSL COMMERZ",
+            "store_id": "rajjo683b36dbcaf6c",
+            "store_password": "rajjo683b36dbcaf6c@ssl",
+            "sandbox_mode": true
+        },
+        "bkash": {
+            "name": "bKash",
+            "app_key": null,
+            "app_secret": null,
+            "username": null,
+            "password": null,
+            "sandbox_mode": true
+        },
+        "rocket": {
+            "name": "Rocket",
+            "merchant_id": null,
+            "merchant_password": null,
+            "sandbox_mode": true
+        },
+        "nagad": {
+            "name": "Nagad",
+            "merchant_id": "",
+            "merchant_key": "",
+            "sandbox_mode": true
+        }
+    }
+}

@@ -1,10 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="utf-8"/>
+    <meta charset="utf-8" />
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="base-url" base_url="{!! url('/') !!}"/>
+    <meta name="base-url" base_url="{!! url('/') !!}" />
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Admin Panel')</title>
     <link rel="shortcut icon" href="{{ asset('assets/common/images/favicon.png') }}">
@@ -19,174 +20,193 @@
     {{-- Datetimepicker --}}
     <link rel="stylesheet" href="{{ asset('assets/common/datetimepicker/css/bootstrap-datepicker.min.css') }}">
     <link rel="stylesheet" href="{{ asset('assets/common/datetimepicker/css/tempusdominus-bootstrap-4.min.css') }}"
-          crossorigin="anonymous"/>
+        crossorigin="anonymous" />
     {{-- Flat date time picker --}}
     <link rel="stylesheet" href="{{ asset('assets/common/flatpicker/flatpicker.min.css') }}">
     <link rel="stylesheet" href="{{ asset('assets/common/select2/css/select2.min.css') }}">
     <link rel="stylesheet" href="{{ asset('assets/css/style.css') }}">
     @stack('css')
 </head>
+
 <body>
-<!-- Animated background -->
-<div class="background-animation">
-    <div class="bg-circle"></div>
-    <div class="bg-circle"></div>
-    <div class="bg-circle"></div>
-    <div class="bg-circle"></div>
-</div>
-
-<!-- Top Navigation Bar -->
-<nav class="navbar navbar-expand-lg navbar-admin">
-    <div class="container-fluid">
-        <!-- Logo/Brand on left -->
-        <a class="navbar-brand" href="{{ route('dashboard') }}" {!! tooltip(siteSettings()->site_name ?? 'Attendance Management') !!}>
-            <i class="fas fa-chart-line"></i> {{ textLimit(siteSettings()->site_name ?? 'Attendance Management',15) }}
-        </a>
-
-        <!-- Mobile toggle button -->
-        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav">
-            <span class="navbar-toggler-icon"><i class="fas fa-bars"></i></span>
-        </button>
-
-        <!-- Menu items -->
-        <div class="collapse navbar-collapse" id="navbarNav">
-            {{--                menus from left side--}}
-            <ul class="navbar-nav mr-auto">
-                {{--                <li class="nav-item">--}}
-                {{--                    <a class="nav-link {{ segmentOne() == 'present-logs' ? 'active' : '' }}"--}}
-                {{--                       href="{{ route('present-logs') }}">--}}
-                {{--                        <i class="fas fa-user-clock"></i> Present Logs--}}
-                {{--                    </a>--}}
-                {{--                </li>--}}
-
-            </ul>
-            {{-- menus from right side --}}
-            <ul class="navbar-nav">
-                <li class="nav-item">
-                    <a class="nav-link {{ segmentOne() == 'attendance-summery' ? 'active' : '' }}"
-                       href="{{ route('attendance-summery') }}">
-                        <i class="fas fa-clock"></i> Attendance Logs
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link {{ segmentOne() == 'present-logs' ? 'active' : '' }}"
-                       href="{{ route('present-logs') }}">
-                        <i class="fas fa-user-clock"></i> Present Logs
-                    </a>
-                </li>
-
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle {{ segmentOne() == 'month-wise-present-report' || segmentOne() == 'month-wise-user-summery' ? 'active' : '' }}"
-                       href="#" id="configDropdown" role="button" data-toggle="dropdown">
-                        <i class="fas fa-cog mr-1"></i> Reports
-                    </a>
-                    <div class="dropdown-menu dropdown-menu-right">
-                        <a class="dropdown-item" href="{{ route('month-wise-present-report') }}">
-                            <i class="fas fa-gift mr-2"></i> Month Wise Present (by Date Range)
-                        </a>
-                        <a class="dropdown-item" href="{{ route('month-wise-user-summery') }}">
-                            <i class="fas fa-list-alt mr-2"></i> Month Wise User Summery (by Date Range)
-                        </a>
-                    </div>
-                </li>
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle {{ segmentOne() == 'students' || segmentOne() == 'teachers' || segmentOne() == 'devices' ? 'active' : '' }}"
-                       href="#" id="configDropdown" role="button" data-toggle="dropdown">
-                        <i class="fas fa-cog mr-1"></i> Configuration
-                    </a>
-                    <div class="dropdown-menu dropdown-menu-right">
-                        <a class="dropdown-item" href="{{ route('students.index') }}">
-                            <i class="fas fa-user mr-2"></i> Students
-                        </a>
-                        <a class="dropdown-item" href="{{ route('teachers.index') }}">
-                            <i class="fas fa-user-plus mr-2"></i> Teachers
-                        </a>
-                        <a class="dropdown-item" href="{{ route('devices.index') }}">
-                            <i class="fas fa-fingerprint mr-2"></i> Devices
-                        </a>
-
-                    </div>
-                </li>
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle {{ segmentOne() == 'students' || segmentOne() == 'teachers' || segmentOne() == 'devices' ? 'active' : '' }}"
-                       href="#" id="configDropdown" role="button" data-toggle="dropdown">
-                        <i class="fas fa-money-bill mr-1"></i> Fees Management
-                    </a>
-                    <div class="dropdown-menu dropdown-menu-right">
-                        <a class="dropdown-item" href="{{ route('fee-settings') }}">
-                            <i class="fas fa-money-bill-wave mr-2"></i> Fee Settings
-                        </a>
-
-                    </div>
-                </li>
-            </ul>
-
-            <!-- User dropdown on right -->
-            <ul class="navbar-nav">
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle {{ segmentOne() == 'profile' || segmentOne() == 'site-settings' ? 'active' : '' }}"
-                       href="#" id="userDropdown" role="button" data-toggle="dropdown" >
-                        @if(authUser()->image && file_exists(authUser()->image))
-                            <img src="{{ asset(authUser()->image) }}" alt=""
-                                 class="img-fluid rounded-circle img-30 mr-2">
-                        @else
-                            <i class="fas fa-user-circle mr-1"></i>
-                        @endif
-                        {{ textLimit(authUser()->name,10) ?? 'Admin User' }}
-                    </a>
-                    <div class="dropdown-menu dropdown-menu-right">
-                        <a class="dropdown-item" href="{{ route('profile') }}">
-                            <i class="fas fa-user mr-2"></i> Profile
-                        </a>
-                        <a class="dropdown-item" href="{{ route('site-settings') }}">
-                            <i class="fas fa-cog mr-2"></i> Site Settings
-                        </a>
-                        <div class="dropdown-divider"></div>
-                        <a class="dropdown-item" href="{{ route('logout') }}">
-                            <i class="fas fa-sign-out-alt mr-2"></i> Logout
-                        </a>
-                    </div>
-                </li>
-            </ul>
-        </div>
-    </div>
-</nav>
-
-<!-- Main Content -->
-<div class="main-content">
-    <x-alert-message/>
-
-    <div class="main-portion" style="min-height: 100vh">
-        @yield('content')
+    <!-- Animated background -->
+    <div class="background-animation">
+        <div class="bg-circle"></div>
+        <div class="bg-circle"></div>
+        <div class="bg-circle"></div>
+        <div class="bg-circle"></div>
     </div>
 
-    <!-- Footer -->
-    <footer class="footer">
-        <div class="footer-content">
-            <span class="text-muted">© {{ date('Y') }} {{ siteSettings()->site_name ?? 'Attendance Management' }}. All rights reserved.</span>
+    <!-- Top Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-admin">
+        <div class="container-fluid">
+            <!-- Logo/Brand on left -->
+            <a class="navbar-brand" href="{{ route('dashboard') }}" {!! tooltip(siteSettings()->site_name ?? 'Attendance Management') !!}>
+                <i class="fas fa-chart-line"></i>
+                {{ textLimit(siteSettings()->site_name ?? 'Attendance Management', 15) }}
+            </a>
+
+            <!-- Mobile toggle button -->
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav">
+                <span class="navbar-toggler-icon"><i class="fas fa-bars"></i></span>
+            </button>
+
+            <!-- Menu items -->
+            <div class="collapse navbar-collapse" id="navbarNav">
+                {{--                menus from left side --}}
+                <ul class="navbar-nav mr-auto">
+                    {{--                <li class="nav-item"> --}}
+                    {{--                    <a class="nav-link {{ segmentOne() == 'present-logs' ? 'active' : '' }}" --}}
+                    {{--                       href="{{ route('present-logs') }}"> --}}
+                    {{--                        <i class="fas fa-user-clock"></i> Present Logs --}}
+                    {{--                    </a> --}}
+                    {{--                </li> --}}
+
+                </ul>
+                {{-- menus from right side --}}
+                {{-- menus from right side --}}
+                <ul class="navbar-nav">
+                    {{-- Manage Attendance --}}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle {{ request()->routeIs(['attendance-summery', 'present-logs']) ? 'active' : '' }}"
+                            href="#" id="attendanceDropdown" role="button" data-toggle="dropdown">
+                            <i class="fas fa-clock mr-1"></i> Manage Attendance
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-right">
+                            <a class="dropdown-item {{ request()->routeIs('attendance-summery') ? 'active' : '' }}"
+                                href="{{ route('attendance-summery') }}">
+                                <i class="fas fa-history mr-2"></i> Attendance Logs
+                            </a>
+                            <a class="dropdown-item {{ request()->routeIs('present-logs') ? 'active' : '' }}"
+                                href="{{ route('present-logs') }}">
+                                <i class="fas fa-user-check mr-2"></i> Present Logs
+                            </a>
+                            <a class="dropdown-item {{ request()->routeIs('month-wise-present-report') ? 'active' : '' }}"
+                                href="{{ route('month-wise-present-report') }}">
+                                <i class="fas fa-gift mr-2"></i> Month Wise Present
+                            </a>
+                            <a class="dropdown-item {{ request()->routeIs('month-wise-user-summery') ? 'active' : '' }}"
+                                href="{{ route('month-wise-user-summery') }}">
+                                <i class="fas fa-list mr-2"></i>Month Wise User Summary
+                            </a>
+                        </div>
+                    </li>
+
+                    {{-- Configuration --}}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle {{ request()->routeIs(['students.*', 'teachers.*', 'devices.*']) ? 'active' : '' }}"
+                            href="#" id="configDropdown" role="button" data-toggle="dropdown">
+                            <i class="fas fa-cogs mr-1"></i> Configuration
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-right">
+                            <a class="dropdown-item {{ request()->routeIs('students.*') ? 'active' : '' }}"
+                                href="{{ route('students.index') }}">
+                                <i class="fas fa-user-graduate mr-2"></i> Students
+                            </a>
+                            <a class="dropdown-item {{ request()->routeIs('teachers.*') ? 'active' : '' }}"
+                                href="{{ route('teachers.index') }}">
+                                <i class="fas fa-chalkboard-teacher mr-2"></i> Teachers
+                            </a>
+                            <a class="dropdown-item {{ request()->routeIs('devices.*') ? 'active' : '' }}"
+                                href="{{ route('devices.index') }}">
+                                <i class="fas fa-fingerprint mr-2"></i> Devices
+                            </a>
+                        </div>
+                    </li>
+
+                    {{-- Fees Management --}}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle {{ request()->routeIs(['fee-settings', 'update-fee-settings', 'fee-lots.*']) ? 'active' : '' }}"
+                            href="#" id="feesDropdown" role="button" data-toggle="dropdown">
+                            <i class="fas fa-money-bill-wave mr-1"></i> Fees Management
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-right">
+                            <a class="dropdown-item {{ request()->routeIs('fee-lots.*') ? 'active' : '' }}"
+                                href="{{ route('fee-lots.index') }}">
+                                <i class="fas fa-layer-group mr-2"></i> Fee Collect Lots
+                            </a>
+                            <a class="dropdown-item {{ request()->routeIs('fee-settings') ? 'active' : '' }}"
+                                href="{{ route('fee-settings') }}">
+                                <i class="fas fa-cog mr-2"></i> Fee Settings
+                            </a>
+                            <a class="dropdown-item {{ request()->routeIs('gateway-settings') ? 'active' : '' }}"
+                                href="{{ route('gateway-settings') }}">
+                                <i class="fas fa-cog mr-2"></i> Gateway Settings
+                            </a>
+                        </div>
+                    </li>
+                </ul>
+
+                <!-- User dropdown on right -->
+                <ul class="navbar-nav">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle {{ request()->routeIs(['profile', 'site-settings']) ? 'active' : '' }}"
+                            href="#" id="userDropdown" role="button" data-toggle="dropdown">
+                            @if (authUser()->image && file_exists(authUser()->image))
+                                <img src="{{ asset(authUser()->image) }}" alt=""
+                                    class="img-fluid rounded-circle img-30 mr-2">
+                            @else
+                                <i class="fas fa-user-circle mr-1"></i>
+                            @endif
+                            {{ textLimit(authUser()->name, 10) ?? 'Admin User' }}
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-right">
+                            <a class="dropdown-item {{ request()->routeIs('profile') ? 'active' : '' }}"
+                                href="{{ route('profile') }}">
+                                <i class="fas fa-user mr-2"></i> Profile
+                            </a>
+                            <a class="dropdown-item {{ request()->routeIs('site-settings') ? 'active' : '' }}"
+                                href="{{ route('site-settings') }}">
+                                <i class="fas fa-sliders-h mr-2"></i> Site Settings
+                            </a>
+                            <div class="dropdown-divider"></div>
+                            <a class="dropdown-item" href="{{ route('logout') }}">
+                                <i class="fas fa-sign-out-alt mr-2"></i> Logout
+                            </a>
+                        </div>
+                    </li>
+                </ul>
+            </div>
         </div>
-    </footer>
-</div>
+    </nav>
 
-<!-- jQuery -->
-<script src="{{ asset('assets/js/jquery.js') }}"></script>
-<!-- Popper.js -->
-<script src="{{ asset('assets/js/popper.min.js') }}"></script>
-<!-- Bootstrap JS -->
-<script src="{{ asset('assets/js/bootstrap.min.js') }}"></script>
-<script src="{{ asset('assets/js/sweetalert2.min.js') }}"></script>
-{{-- Datetimepicker --}}
-<script src="{{ asset('assets/common/datetimepicker/js/bootstrap-datepicker.min.js') }}"></script>
-<script src="{{ asset('assets/common/datetimepicker/js/moment.min.js') }}"></script>
-<script src="{{ asset('assets/common/datetimepicker/js/moment-timezone-with-data.min.js') }}"></script>
-<script src="{{ asset('assets/common/datetimepicker/js/tempusdominus-bootstrap-4.min.js') }}"></script>
-{{-- Flat date time picker --}}
-<script src="{{ asset('assets/common/flatpicker/flatpicker.min.js') }}"></script>
-<script src="{{ asset('assets/common/select2/js/select2.min.js') }}"></script>
+    <!-- Main Content -->
+    <div class="main-content">
+        <x-alert-message />
 
-<script src="{{ asset('assets/common/datetimepicker/js/custom_picker.js') }}"></script>
-<script src="{{ asset('assets/js/custom.js') }}"></script>
-@stack('js')
+        <div class="main-portion" style="min-height: 100vh">
+            @yield('content')
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="footer-content">
+                <span class="text-muted">© {{ date('Y') }}
+                    {{ siteSettings()->site_name ?? 'Attendance Management' }}. All rights reserved.</span>
+            </div>
+        </footer>
+    </div>
+
+    <!-- jQuery -->
+    <script src="{{ asset('assets/js/jquery.js') }}"></script>
+    <!-- Popper.js -->
+    <script src="{{ asset('assets/js/popper.min.js') }}"></script>
+    <!-- Bootstrap JS -->
+    <script src="{{ asset('assets/js/bootstrap.min.js') }}"></script>
+    <script src="{{ asset('assets/js/sweetalert2.min.js') }}"></script>
+    {{-- Datetimepicker --}}
+    <script src="{{ asset('assets/common/datetimepicker/js/bootstrap-datepicker.min.js') }}"></script>
+    <script src="{{ asset('assets/common/datetimepicker/js/moment.min.js') }}"></script>
+    <script src="{{ asset('assets/common/datetimepicker/js/moment-timezone-with-data.min.js') }}"></script>
+    <script src="{{ asset('assets/common/datetimepicker/js/tempusdominus-bootstrap-4.min.js') }}"></script>
+    {{-- Flat date time picker --}}
+    <script src="{{ asset('assets/common/flatpicker/flatpicker.min.js') }}"></script>
+    <script src="{{ asset('assets/common/select2/js/select2.min.js') }}"></script>
+
+    <script src="{{ asset('assets/common/datetimepicker/js/custom_picker.js') }}"></script>
+    <script src="{{ asset('assets/js/custom.js') }}"></script>
+    @stack('js')
 
 </body>
+
 </html>

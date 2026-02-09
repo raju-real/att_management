@@ -70,6 +70,23 @@ Route::middleware('auth')->group(function(){
         Route::get('fee-settings', 'feeSettings')->name('fee-settings');
         Route::put('update-fee-settings', 'updateFeeSettings')->name('update-fee-settings');
     });
+    
+    // Gateway Settings
+    Route::controller(\App\Http\Controllers\PaymentGatewayController::class)->group(function () {
+        Route::get('gateway-settings', 'index')->name('gateway-settings');
+        Route::put('gateway-settings', 'update')->name('gateway-settings.update');
+    });
+    
+    // Fee Lots
+    Route::resource('fee-lots', \App\Http\Controllers\FeeLotController::class);
+    
+    // Payments
+    Route::controller(\App\Http\Controllers\PaymentController::class)->prefix('payment')->group(function () {
+        Route::get('initiate/{id}', 'initiate')->name('payment.initiate');
+        Route::post('success', 'success')->name('payment.success');
+        Route::post('fail', 'fail')->name('payment.fail');
+        Route::post('cancel', 'cancel')->name('payment.cancel');
+    });
 });
 
 // Logout

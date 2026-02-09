@@ -492,6 +492,19 @@ function feeSettings()
     }
 }
 
+if (!function_exists('gatewaySettings')) {
+    function gatewaySettings()
+    {
+        return cache()->rememberForever('gateway_settings', function () {
+            $path = base_path('assets/common/json/gateway_settings.json');
+            if (!file_exists($path)) {
+                return (object)[];
+            }
+            return json_decode(file_get_contents($path));
+        });
+    }
+}
+
 
 if (!function_exists('isEarlyOut')) {
     function isEarlyOut($check_out = null): bool
