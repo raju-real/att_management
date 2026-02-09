@@ -51,5 +51,47 @@ class SettingController extends Controller
             ->with(infoMessage());
     }
 
+    public function feeSettings()
+    {
+        $classes = getClassList();
+        $settings = feeSettings();
+        $classFees = isset($settings->class_fees) ? (array) $settings->class_fees : [];
+        $lateFee = $settings->late_fee ?? 0;
+        return view('fee_settings', compact('classes', 'classFees', 'lateFee'));
+    }
+
+    public function updateFeeSettings(Request $request)
+    {
+        $validated = $request->validate([
+            'fees' => 'array',
+            'fees.*' => 'nullable|numeric|min:0',
+            'late_fee' => 'nullable|numeric|min:0',
+        ]);
+
+        // Load existing settings
+        $path = base_path('assets/common/json/fee_setting.json');
+        $currentSettings = [];
+        
+        if (file_exists($path)) {
+            $currentSettings = json_decode(file_get_contents($path), true);
+        }
+
+        // Update with new fees
+        $currentSettings['class_fees'] = $validated['fees'] ?? [];
+        $currentSettings['late_fee'] = $validated['late_fee'] ?? 0;
+
+        // Save back to JSON
+        file_put_contents(
+            $path,
+            json_encode($currentSettings, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)
+        );
+
+        cache()->forget('fee_settings');
+
+        return redirect()
+            ->route('fee-settings')
+            ->with(successMessage('success', 'Fee settings updated successfully!'));
+    }
+
 
 }

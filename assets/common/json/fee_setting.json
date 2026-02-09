@@ -1,0 +1,22 @@
+{
+    "class_fees": {
+        "Eight": "4",
+        "Eleven": "20",
+        "Five": "6",
+        "Four": "10",
+        "Nine": "10",
+        "Nursery": "33",
+        "One": "78",
+        "Play": "60",
+        "Seven": "28",
+        "Shishu": "48",
+        "Six": "24",
+        "Teacher": "27",
+        "Ten": "80",
+        "Three": "52",
+        "Twelve": "18",
+        "Two": "83",
+        "VII-19": "12"
+    },
+    "late_fee": "25"
+}

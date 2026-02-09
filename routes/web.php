@@ -67,6 +67,8 @@ Route::middleware('auth')->group(function(){
     Route::controller(SettingController::class)->group(function () {
         Route::get('site-settings', 'siteSettings')->name('site-settings');
         Route::put('update-site-settings', 'updateSiteSettings')->name('update-site-settings');
+        Route::get('fee-settings', 'feeSettings')->name('fee-settings');
+        Route::put('update-fee-settings', 'updateFeeSettings')->name('update-fee-settings');
     });
 });
 

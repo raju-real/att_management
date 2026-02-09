@@ -1,7 +1,8 @@
 <?php
 
-use App\Models\Device;
 use Carbon\Carbon;
+use App\Models\Device;
+use App\Models\Student;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
@@ -406,6 +407,13 @@ if (!function_exists('authUser')) {
 
 // Project related
 
+if(!function_exists('getClassList')) {
+    function getClassList(): array
+    {
+        return Student::groupBy('class')->pluck('class')->toArray();
+    }   
+}
+
 if (!function_exists('weekDays')) {
     function weekDays(): array
     {
@@ -470,6 +478,20 @@ if (!function_exists('isLateIn')) {
         return $user_in->gt($standard_in);
     }
 }
+
+if(!function_exists('feeSettings')) {
+function feeSettings()
+    {
+        return cache()->rememberForever('fee_settings', function () {
+            $path = base_path('assets/common/json/fee_setting.json');
+            if (!file_exists($path)) {
+                return (object)[];
+            }
+            return json_decode(file_get_contents($path));
+        });
+    }
+}
+
 
 if (!function_exists('isEarlyOut')) {
     function isEarlyOut($check_out = null): bool

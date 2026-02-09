@@ -107,6 +107,18 @@
 
                     </div>
                 </li>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle {{ segmentOne() == 'students' || segmentOne() == 'teachers' || segmentOne() == 'devices' ? 'active' : '' }}"
+                       href="#" id="configDropdown" role="button" data-toggle="dropdown">
+                        <i class="fas fa-money-bill mr-1"></i> Fees Management
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-right">
+                        <a class="dropdown-item" href="{{ route('fee-settings') }}">
+                            <i class="fas fa-money-bill-wave mr-2"></i> Fee Settings
+                        </a>
+
+                    </div>
+                </li>
             </ul>
 
             <!-- User dropdown on right -->
