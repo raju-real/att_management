@@ -86,6 +86,9 @@ Route::middleware('auth')->group(function(){
         Route::post('success', 'success')->name('payment.success');
         Route::post('fail', 'fail')->name('payment.fail');
         Route::post('cancel', 'cancel')->name('payment.cancel');
+        Route::post('ipn', 'ipn')->name('payment.ipn');
+        Route::get('transaction/{transactionId}', 'transactionDetails')->name('payment.transaction.details');
+        Route::post('transaction/{transactionId}/refund', 'refund')->name('payment.transaction.refund');
     });
 });
 

@@ -1,5 +1,5 @@
 {
-    "active_gateway": "rocket",
+    "active_gateway": "ssl_commerz",
     "gateways": {
         "ssl_commerz": {
             "name": "SSL COMMERZ",

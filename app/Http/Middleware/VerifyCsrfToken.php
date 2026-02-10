@@ -23,5 +23,6 @@ class VerifyCsrfToken extends Middleware
         '/payment/success',
         '/payment/fail',
         '/payment/cancel',
+        '/payment/ipn',
     ];
 }

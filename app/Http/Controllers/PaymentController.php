@@ -3,23 +3,26 @@
 namespace App\Http\Controllers;
 
 use App\Models\StudentFee;
+use App\Models\PaymentTransaction;
 use App\Services\SslCommerzService;
-use App\Services\BkashService;
-use App\Services\RocketService;
-use App\Services\NagadService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 
 class PaymentController extends Controller
 {
+    protected $sslCommerz;
+
+    public function __construct()
+    {
+        $this->sslCommerz = new SslCommerzService();
+    }
+
     public function initiate($feeId)
     {
-        $studentFee = StudentFee::with(['student', 'feeLot'])->findOrFail($feeId);
-
+        $studentFee = StudentFee::with(['student', 'feeLot'])->whereUniqueId($feeId)->firstOrFail();
+        
         // Check if already paid
         if ($studentFee->status == 'paid') {
-            return redirect()->route('fee-lots.show', $studentFee->fee_lot_id)
+            return redirect()->route('fee-lots.show', encrypt_decrypt($studentFee->fee_lot_id, 'encrypt'))
                 ->with(warningMessage('warning', 'This fee has already been paid!'));
         }
 
@@ -27,257 +30,78 @@ class PaymentController extends Controller
         $settings = gatewaySettings();
         $activeGateway = $settings->active_gateway ?? 'ssl_commerz';
 
-        // Generate unique transaction ID
-        $transactionId = 'FEE' . time() . Str::random(5);
-
-        // Prepare payment data
-        $paymentData = [
-            'amount' => $studentFee->amount - ($studentFee->paid_amount ?? 0),
-            'transaction_id' => $transactionId,
-            'customer_name' => showStudentFullName(
-                $studentFee->student->firstname ?? 'Student',
-                $studentFee->student->middlname ?? '',
-                $studentFee->student->lastname ?? ''
-            ),
-            'customer_email' => $studentFee->student->email ?? 'student@school.com',
-            'customer_phone' => $studentFee->student->phone ?? '01700000000',
-            'customer_address' => $studentFee->student->address ?? 'N/A',
-            'customer_city' => 'Dhaka',
-            'product_name' => $studentFee->feeLot->title . ' - Fee Payment',
-            'product_category' => 'Education Fee',
-            'success_url' => route('payment.success'),
-            'fail_url' => route('payment.fail'),
-            'cancel_url' => route('payment.cancel'),
-            'callback_url' => route('payment.success'),
-        ];
-
-        // Store transaction ID and gateway
-        $studentFee->transaction_id = $transactionId;
-        $studentFee->payment_gateway = $activeGateway;
-        $studentFee->save();
-
-        // Route to appropriate gateway
-        return $this->processPaymentByGateway($activeGateway, $paymentData, $studentFee);
-    }
-
-    protected function processPaymentByGateway($gateway, $paymentData, $studentFee)
-    {
-        switch ($gateway) {
-            case 'ssl_commerz':
-                return $this->processSslCommerz($paymentData, $studentFee);
-            
-            case 'bkash':
-                return $this->processBkash($paymentData, $studentFee);
-            
-            case 'rocket':
-                return $this->processRocket($paymentData, $studentFee);
-            
-            case 'nagad':
-                return $this->processNagad($paymentData, $studentFee);
-            
-            default:
-                return redirect()->route('fee-lots.show', $studentFee->fee_lot_id)
-                    ->with(dangerMessage('danger', 'Invalid payment gateway configured!'));
+        // Only SSL Commerz supported
+        if ($activeGateway !== 'ssl_commerz') {
+            return redirect()->route('fee-lots.show', encrypt_decrypt($studentFee->fee_lot_id, 'encrypt'))
+                ->with(dangerMessage('danger', 'Only SSL COMMERZ gateway is currently supported!'));
         }
-    }
 
-    protected function processSslCommerz($paymentData, $studentFee)
-    {
-        $sslCommerz = new SslCommerzService();
-        $response = $sslCommerz->createPaymentSession($paymentData);
-
-        if (isset($response['status']) && $response['status'] == 'SUCCESS') {
-            return redirect($response['GatewayPageURL']);
-        } else {
-            return redirect()->route('fee-lots.show', $studentFee->fee_lot_id)
-                ->with(dangerMessage('danger', 'SSL COMMERZ payment initialization failed: ' . ($response['failedreason'] ?? 'Unknown error')));
-        }
-    }
-
-    protected function processBkash($paymentData, $studentFee)
-    {
-        $bkash = new BkashService();
-        $response = $bkash->createPayment($paymentData);
-
-        if (isset($response['bkashURL'])) {
-            // Store payment ID for execution
-            $studentFee->update(['transaction_id' => $response['paymentID'] ?? $studentFee->transaction_id]);
-            return redirect($response['bkashURL']);
-        } else {
-            return redirect()->route('fee-lots.show', $studentFee->fee_lot_id)
-                ->with(dangerMessage('danger', 'bKash payment initialization failed!'));
-        }
-    }
-
-    protected function processRocket($paymentData, $studentFee)
-    {
-        $rocket = new RocketService();
-        $response = $rocket->createPayment($paymentData);
-
-        if (isset($response['status']) && $response['status'] == 'SUCCESS') {
-            return redirect($response['payment_url'] ?? '#');
-        } else {
-            return redirect()->route('fee-lots.show', $studentFee->fee_lot_id)
-                ->with(dangerMessage('danger', 'Rocket payment initialization failed!'));
-        }
-    }
-
-    protected function processNagad($paymentData, $studentFee)
-    {
-        $nagad = new NagadService();
-        $response = $nagad->createPayment($paymentData);
-
-        if (isset($response['status']) && $response['status'] == 'SUCCESS') {
-            return redirect($response['redirectUrl']);
-        } else {
-            return redirect()->route('fee-lots.show', $studentFee->fee_lot_id)
-                ->with(dangerMessage('danger', 'Nagad payment initialization failed!'));
-        }
+        // Initiate SSL Commerz payment
+        return $this->sslCommerz->initiate($studentFee);
     }
 
     public function success(Request $request)
     {
-        // Get active gateway to determine validation method
-        $settings = gatewaySettings();
-        $activeGateway = $settings->active_gateway ?? 'ssl_commerz';
-
-        if ($activeGateway == 'ssl_commerz') {
-            return $this->handleSslCommerzSuccess($request);
-        } elseif ($activeGateway == 'bkash') {
-            return $this->handleBkashSuccess($request);
-        } elseif ($activeGateway == 'rocket') {
-            return $this->handleRocketSuccess($request);
-        } elseif ($activeGateway == 'nagad') {
-            return $this->handleNagadSuccess($request);
-        }
-
-        return redirect()->route('fee-lots.index')
-            ->with(dangerMessage('danger', 'Payment verification failed'));
-    }
-
-    protected function handleSslCommerzSuccess(Request $request)
-    {
-        $tranId = $request->input('tran_id');
-        $valId = $request->input('val_id');
-
-        $sslCommerz = new SslCommerzService();
-        $validation = $sslCommerz->validateTransaction($valId);
-
-        if (isset($validation['status']) && $validation['status'] == 'VALID') {
-            return $this->updateStudentFee($tranId, $validation['amount'], 'ssl_commerz');
-        }
-
-        return redirect()->route('fee-lots.index')
-            ->with(dangerMessage('danger', 'SSL COMMERZ payment verification failed'));
-    }
-
-    protected function handleBkashSuccess(Request $request)
-    {
-        $paymentID = $request->input('paymentID');
-        
-        $bkash = new BkashService();
-        $execution = $bkash->executePayment($paymentID);
-
-        if (isset($execution['transactionStatus']) && $execution['transactionStatus'] == 'Completed') {
-            return $this->updateStudentFee($paymentID, $execution['amount'], 'bkash');
-        }
-
-        return redirect()->route('fee-lots.index')
-            ->with(dangerMessage('danger', 'bKash payment verification failed'));
-    }
-
-    protected function handleRocketSuccess(Request $request)
-    {
-        $tranId = $request->input('transaction_id');
-        
-        $rocket = new RocketService();
-        $validation = $rocket->validateTransaction($tranId);
-
-        if (isset($validation['status']) && $validation['status'] == 'SUCCESS') {
-            return $this->updateStudentFee($tranId, $validation['amount'], 'rocket');
-        }
-
-        return redirect()->route('fee-lots.index')
-            ->with(dangerMessage('danger', 'Rocket payment verification failed'));
-    }
-
-    protected function handleNagadSuccess(Request $request)
-    {
-        $paymentRefId = $request->input('payment_ref_id');
-        
-        $nagad = new NagadService();
-        $validation = $nagad->validateTransaction($paymentRefId);
-
-        if (isset($validation['status']) && $validation['status'] == 'Success') {
-            return $this->updateStudentFee($validation['orderId'], $validation['amount'], 'nagad');
-        }
-
-        return redirect()->route('fee-lots.index')
-            ->with(dangerMessage('danger', 'Nagad payment verification failed'));
-    }
-
-    protected function updateStudentFee($tranId, $amount, $gateway)
-    {
-        $studentFee = StudentFee::where('transaction_id', $tranId)->first();
-
-        if ($studentFee) {
-            DB::beginTransaction();
-            try {
-                $paidAmount = ($studentFee->paid_amount ?? 0) + $amount;
-                
-                $studentFee->paid_amount = $paidAmount;
-                $studentFee->payment_gateway = $gateway;
-                $studentFee->payment_date = now();
-                
-                // Update status
-                if ($paidAmount >= $studentFee->amount) {
-                    $studentFee->status = 'paid';
-                } else {
-                    $studentFee->status = 'partial';
-                }
-                
-                $studentFee->save();
-
-                DB::commit();
-
-                return redirect()->route('fee-lots.show', $studentFee->fee_lot_id)
-                    ->with(successMessage('success', 'Payment successful! Amount: ' . $amount . ' BDT'));
-            } catch (\Exception $e) {
-                DB::rollBack();
-                return redirect()->route('fee-lots.show', $studentFee->fee_lot_id)
-                    ->with(dangerMessage('danger', 'Payment verification failed'));
-            }
-        }
-
-        return redirect()->route('fee-lots.index')
-            ->with(dangerMessage('danger', 'Payment record not found'));
+        return $this->sslCommerz->success($request);
     }
 
     public function fail(Request $request)
     {
-        $tranId = $request->input('tran_id') ?? $request->input('transaction_id');
-        $studentFee = StudentFee::where('transaction_id', $tranId)->first();
-
-        if ($studentFee) {
-            return redirect()->route('fee-lots.show', $studentFee->fee_lot_id)
-                ->with(dangerMessage('danger', 'Payment failed! Please try again.'));
-        }
-
-        return redirect()->route('fee-lots.index')
-            ->with(dangerMessage('danger', 'Payment failed!'));
+        return $this->sslCommerz->fail($request);
     }
 
     public function cancel(Request $request)
     {
-        $tranId = $request->input('tran_id') ?? $request->input('transaction_id');
-        $studentFee = StudentFee::where('transaction_id', $tranId)->first();
+        return $this->sslCommerz->cancel($request);
+    }
 
-        if ($studentFee) {
-            return redirect()->route('fee-lots.show', $studentFee->fee_lot_id)
-                ->with(warningMessage('warning', 'Payment was cancelled.'));
+    public function ipn(Request $request)
+    {
+        return $this->sslCommerz->ipn($request);
+    }
+
+    public function transactionDetails($transactionId)
+    {
+        $transaction = PaymentTransaction::with(['studentFee.student', 'studentFee.feeLot'])
+            ->where('transaction_id', $transactionId)
+            ->firstOrFail();
+
+        return view('payments.transaction_details', compact('transaction'));
+    }
+
+    public function refund(Request $request, $transactionId)
+    {
+        $request->validate([
+            'refund_amount' => 'required|numeric|min:1',
+            'refund_remarks' => 'nullable|string|max:500',
+        ]);
+
+        $transaction = PaymentTransaction::where('transaction_id', $transactionId)->firstOrFail();
+
+        // Validate refund amount
+        if ($request->refund_amount > $transaction->transaction_amount) {
+            return back()->with(dangerMessage('danger', 'Refund amount cannot exceed transaction amount!'));
         }
 
-        return redirect()->route('fee-lots.index')
-            ->with(warningMessage('warning', 'Payment was cancelled.'));
+        // Check if already refunded
+        if ($transaction->refund_status === 'REFUNDED') {
+            return back()->with(warningMessage('warning', 'This transaction has already been refunded!'));
+        }
+
+        try {
+            $result = $this->sslCommerz->initiateRefund(
+                $transaction,
+                $request->refund_amount,
+                $request->refund_remarks ?? 'Admin initiated refund'
+            );
+
+            if ($result['success']) {
+                return back()->with(successMessage('success', $result['message']));
+            } else {
+                return back()->with(dangerMessage('danger', $result['message']));
+            }
+        } catch (\Exception $e) {
+            return back()->with(dangerMessage('danger', 'Refund failed: ' . $e->getMessage()));
+        }
     }
 }

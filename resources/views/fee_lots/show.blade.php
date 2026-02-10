@@ -150,12 +150,19 @@
                                 <td>{{ $fee->payment_date ? dateFormat($fee->payment_date) : '-' }}</td>
                                 <td>
                                     @if ($fee->status != 'paid')
-                                        <a href="{{ route('payment.initiate', $fee->id) }}" class="btn btn-sm btn-success"
-                                            {!! tooltip('Pay Now') !!}>
+                                        <a href="{{ route('payment.initiate', $fee->unique_id) }}"
+                                            class="btn btn-sm btn-success" {!! tooltip('Pay Now') !!}>
                                             <i class="fas fa-credit-card"></i> Pay Now
                                         </a>
                                     @else
-                                        <span class="text-muted">-</span>
+                                        @if ($fee->transaction_id)
+                                            <a href="{{ route('payment.transaction.details', $fee->transaction_id) }}"
+                                                class="btn btn-sm btn-info" {!! tooltip('View Transaction') !!}>
+                                                <i class="fas fa-receipt"></i> Details
+                                            </a>
+                                        @else
+                                            <span class="text-muted">-</span>
+                                        @endif
                                     @endif
                                 </td>
                             </tr>

@@ -78,7 +78,7 @@ class FeeLotController extends Controller
             }
             
             $studentFeesBatch = [];
-            $batchSize = 500; // Safe limit for placeholders (500 * 8 params = 4000 << 65535)
+            $batchSize = 500;
 
             $query->chunk(500, function ($students) use ($lot, $months, $classFees, &$studentFeesBatch, $batchSize) {
                 foreach ($students as $student) {
@@ -86,6 +86,7 @@ class FeeLotController extends Controller
                     $totalAmount = $monthlyFee * $months;
 
                     $studentFeesBatch[] = [
+                        'unique_id' => StudentFee::generateUniqueId(),
                         'fee_lot_id' => $lot->id,
                         'student_id' => $student->id,
                         'amount' => $totalAmount,
@@ -96,12 +97,12 @@ class FeeLotController extends Controller
 
                     if (count($studentFeesBatch) >= $batchSize) {
                         StudentFee::insert($studentFeesBatch);
-                        $studentFeesBatch = []; // Reset batch
+                        $studentFeesBatch = [];
                     }
                 }
             });
 
-            // Insert remaining
+            // Insert remaining records
             if (!empty($studentFeesBatch)) {
                 StudentFee::insert($studentFeesBatch);
             }
@@ -119,9 +120,9 @@ class FeeLotController extends Controller
 
     public function show($id)
     {
-        $feeLot = FeeLot::findOrFail($id);
+        $feeLot = FeeLot::findOrFail(encrypt_decrypt($id, 'decrypt'));
         
-        $query = StudentFee::with('student')->where('fee_lot_id', $id);
+        $query = StudentFee::with('student')->where('fee_lot_id', $feeLot->id);
         
         // Apply filters
         if (request()->filled('student_id')) {
