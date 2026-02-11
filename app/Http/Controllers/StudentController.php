@@ -9,10 +9,11 @@ use Illuminate\Http\Request;
 
 class StudentController extends Controller
 {
-    public function __construct(
-        protected ZkTecoService $zkService
-    )
+    protected ZkTecoService $zkService;
+
+    public function __construct(ZkTecoService $zkService)
     {
+        $this->zkService = $zkService;
     }
 
     public function index()
@@ -20,6 +21,12 @@ class StudentController extends Controller
         $data = Student::query();
         $students = $data->latest('student_no')->paginate(50);
         return view('student.student_list', compact('students'));
+    }
+
+    public function show($student_no)
+    {
+        $student = Student::where('student_no', $student_no)->firstOrFail();
+        return view('student.show', compact('student'));
     }
 
     public function destroy($id)
@@ -46,5 +53,4 @@ class StudentController extends Controller
             ->route('students.index')
             ->with(deleteMessage());
     }
-
 }

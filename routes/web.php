@@ -24,7 +24,7 @@ Route::view('/', 'auth.admin_login')->name('home');
 Route::post('admin-login', AdminLogin::class)->name('admin-login');
 Route::view('permission-denied', 'permission_denied')->name('permission-denied');
 
-Route::middleware('auth')->group(function(){
+Route::middleware('auth')->group(function () {
     // ===================================================================
     // ONLY FOR ADMIN ROUTES
     // ===================================================================
@@ -40,7 +40,8 @@ Route::middleware('auth')->group(function(){
     // Devices
     Route::resource('devices', DeviceController::class);
     Route::controller(DeviceController::class)->group(function () {
-        Route::delete('remove-users/{device_id}','removeUsers')->name('devices.remove-users');
+        Route::delete('remove-users/{device_id}', 'removeUsers')->name('devices.remove-users');
+        Route::get('test-connection/{device_id}', 'testConnection')->name('devices.test-connection');
     });
     // Manage Student
     Route::resource('students', StudentController::class);
@@ -51,8 +52,8 @@ Route::middleware('auth')->group(function(){
         Route::get('present-logs', 'presentLogs')->name('present-logs');
         Route::get('attendance-summery', 'attendanceSummery')->name('attendance-summery');
         // Report
-        Route::get('month-wise-present-report','monthWisePresentReport')->name('month-wise-present-report');
-        Route::get('month-wise-user-summery','monthWiseUserSummery')->name('month-wise-user-summery');
+        Route::get('month-wise-present-report', 'monthWisePresentReport')->name('month-wise-present-report');
+        Route::get('month-wise-user-summery', 'monthWiseUserSummery')->name('month-wise-user-summery');
         Route::get('track-attendance-location', 'trackLocation')->name('track-attendance-location');
     });
     // Device Activity controller
@@ -70,16 +71,16 @@ Route::middleware('auth')->group(function(){
         Route::get('fee-settings', 'feeSettings')->name('fee-settings');
         Route::put('update-fee-settings', 'updateFeeSettings')->name('update-fee-settings');
     });
-    
+
     // Gateway Settings
     Route::controller(\App\Http\Controllers\PaymentGatewayController::class)->group(function () {
         Route::get('gateway-settings', 'index')->name('gateway-settings');
         Route::put('gateway-settings', 'update')->name('gateway-settings.update');
     });
-    
+
     // Fee Lots
     Route::resource('fee-lots', \App\Http\Controllers\FeeLotController::class);
-    
+
     // Payments
     Route::controller(\App\Http\Controllers\PaymentController::class)->prefix('payment')->group(function () {
         Route::get('initiate/{id}', 'initiate')->name('payment.initiate');
@@ -98,4 +99,3 @@ Route::get('logout', function () {
     Session::reflash();
     return redirect()->route('home');
 })->name('logout');
-

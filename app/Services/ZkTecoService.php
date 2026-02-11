@@ -10,7 +10,11 @@ class ZkTecoService
 {
     public function connect(Device $device): ?ZKTeco
     {
-        $zk = new ZKTeco($device->ip_address, $device->device_port);
+        $ip = trim($device->ip_address);
+        if (empty($ip)) {
+            return null;
+        }
+        $zk = new ZKTeco($ip, $device->device_port);
         return $zk->connect() ? $zk : null;
     }
 

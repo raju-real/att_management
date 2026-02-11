@@ -79,6 +79,20 @@
                             @enderror
                         </div>
                     </div>
+                     <div class="col-md-4">
+                        <div class="form-group">
+                            <label class="form-label">Device For {!! starSign() !!}</label>
+                            <select name="device_for" class="form-control {{ hasError('device_for') }}">
+                                @foreach(getDeviceFor() as $device_for)
+                                    <option
+                                        value="{{ $device_for->value }}" {{ (old('device_for') === $device_for->value || (isset($device) && $device->device_for === $device_for->value && empty(old('device_for')))) ? 'selected' : '' }}>{{ $device_for->title }}</option>
+                                @endforeach
+                            </select>
+                            @error('device_for')
+                            {!! displayError($message) !!}
+                            @enderror
+                        </div>
+                    </div>
                     <div class="col-md-4">
                         <div class="form-group">
                             <label class="form-label">Status {!! starSign() !!}</label>
@@ -89,21 +103,6 @@
                                 @endforeach
                             </select>
                             @error('status')
-                            {!! displayError($message) !!}
-                            @enderror
-                        </div>
-                    </div>
-
-                    <div class="col-md-4">
-                        <div class="form-group">
-                            <label class="form-label">Status {!! starSign() !!}</label>
-                            <select name="device_for" class="form-control {{ hasError('device_for') }}">
-                                @foreach(getDeviceFor() as $device_for)
-                                    <option
-                                        value="{{ $device_for->value }}" {{ (old('device_for') === $device_for->value || (isset($device) && $device->device_for === $device_for->value && empty(old('device_for')))) ? 'selected' : '' }}>{{ $device_for->title }}</option>
-                                @endforeach
-                            </select>
-                            @error('device_for')
                             {!! displayError($message) !!}
                             @enderror
                         </div>

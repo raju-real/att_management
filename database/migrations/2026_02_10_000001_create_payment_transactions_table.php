@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('payment_transactions', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('student_fee_id')->constrained('student_fees')->onDelete('cascade');
+            $table->foreignId('student_fee_id');
             $table->string('transaction_id')->unique();
             $table->string('gateway')->nullable(); // ssl_commerz, bkash, rocket, nagad
             $table->enum('status', ['PENDING', 'SUCCESS', 'FAILED', 'CANCELLED', 'REFUNDED'])->default('PENDING');

@@ -17,7 +17,7 @@ class SyncStudent extends Command
 
         $students = DB::connection('student_db')
             ->table('student_info')
-            ->orderBy('student_id') // STRING, but STABLE
+            ->orderBy('student_id')
             ->get();
 
         foreach ($students as $s) {

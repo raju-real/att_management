@@ -18,65 +18,65 @@
             <div class="table-responsive">
                 <table class="table table-hover table-striped">
                     <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>Name</th>
-                        <th>Serial No</th>
-                        <th>IP Address</th>
-                        <th>Port</th>
-                        <th>Device For</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                    </tr>
+                        <tr>
+                            <th>#</th>
+                            <th>Name</th>
+                            <th>Serial No</th>
+                            <th>IP Address</th>
+                            <th>Port</th>
+                            <th>Device For</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
                     </thead>
                     <tbody>
-                    @forelse($devices as $device)
-                        <tr>
-                            <td>{{ $loop->index + 1 }}</td>
-                            <td>{{ $device->name ?? '' }}</td>
-                            <td>{{ $device->serial_no ?? '' }}</td>
-                            <td>{{ $device->ip_address ?? '' }}</td>
-                            <td>{{ $device->device_port ?? '' }}</td>
-                            <td>
-                                @if($device->device_for == 'student_teacher')
-                                    Student and Teacher
-                                @elseif($device->device_for == 'student')
-                                    Student
-                                @elseif($device->device_for == 'teacher')
-                                    Teacher
-                                @endif
-                            </td>
-                            <td>{!! showStatus($device->status) !!}</td>
-                            <td class="text-nowrap">
-                                <a href="{{ route('devices.edit', $device->slug) }}"
-                                   class="action-btn" {!! tooltip('Edit Device') !!}><i class="fas fa-edit"></i></a>
-                                <a {!! tooltip('Delete Device') !!}
-                                   class="action-btn text-danger delete-data"
-                                   data-id="{{ 'delete-device-' . $device->id }}" href="javascript:void(0);">
-                                    <i class="fas fa-trash-alt"></i>
-                                </a>
-                                 <a {!! tooltip('Delete Device Users') !!}
-                                   class="action-btn text-danger delete-data"
-                                   data-id="{{ 'delete-device-user-' . $device->id }}" href="javascript:void(0);">
-                                    <i class="fas fa-eraser"></i>
-                                </a>
-                                <form id="delete-device-{{ $device->id }}"
-                                      action="{{ route('devices.destroy', $device->id) }}" method="POST">
-                                    @csrf
-                                    @method('DELETE')
-                                </form>
+                        @forelse($devices as $device)
+                            <tr>
+                                <td>{{ $loop->index + 1 }}</td>
+                                <td>{{ $device->name ?? '' }}</td>
+                                <td>{{ $device->serial_no ?? '' }}</td>
+                                <td>{{ $device->ip_address ?? '' }}</td>
+                                <td>{{ $device->device_port ?? '' }}</td>
+                                <td>
+                                    @if ($device->device_for == 'student_teacher')
+                                        Student and Teacher
+                                    @elseif($device->device_for == 'student')
+                                        Student
+                                    @elseif($device->device_for == 'teacher')
+                                        Teacher
+                                    @endif
+                                </td>
+                                <td>{!! showStatus($device->status) !!}</td>
+                                <td class="text-nowrap">
+                                    <a href="{{ route('devices.show', $device->id) }}" class="action-btn text-info"
+                                        {!! tooltip('Show Details') !!}><i class="fas fa-eye"></i></a>
+                                    <a href="{{ route('devices.edit', $device->slug) }}" class="action-btn"
+                                        {!! tooltip('Edit Device') !!}><i class="fas fa-edit"></i></a>
+                                    <a {!! tooltip('Delete Device') !!} class="action-btn text-danger delete-data"
+                                        data-id="{{ 'delete-device-' . $device->id }}" href="javascript:void(0);">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </a>
+                                    <a {!! tooltip('Delete Device Users') !!} class="action-btn text-danger delete-data"
+                                        data-id="{{ 'delete-device-user-' . $device->id }}" href="javascript:void(0);">
+                                        <i class="fas fa-eraser"></i>
+                                    </a>
+                                    <form id="delete-device-{{ $device->id }}"
+                                        action="{{ route('devices.destroy', $device->id) }}" method="POST">
+                                        @csrf
+                                        @method('DELETE')
+                                    </form>
 
 
-                                <form id="delete-device-user-{{ $device->id }}"
-                                      action="{{ route('devices.remove-users', $device->id) }}" method="POST">
-                                    @csrf
-                                    @method('DELETE')
-                                </form>
-                            </td>
-                        </tr>
-                    @empty
-                        <x-no-data-found/>
-                    @endforelse
+                                    <form id="delete-device-user-{{ $device->id }}"
+                                        action="{{ route('devices.remove-users', $device->id) }}" method="POST">
+                                        @csrf
+                                        @method('DELETE')
+                                    </form>
+                                </td>
+                            </tr>
+                        @empty
+                            <x-no-data-found />
+                        @endforelse
                     </tbody>
                 </table>
             </div>

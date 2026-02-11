@@ -11,10 +11,11 @@ use Illuminate\Validation\Rule;
 
 class DeviceController extends Controller
 {
-    public function __construct(
-        protected ZkTecoService $zkService
-    )
+    protected ZkTecoService $zkService;
+
+    public function __construct(ZkTecoService $zkService)
     {
+        $this->zkService = $zkService;
     }
 
     public function index()
@@ -80,7 +81,6 @@ class DeviceController extends Controller
         return view('configuration.device_add_edit', compact('device', 'route'));
     }
 
-
     public function update(Request $request, $id)
     {
         $this->validate($request, [
@@ -141,9 +141,30 @@ class DeviceController extends Controller
         $device = Device::findOrFail($id);
         $zk = $this->zkService->connect($device);
         if (!$zk) {
-            return redirect()->back(with(warningMessage("Invalid device connection!")));
+            return redirect()->back()->with(warningMessage("Invalid device connection!"));
         }
         $zk->clearUsers();
         return redirect()->route('devices.index')->with(successMessage("All users removed form device successfully"));
+    }
+
+    public function show($id)
+    {
+        $device = Device::findOrFail($id);
+        return view('configuration.device_show', compact('device'));
+    }
+
+    public function testConnection($id)
+    {
+        try {
+            $device = Device::findOrFail($id);
+            $zk = $this->zkService->connect($device);
+            if ($zk) {
+                $this->zkService->disconnect($zk);
+                return redirect()->route('devices.show', $id)->with(successMessage("Device Connected Successfully"));
+            }
+            return redirect()->route('devices.show', $id)->with(dangerMessage("Connection Failed!"));
+        } catch (\Throwable $e) {
+            return redirect()->route('devices.show', $id)->with(dangerMessage("Connection Error: " . $e->getMessage()));
+        }
     }
 }

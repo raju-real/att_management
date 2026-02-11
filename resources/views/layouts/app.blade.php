@@ -64,7 +64,6 @@
 
                 </ul>
                 {{-- menus from right side --}}
-                {{-- menus from right side --}}
                 <ul class="navbar-nav">
                     {{-- Manage Attendance --}}
                     <li class="nav-item dropdown">
@@ -115,7 +114,7 @@
                     </li>
 
                     {{-- Fees Management --}}
-                    <li class="nav-item dropdown">
+                    {{-- <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle {{ request()->routeIs(['fee-settings', 'update-fee-settings', 'fee-lots.*']) ? 'active' : '' }}"
                             href="#" id="feesDropdown" role="button" data-toggle="dropdown">
                             <i class="fas fa-money-bill-wave mr-1"></i> Fees Management
@@ -134,7 +133,7 @@
                                 <i class="fas fa-cog mr-2"></i> Gateway Settings
                             </a>
                         </div>
-                    </li>
+                    </li> --}}
                 </ul>
 
                 <!-- User dropdown on right -->
