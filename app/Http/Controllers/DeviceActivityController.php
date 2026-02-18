@@ -11,10 +11,11 @@ use Illuminate\Http\Request;
 
 class DeviceActivityController extends Controller
 {
-    public function __construct(
-        protected ZkTecoService $zkService
-    )
+    protected ZkTecoService $zkService;
+
+    public function __construct(ZkTecoService $zkService)
     {
+        $this->zkService = $zkService;
     }
 
     /**
@@ -85,7 +86,7 @@ class DeviceActivityController extends Controller
                 if (!$request->to_date) {
                     $q->whereDate('created_at', $request->from_date);
                 } else {
-                    $q->whereBetween('created_at',[Carbon::parse($request->from_date)->startOfDay(), Carbon::parse($request->to_date)->endOfDay(),]);
+                    $q->whereBetween('created_at', [Carbon::parse($request->from_date)->startOfDay(), Carbon::parse($request->to_date)->endOfDay(),]);
                 }
             })
             ->when($request->employee_id, fn($q) => $q->where('employee_id', $request->employee_id))
@@ -157,10 +158,6 @@ class DeviceActivityController extends Controller
     /**
      * Clear all attendance logs from device
      */
-    /**
-     * Clear ALL attendance logs from device
-     * (ZKTeco device limitation)
-     */
     public function clearAttendance(Request $request)
     {
         $request->validate([
@@ -181,7 +178,7 @@ class DeviceActivityController extends Controller
     }
 
     /**
-     * Remove user from device (soft delete)
+     * Remove user from device
      */
     public function deleteUserFromDevice(Request $request)
     {
@@ -197,10 +194,17 @@ class DeviceActivityController extends Controller
             return back()->withErrors('Device not reachable');
         }
 
-        $this->zkService->softDeleteUser($zk, $request->employee_id);
-        $this->zkService->disconnect($zk);
+        // Lookup UID from User ID (Employee ID)
+        $uid = $this->zkService->findUidByUserId($zk, $request->employee_id);
 
-        return back()->with('info', 'User removed from device');
+        if ($uid !== null) {
+            $this->zkService->deleteUser($zk, $uid);
+            $this->zkService->disconnect($zk);
+            return back()->with('info', 'User removed from device');
+        }
+
+        $this->zkService->disconnect($zk);
+        return back()->with('warning', 'User not found on device');
     }
 
     /* ==========================================================

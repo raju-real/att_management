@@ -6,6 +6,17 @@
 @section('content')
     <div class="d-flex justify-content-between align-items-center mb-2">
         <h3>Student Management</h3>
+        <div>
+            <a href="{{ route('students.sync') }}" class="btn btn-info text-white mr-2">
+                <i class="fas fa-sync mr-2"></i> Sync Student
+            </a>
+            <a href="{{ route('students.push-to-device') }}" class="btn btn-warning text-white mr-2">
+                <i class="fas fa-upload mr-2"></i> Push to Device
+            </a>
+            <a href="{{ route('students.create') }}" class="btn btn-primary-admin text-white">
+                <i class="fas fa-plus mr-2"></i> Add Student
+            </a>
+        </div>
     </div>
     <div class="card admin-card">
         <div class="card-header">
@@ -15,49 +26,49 @@
             <div class="table-responsive">
                 <table class="table table-hover table-striped">
                     <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>Device ID</th>
-                        <th>Student ID</th>
-                        <th>Full Name</th>
-                        <th>Nick Name</th>
-                        <th>Class</th>
-                        <th>Section</th>
-                        <th>Shift</th>
-                        <th>Group</th>
-                        <th>Actions</th>
-                    </tr>
+                        <tr>
+                            <th>#</th>
+                            <th>Device ID</th>
+                            <th>Student ID</th>
+                            <th>Full Name</th>
+                            <th>Nick Name</th>
+                            <th>Class</th>
+                            <th>Section</th>
+                            <th>Shift</th>
+                            <th>Group</th>
+                            <th>Actions</th>
+                        </tr>
                     </thead>
                     <tbody>
-                    @forelse($students as $student)
-                        <tr>
-                            <td>{{ $loop->index + 1 }}</td>
-                            <td>{{ $student->student_no ?? '' }}</td>
-                            <td>{{ $student->student_id ?? '' }} X</td>
-                            <td>{{ showStudentFullName($student->firstname, $student->middlname, $student->lastname) ?? '' }}</td>
-                            <td>{{ $student->nickname ?? '' }}</td>
-                            <td>{{ $student->class ?? '' }}</td>
-                            <td>{{ $student->section ?? '' }}</td>
-                            <td>{{ $student->shift ?? '' }}</td>
-                            <td>{{ $student->medium ?? '' }}</td>
-                            <td>
-                                <a href="{{ route('students.show', $student->student_no) }}"
-                                   class="action-btn text-info" {!! tooltip('Show Details of Student') !!}><i class="fas fa-eye"></i></a>
-                                <a {!! tooltip('Delete From List and Device') !!}
-                                   class="action-btn text-danger delete-data"
-                                   data-id="{{ 'delete-student-' . $student->id }}" href="javascript:void(0);">
-                                    <i class="fas fa-trash-alt"></i>
-                                </a>
-                                <form id="delete-student-{{ $student->id }}"
-                                      action="{{ route('students.destroy', $student->id) }}" method="POST">
-                                    @csrf
-                                    @method('DELETE')
-                                </form>
-                            </td>
-                        </tr>
-                    @empty
-                        <x-no-data-found/>
-                    @endforelse
+                        @forelse($students as $student)
+                            <tr>
+                                <td>{{ $loop->index + 1 }}</td>
+                                <td>{{ $student->student_no ?? '' }}</td>
+                                <td>{{ $student->student_id ?? '' }} X</td>
+                                <td>{{ showStudentFullName($student->firstname, $student->middlname, $student->lastname) ?? '' }}
+                                </td>
+                                <td>{{ $student->nickname ?? '' }}</td>
+                                <td>{{ $student->class ?? '' }}</td>
+                                <td>{{ $student->section ?? '' }}</td>
+                                <td>{{ $student->shift ?? '' }}</td>
+                                <td>{{ $student->medium ?? '' }}</td>
+                                <td>
+                                    <a href="{{ route('students.show', $student->student_no) }}"
+                                        class="action-btn text-info" {!! tooltip('Show Details of Student') !!}><i class="fas fa-eye"></i></a>
+                                    <a {!! tooltip('Delete From List and Device') !!} class="action-btn text-danger delete-data"
+                                        data-id="{{ 'delete-student-' . $student->id }}" href="javascript:void(0);">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </a>
+                                    <form id="delete-student-{{ $student->id }}"
+                                        action="{{ route('students.destroy', $student->id) }}" method="POST">
+                                        @csrf
+                                        @method('DELETE')
+                                    </form>
+                                </td>
+                            </tr>
+                        @empty
+                            <x-no-data-found />
+                        @endforelse
                     </tbody>
                 </table>
             </div>

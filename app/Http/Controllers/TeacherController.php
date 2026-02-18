@@ -9,16 +9,23 @@ use Illuminate\Validation\Rule;
 
 class TeacherController extends Controller
 {
-    public function __construct(
-        protected ZkTecoService $zkService
-    )
+    protected ZkTecoService $zkService;
+
+    public function __construct(ZkTecoService $zkService)
     {
+        $this->zkService = $zkService;
     }
 
     public function index()
     {
         $teachers = Teacher::latest('teacher_no')->paginate(20);
         return view('teacher.teacher_list', compact('teachers'));
+    }
+
+    public function pushToDevice()
+    {
+        \App\Jobs\SyncTeachersToDeviceJob::dispatch();
+        return redirect()->back()->with(successMessage('success', 'Pushing teachers to device started in background.'));
     }
 
     public function create()

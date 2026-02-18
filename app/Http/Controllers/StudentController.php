@@ -23,6 +23,57 @@ class StudentController extends Controller
         return view('student.student_list', compact('students'));
     }
 
+    public function sync()
+    {
+        \Illuminate\Support\Facades\Artisan::queue('sync-student');
+        return redirect()->back()->with(successMessage('success', 'Student sync started in background.'));
+    }
+
+    public function pushToDevice()
+    {
+        \App\Jobs\SyncStudentsToDeviceJob::dispatch();
+        return redirect()->back()->with(successMessage('success', 'Pushing students to device started in background.'));
+    }
+
+    public function create()
+    {
+        return view('student.create');
+    }
+
+    public function store(Request $request)
+    {
+        $this->validate($request, [
+            'student_id' => 'required|unique:students,student_id',
+            'firstname' => 'required|string|max:255',
+            'middlename' => 'nullable|string|max:255',
+            'lastname' => 'nullable|string|max:255',
+            'nickname' => 'nullable|string|max:255',
+            'class' => 'nullable|string|max:255',
+            'section' => 'nullable|string|max:255',
+            'roll' => 'nullable|string|max:255',
+            'shift' => 'nullable|string|max:255',
+            'medium' => 'nullable|string|max:255',
+            'group' => 'nullable|string|max:255',
+        ]);
+
+        $student = new Student();
+        $student->student_no = Student::getStudentNo(); // Auto Generate
+        $student->student_id = $request->student_id;
+        $student->firstname = $request->firstname;
+        $student->middlename = $request->middlename;
+        $student->lastname = $request->lastname;
+        $student->nickname = $request->nickname;
+        $student->class = $request->class;
+        $student->section = $request->section;
+        $student->roll = $request->roll;
+        $student->shift = $request->shift;
+        $student->medium = $request->medium;
+        $student->group = $request->group;
+        $student->save();
+
+        return redirect()->route('students.index')->with(successMessage());
+    }
+
     public function show($student_no)
     {
         $student = Student::where('student_no', $student_no)->firstOrFail();

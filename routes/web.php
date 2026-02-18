@@ -44,8 +44,11 @@ Route::middleware('auth')->group(function () {
         Route::get('test-connection/{device_id}', 'testConnection')->name('devices.test-connection');
     });
     // Manage Student
+    Route::get('students/sync', [StudentController::class, 'sync'])->name('students.sync');
+    Route::get('students/push-to-device', [StudentController::class, 'pushToDevice'])->name('students.push-to-device');
     Route::resource('students', StudentController::class);
     // Manage Teacher
+    Route::get('teachers/push-to-device', [TeacherController::class, 'pushToDevice'])->name('teachers.push-to-device');
     Route::resource('teachers', TeacherController::class);
     // Attendance manage
     Route::controller(AttendanceController::class)->group(function () {
