@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Feb 18, 2026 at 03:51 PM
+-- Generation Time: Feb 21, 2026 at 09:02 AM
 -- Server version: 10.4.25-MariaDB
 -- PHP Version: 8.1.10
 
@@ -155,6 +155,13 @@ CREATE TABLE `jobs` (
   `available_at` int(10) UNSIGNED NOT NULL,
   `created_at` int(10) UNSIGNED NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `jobs`
+--
+
+INSERT INTO `jobs` (`id`, `queue`, `payload`, `attempts`, `reserved_at`, `available_at`, `created_at`) VALUES
+(6, 'default', '{\"uuid\":\"8fb0bffc-ea87-4c44-a683-f01b76323b88\",\"displayName\":\"Illuminate\\\\Foundation\\\\Console\\\\QueuedCommand\",\"job\":\"Illuminate\\\\Queue\\\\CallQueuedHandler@call\",\"maxTries\":null,\"maxExceptions\":null,\"failOnTimeout\":false,\"backoff\":null,\"timeout\":null,\"retryUntil\":null,\"data\":{\"commandName\":\"Illuminate\\\\Foundation\\\\Console\\\\QueuedCommand\",\"command\":\"O:43:\\\"Illuminate\\\\Foundation\\\\Console\\\\QueuedCommand\\\":10:{s:7:\\\"\\u0000*\\u0000data\\\";a:1:{i:0;s:12:\\\"sync-student\\\";}s:10:\\\"connection\\\";N;s:5:\\\"queue\\\";N;s:15:\\\"chainConnection\\\";N;s:10:\\\"chainQueue\\\";N;s:19:\\\"chainCatchCallbacks\\\";N;s:5:\\\"delay\\\";N;s:11:\\\"afterCommit\\\";N;s:10:\\\"middleware\\\";a:0:{}s:7:\\\"chained\\\";a:0:{}}\"}}', 0, NULL, 1771660733, 1771660733);
 
 -- --------------------------------------------------------
 
@@ -12410,7 +12417,7 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`id`, `name`, `email`, `mobile`, `password_plain`, `password`, `remember_token`, `image`, `status`, `last_login_at`, `last_logout_at`, `created_at`, `updated_at`, `created_by`, `deleted_at`, `deleted_by`) VALUES
-(1, 'Mr. Admin', 'admin@mail.com', '12345679810', '123456', '$2y$10$Hu6gwPZZrOyXrsaInFoNPOr5jPNGhEQ4ZMnBlqkZORCpTsIbMyAxO', NULL, NULL, 'active', '2026-02-18 20:17:59', NULL, '2026-02-11 13:53:46', '2026-02-18 14:17:59', 1, NULL, NULL);
+(1, 'Mr. Admin', 'admin@mail.com', '12345679810', '123456', '$2y$10$Hu6gwPZZrOyXrsaInFoNPOr5jPNGhEQ4ZMnBlqkZORCpTsIbMyAxO', NULL, NULL, 'active', '2026-02-21 12:30:17', NULL, '2026-02-11 13:53:46', '2026-02-21 06:30:17', 1, NULL, NULL);
 
 --
 -- Indexes for dumped tables
@@ -12550,7 +12557,7 @@ ALTER TABLE `finger_prints`
 -- AUTO_INCREMENT for table `jobs`
 --
 ALTER TABLE `jobs`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT for table `migrations`
