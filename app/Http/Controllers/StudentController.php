@@ -16,9 +16,30 @@ class StudentController extends Controller
         $this->zkService = $zkService;
     }
 
-    public function index()
+    public function index(Request $request)
     {
         $data = Student::query();
+
+        if ($request->name) {
+            $data->where(function ($query) use ($request) {
+                $query->where('firstname', 'like', "%{$request->name}%")
+                    ->orWhere('middlename', 'like', "%{$request->name}%")
+                    ->orWhere('lastname', 'like', "%{$request->name}%");
+            });
+        }
+
+        if ($request->student_id) {
+            $data->where('student_id', 'like', "%{$request->student_id}%");
+        }
+
+        if ($request->student_no) {
+            $data->where('student_no', 'like', "%{$request->student_no}%");
+        }
+
+        if ($request->class) {
+            $data->where('class', $request->class);
+        }
+
         $students = $data->latest('student_no')->paginate(50);
         return view('student.student_list', compact('students'));
     }
@@ -33,6 +54,25 @@ class StudentController extends Controller
     {
         \App\Jobs\SyncStudentsToDeviceJob::dispatch();
         return redirect()->back()->with(successMessage('success', 'Pushing students to device started in background.'));
+    }
+
+    public function import()
+    {
+        return view('student.import');
+    }
+
+    public function upload(Request $request)
+    {
+        $this->validate($request, [
+            'file' => 'required|mimes:xls,xlsx,csv|max:2048'
+        ]);
+
+        try {
+            \Maatwebsite\Excel\Facades\Excel::import(new \App\Imports\StudentsImport, $request->file('file'));
+            return redirect()->route('students.index')->with(successMessage('success', 'Students imported successfully.'));
+        } catch (\Exception $e) {
+            return redirect()->back()->withErrors('Error importing file: ' . $e->getMessage());
+        }
     }
 
     public function create()

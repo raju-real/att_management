@@ -46,6 +46,8 @@ Route::middleware('auth')->group(function () {
     // Manage Student
     Route::get('students/sync', [StudentController::class, 'sync'])->name('students.sync');
     Route::get('students/push-to-device', [StudentController::class, 'pushToDevice'])->name('students.push-to-device');
+    Route::get('students/import', [StudentController::class, 'import'])->name('students.import');
+    Route::post('students/upload', [StudentController::class, 'upload'])->name('students.upload');
     Route::resource('students', StudentController::class);
     // Manage Teacher
     Route::get('teachers/push-to-device', [TeacherController::class, 'pushToDevice'])->name('teachers.push-to-device');

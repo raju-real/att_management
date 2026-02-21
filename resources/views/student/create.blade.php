@@ -70,8 +70,13 @@
                     <div class="col-md-4">
                         <div class="form-group">
                             <label class="form-label">Class</label>
-                            <input type="text" name="class" value="{{ old('class') }}"
-                                class="form-control {{ hasError('class') }}" placeholder="Class">
+                            <select name="class" class="form-control {{ hasError('class') }}">
+                                <option value="">Select Class</option>
+                                @foreach (getClassList() as $className)
+                                    <option value="{{ $className }}"
+                                        {{ old('class') == $className ? 'selected' : '' }}>{{ $className }}</option>
+                                @endforeach
+                            </select>
                             @error('class')
                                 {!! displayError($message) !!}
                             @enderror
