@@ -9,7 +9,7 @@
 
         <div>
             <button type="button" class="btn btn-warning text-white" data-toggle="modal" data-target="#syncAttendanceModal">
-                <i class="fas fa-sync mr-1"></i> Sync Background
+                <i class="fas fa-sync mr-1"></i> Sync Attendance
             </button>
         </div>
     </div>
