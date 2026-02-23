@@ -17,15 +17,38 @@ class AttendanceController extends Controller
     {
         $request->validate([
             'sync_from_date' => 'nullable|date',
-            'sync_to_date' => 'nullable|date|after_or_equal:sync_from_date',
+            'sync_to_date'   => 'nullable|date|after_or_equal:sync_from_date',
         ]);
 
         $from = $request->sync_from_date ?? Carbon::today()->toDateString();
-        $to = $request->sync_to_date ?? Carbon::today()->toDateString();
+        $to   = $request->sync_to_date   ?? Carbon::today()->toDateString();
 
-        \App\Jobs\SyncAttendanceJob::dispatch($from, $to);
+        $this->runInBackground($from, $to);
 
         return back()->with(successMessage('success', "Attendance sync from {$from} to {$to} started in background."));
+    }
+
+    /**
+     * Spawn a detached background process to run the Artisan command.
+     * No queue worker, no scheduler — works on Windows (XAMPP) and Linux.
+     */
+    private function runInBackground(string $from, string $to): void
+    {
+        $phpBinary  = PHP_BINARY;                            // path to php.exe / php
+        $artisan    = base_path('artisan');                  // /path/to/artisan
+        $from       = escapeshellarg($from);
+        $to         = escapeshellarg($to);
+
+        if (PHP_OS_FAMILY === 'Windows') {
+            // Windows: start /B runs a process detached from the console window
+            $cmd = "start /B \"\" \"{$phpBinary}\" \"{$artisan}\" zk:sync-attendance --from={$from} --to={$to}";
+            pclose(popen($cmd, 'r'));
+        } else {
+            // Linux/Mac: redirect output to /dev/null and background with &
+            $logFile = storage_path('logs/sync_bg.log');
+            $cmd = "\"{$phpBinary}\" \"{$artisan}\" zk:sync-attendance --from={$from} --to={$to} >> \"{$logFile}\" 2>&1 &";
+            exec($cmd);
+        }
     }
 
     public function presentLogs()
