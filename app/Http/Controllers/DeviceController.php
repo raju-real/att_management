@@ -160,11 +160,11 @@ class DeviceController extends Controller
             $zk = $this->zkService->connect($device);
             if ($zk) {
                 $this->zkService->disconnect($zk);
-                return redirect()->route('devices.show', $id)->with(successMessage("Device Connected Successfully"));
+                return redirect()->back()->with(successMessage('success', "Device Connected Successfully"));
             }
-            return redirect()->route('devices.show', $id)->with(dangerMessage("Connection Failed!"));
+            return redirect()->back()->with(dangerMessage('danger', "Connection Failed!"));
         } catch (\Throwable $e) {
-            return redirect()->route('devices.show', $id)->with(dangerMessage("Connection Error: " . $e->getMessage()));
+            return redirect()->back()->with(dangerMessage('danger', "Connection Error: " . $e->getMessage()));
         }
     }
 }

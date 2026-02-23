@@ -46,6 +46,7 @@ Route::middleware('auth')->group(function () {
     // Manage Student
     Route::get('students/sync', [StudentController::class, 'sync'])->name('students.sync');
     Route::get('students/push-to-device', [StudentController::class, 'pushToDevice'])->name('students.push-to-device');
+    Route::get('students/import/demo', [StudentController::class, 'demoExcel'])->name('students.import.demo');
     Route::get('students/import', [StudentController::class, 'import'])->name('students.import');
     Route::post('students/upload', [StudentController::class, 'upload'])->name('students.upload');
     Route::resource('students', StudentController::class);
@@ -54,6 +55,7 @@ Route::middleware('auth')->group(function () {
     Route::resource('teachers', TeacherController::class);
     // Attendance manage
     Route::controller(AttendanceController::class)->group(function () {
+        Route::post('attendance-sync-background', 'syncBackground')->name('attendance.sync.background');
         Route::get('present-logs', 'presentLogs')->name('present-logs');
         Route::get('attendance-summery', 'attendanceSummery')->name('attendance-summery');
         // Report

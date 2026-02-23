@@ -13,6 +13,21 @@ use niklasravnsborg\LaravelPdf\Facades\Pdf;
 
 class AttendanceController extends Controller
 {
+    public function syncBackground(\Illuminate\Http\Request $request)
+    {
+        $request->validate([
+            'sync_from_date' => 'nullable|date',
+            'sync_to_date' => 'nullable|date|after_or_equal:sync_from_date',
+        ]);
+
+        $from = $request->sync_from_date ?? Carbon::today()->toDateString();
+        $to = $request->sync_to_date ?? Carbon::today()->toDateString();
+
+        \App\Jobs\SyncAttendanceJob::dispatch($from, $to);
+
+        return back()->with(successMessage('success', "Attendance sync from {$from} to {$to} started in background."));
+    }
+
     public function presentLogs()
     {
         $filter = [];

@@ -61,6 +61,20 @@ class StudentController extends Controller
         return view('student.import');
     }
 
+    public function demoExcel()
+    {
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="student_import_demo.csv"',
+        ];
+        
+        $content = "student_id,firstname,middlename,lastname,nickname,class,section,roll,shift,medium,group\n";
+        $content .= "1001,John,,Doe,Johnny,10,A,1,Morning,English,Science\n";
+        $content .= "1002,Jane,A,Smith,Jenny,10,A,2,Morning,English,Arts\n";
+
+        return response($content, 200, $headers);
+    }
+
     public function upload(Request $request)
     {
         $this->validate($request, [

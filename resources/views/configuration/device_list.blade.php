@@ -56,6 +56,9 @@
                                         data-id="{{ 'delete-device-' . $device->id }}" href="javascript:void(0);">
                                         <i class="fas fa-trash-alt"></i>
                                     </a>
+                                    <a href="{{ route('devices.test-connection', $device->id) }}"
+                                        class="action-btn text-success" {!! tooltip('Test Connection') !!}><i
+                                            class="fas fa-wifi"></i></a>
                                     <a {!! tooltip('Delete Device Users') !!} class="action-btn text-danger delete-data"
                                         data-id="{{ 'delete-device-user-' . $device->id }}" href="javascript:void(0);">
                                         <i class="fas fa-eraser"></i>

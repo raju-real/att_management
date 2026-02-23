@@ -15,6 +15,8 @@
         </div>
         <div class="card-body">
             <div class="alert alert-info">
+                <a href="{{ route('students.import.demo') }}" class="btn btn-info btn-sm float-right text-white"><i
+                        class="fas fa-download mr-1"></i> Demo CSV</a>
                 <strong>Important:</strong> Your Excel or CSV file must have exactly these header columns:
                 <br><code>student_id</code>, <code>firstname</code>, <code>middlename</code>, <code>lastname</code>,
                 <code>nickname</code>, <code>class</code>, <code>section</code>, <code>roll</code>, <code>shift</code>,

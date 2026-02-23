@@ -26,6 +26,33 @@
     <link rel="stylesheet" href="{{ asset('assets/common/select2/css/select2.min.css') }}">
     <link rel="stylesheet" href="{{ asset('assets/css/style.css') }}">
     @stack('css')
+    <style>
+        /* Dropdown on hover for desktop */
+        @media (min-width: 992px) {
+            .navbar .dropdown:hover .dropdown-menu {
+                display: block;
+                margin-top: 0;
+                animation: fadeIn 0.3s ease;
+            }
+            .navbar .dropdown .dropdown-menu {
+                display: none;
+            }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Improve Topbar aesthetics */
+        .navbar-admin {
+            font-size: 15px;
+            font-weight: 500;
+        }
+        .navbar-admin .nav-link {
+            padding: 0.8rem 1.2rem !important;
+            transition: all 0.3s ease;
+        }
+    </style>
 </head>
 
 <body>
