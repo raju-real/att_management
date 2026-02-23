@@ -69,8 +69,8 @@ class StudentController extends Controller
         ];
         
         $content = "student_id,firstname,middlename,lastname,nickname,class,section,roll,shift,medium,group\n";
-        $content .= "1001,John,,Doe,Johnny,10,A,1,Morning,English,Science\n";
-        $content .= "1002,Jane,A,Smith,Jenny,10,A,2,Morning,English,Arts\n";
+        $content .= "1001,John,,Doe,Johnny,Six,A,1,Morning,English,Science\n";
+        $content .= "1002,Jane,A,Smith,Jenny,Six,A,2,Morning,English,Arts\n";
 
         return response($content, 200, $headers);
     }

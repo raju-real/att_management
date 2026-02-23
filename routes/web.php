@@ -42,6 +42,7 @@ Route::middleware('auth')->group(function () {
     Route::controller(DeviceController::class)->group(function () {
         Route::delete('remove-users/{device_id}', 'removeUsers')->name('devices.remove-users');
         Route::get('test-connection/{device_id}', 'testConnection')->name('devices.test-connection');
+        Route::get('device-users/{device_id}', 'getUsers')->name('devices.users');
     });
     // Manage Student
     Route::get('students/sync', [StudentController::class, 'sync'])->name('students.sync');

@@ -138,13 +138,17 @@ class DeviceController extends Controller
 
     public function removeUsers($id): \Illuminate\Http\RedirectResponse
     {
-        $device = Device::findOrFail($id);
-        $zk = $this->zkService->connect($device);
-        if (!$zk) {
-            return redirect()->back()->with(warningMessage("Invalid device connection!"));
+        try {
+            $device = Device::findOrFail($id);
+            $zk = $this->zkService->connect($device);
+            if (!$zk) {
+                return redirect()->route('devices.index')->with(dangerMessage('danger', "Device not connected or connection failed!"));
+            }
+            $zk->clearUsers();
+            return redirect()->route('devices.index')->with(successMessage('success', "All users removed form device successfully"));
+        } catch (\Throwable $e) {
+            return redirect()->route('devices.index')->with(dangerMessage('danger', "Connection Failed! Device not connected."));
         }
-        $zk->clearUsers();
-        return redirect()->route('devices.index')->with(successMessage("All users removed form device successfully"));
     }
 
     public function show($id)
@@ -166,5 +170,55 @@ class DeviceController extends Controller
         } catch (\Throwable $e) {
             return redirect()->back()->with(dangerMessage('danger', "Connection Error: " . $e->getMessage()));
         }
+    }
+
+    public function getUsers(\Illuminate\Http\Request $request, $id)
+    {
+        try {
+            $device = Device::findOrFail($id);
+
+            $zk = $this->zkService->connect($device);
+            if (!$zk) {
+                return redirect()->route('devices.index')->with(dangerMessage('danger', "Device not connected or connection failed!"));
+            }
+
+            $usersArray = $this->zkService->getUsers($zk);
+            $this->zkService->disconnect($zk);
+        } catch (\Throwable $e) {
+            return redirect()->route('devices.index')->with(dangerMessage('danger', "Connection Failed! Device not connected."));
+        }
+
+        $users = collect($usersArray);
+
+        if ($request->userid) {
+            $users = $users->filter(function ($item) use ($request) {
+                return str_contains(strtolower($item['userid'] ?? ''), strtolower($request->userid));
+            });
+        }
+
+        if ($request->name) {
+            $users = $users->filter(function ($item) use ($request) {
+                return str_contains(strtolower($item['name'] ?? ''), strtolower($request->name));
+            });
+        }
+
+        if ($request->role !== null && $request->role !== '') {
+            $users = $users->filter(function ($item) use ($request) {
+                return (string)($item['role'] ?? '') === (string)$request->role;
+            });
+        }
+
+        $perPage = 50;
+        $page = \Illuminate\Pagination\Paginator::resolveCurrentPage() ?: 1;
+
+        $paginatedUsers = new \Illuminate\Pagination\LengthAwarePaginator(
+            $users->forPage($page, $perPage)->values(),
+            $users->count(),
+            $perPage,
+            $page,
+            ['path' => url()->current(), 'query' => request()->query()]
+        );
+
+        return view('configuration.device_users', compact('device', 'paginatedUsers'));
     }
 }

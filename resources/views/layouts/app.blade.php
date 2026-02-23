@@ -96,7 +96,7 @@
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle {{ request()->routeIs(['attendance-summery', 'present-logs']) ? 'active' : '' }}"
                             href="#" id="attendanceDropdown" role="button" data-toggle="dropdown">
-                            <i class="fas fa-clock mr-1"></i> Manage Attendance
+                            <i class="fas fa-clock mr-1"></i> Attendance
                         </a>
                         <div class="dropdown-menu dropdown-menu-right">
                             <a class="dropdown-item {{ request()->routeIs('attendance-summery') ? 'active' : '' }}"
