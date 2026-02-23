@@ -7,10 +7,10 @@
     <div class="d-flex justify-content-between align-items-center mb-2">
         <h3>Teacher Management</h3>
         <div>
-            <a href="{{ route('teachers.push-to-device') }}" class="btn btn-warning text-white mr-2">
+            <a href="{{ route('teachers.push-to-device') }}" class="btn btn-warning text-white mr-2" {!! tooltip('Push to Device') !!}>
                 <i class="fas fa-upload mr-2"></i> Push to Device
             </a>
-            <a href="{{ route('teachers.create') }}" class="btn btn-primary-admin text-white">
+            <a href="{{ route('teachers.create') }}" class="btn btn-primary-admin text-white" {!! tooltip('Add Teacher') !!}>
                 <i class="fas fa-plus mr-2"></i> Add Teacher
             </a>
         </div>

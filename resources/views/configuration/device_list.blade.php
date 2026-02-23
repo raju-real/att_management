@@ -6,7 +6,7 @@
 @section('content')
     <div class="d-flex justify-content-between align-items-center mb-2">
         <h3>Device Management</h3>
-        <a href="{{ route('devices.create') }}" class="btn btn-primary-admin text-white">
+        <a href="{{ route('devices.create') }}" class="btn btn-primary-admin text-white" {!! tooltip('Add New Device') !!}>
             <i class="fas fa-plus mr-2"></i> Add New
         </a>
     </div>
@@ -59,9 +59,8 @@
                                     <a href="{{ route('devices.test-connection', $device->id) }}"
                                         class="action-btn text-success" {!! tooltip('Test Connection') !!}><i
                                             class="fas fa-wifi"></i></a>
-                                    <a href="{{ route('devices.users', $device->id) }}"
-                                        class="action-btn text-primary" {!! tooltip('Show Users') !!}><i
-                                            class="fas fa-users"></i></a>
+                                    <a href="{{ route('devices.users', $device->id) }}" class="action-btn text-primary"
+                                        {!! tooltip('Show Users') !!}><i class="fas fa-users"></i></a>
                                     <a {!! tooltip('Delete Device Users') !!} class="action-btn text-danger delete-data"
                                         data-id="{{ 'delete-device-user-' . $device->id }}" href="javascript:void(0);">
                                         <i class="fas fa-eraser"></i>

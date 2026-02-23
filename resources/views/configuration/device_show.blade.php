@@ -4,7 +4,8 @@
 @section('content')
     <div class="d-flex justify-content-between align-items-center mb-2">
         <h3>Device Management</h3>
-        <a href="{{ route('devices.index') }}" class="btn btn-secondary"><i class="fas fa-arrow-left mr-1"></i> Back to
+        <a href="{{ route('devices.index') }}" class="btn btn-secondary" {!! tooltip('Back to List') !!}><i
+                class="fas fa-arrow-left mr-1"></i> Back to
             List</a>
     </div>
     <div class="card admin-card">

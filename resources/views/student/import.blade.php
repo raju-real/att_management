@@ -4,7 +4,7 @@
 @section('content')
     <div class="d-flex justify-content-between align-items-center mb-2">
         <h3>Import Students</h3>
-        <a href="{{ route('students.index') }}" class="btn btn-secondary">
+        <a href="{{ route('students.index') }}" class="btn btn-secondary" {!! tooltip('Back to List') !!}>
             <i class="fas fa-arrow-left mr-2"></i> Back
         </a>
     </div>

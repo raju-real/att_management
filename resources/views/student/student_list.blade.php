@@ -7,16 +7,16 @@
     <div class="d-flex justify-content-between align-items-center mb-2">
         <h3>Student Management</h3>
         <div>
-            <a href="{{ route('students.sync') }}" class="btn btn-info text-white mr-2">
+            <a href="{{ route('students.sync') }}" class="btn btn-info text-white mr-2" {!! tooltip('Sync Student') !!}>
                 <i class="fas fa-sync mr-2"></i> Sync Student
             </a>
-            <a href="{{ route('students.push-to-device') }}" class="btn btn-warning text-white mr-2">
+            <a href="{{ route('students.push-to-device') }}" class="btn btn-warning text-white mr-2" {!! tooltip('Push to Device') !!}>
                 <i class="fas fa-upload mr-2"></i> Push to Device
             </a>
-            <a href="{{ route('students.import') }}" class="btn btn-success text-white mr-2">
+            <a href="{{ route('students.import') }}" class="btn btn-success text-white mr-2" {!! tooltip('Import Student') !!}>
                 <i class="fas fa-file-excel mr-2"></i> Import Student
             </a>
-            <a href="{{ route('students.create') }}" class="btn btn-primary-admin text-white">
+            <a href="{{ route('students.create') }}" class="btn btn-primary-admin text-white" {!! tooltip('Add Student') !!}>
                 <i class="fas fa-plus mr-2"></i> Add Student
             </a>
         </div>
@@ -149,6 +149,8 @@
                                 <td>
                                     <a href="{{ route('students.show', $student->student_no) }}"
                                         class="action-btn text-info" {!! tooltip('Show Details of Student') !!}><i class="fas fa-eye"></i></a>
+                                    <a href="{{ route('students.edit', $student->id) }}" class="action-btn text-primary"
+                                        {!! tooltip('Edit Student') !!}><i class="fas fa-edit"></i></a>
                                     <a {!! tooltip('Delete From List and Device') !!} class="action-btn text-danger delete-data"
                                         data-id="{{ 'delete-student-' . $student->id }}" href="javascript:void(0);">
                                         <i class="fas fa-trash-alt"></i>

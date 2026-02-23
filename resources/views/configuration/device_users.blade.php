@@ -6,7 +6,7 @@
 @section('content')
     <div class="d-flex justify-content-between align-items-center mb-2">
         <h3>Users for Device: {{ $device->name }} ({{ $device->serial_no }})</h3>
-        <a href="{{ route('devices.index') }}" class="btn btn-secondary text-white">
+        <a href="{{ route('devices.index') }}" class="btn btn-secondary text-white" {!! tooltip('Back to Devices') !!}>
             <i class="fas fa-arrow-left mr-2"></i> Back to Devices
         </a>
     </div>

@@ -170,7 +170,7 @@
 
             <!-- Pagination -->
             <div class="d-flex justify-content-center">
-                {!! $attendance_logs->links('pagination::bootstrap-4') !!}
+                {!! $attendance_logs->appends(request()->all())->links('pagination::bootstrap-4') !!}
             </div>
         </div>
     </div>
