@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Feb 23, 2026 at 05:03 PM
+-- Generation Time: Feb 24, 2026 at 04:23 PM
 -- Server version: 10.4.25-MariaDB
 -- PHP Version: 8.1.10
 
@@ -79,6 +79,13 @@ CREATE TABLE `devices` (
   `deleted_at` timestamp NULL DEFAULT NULL,
   `deleted_by` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `devices`
+--
+
+INSERT INTO `devices` (`id`, `name`, `slug`, `serial_no`, `ip_address`, `device_port`, `comm_key`, `device_for`, `status`, `last_synced_at`, `last_seen_at`, `created_by`, `created_at`, `updated_at`, `updated_by`, `deleted_at`, `deleted_by`) VALUES
+(1, 'Device One', 'device-one', 'BAY5252100647', '192.168.0.201', '4370', '0', 'student_teacher', 'active', NULL, NULL, 1, '2026-02-24 15:21:25', '2026-02-24 15:21:25', NULL, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -239,7 +246,7 @@ CREATE TABLE `personal_access_tokens` (
 
 CREATE TABLE `students` (
   `id` bigint(20) UNSIGNED NOT NULL,
-  `student_no` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `student_no` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `student_id` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `firstname` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `middlename` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
@@ -321,7 +328,7 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`id`, `name`, `email`, `mobile`, `password_plain`, `password`, `remember_token`, `image`, `status`, `last_login_at`, `last_logout_at`, `created_at`, `updated_at`, `created_by`, `deleted_at`, `deleted_by`) VALUES
-(1, 'Mr. Admin', 'admin@mail.com', '12345679810', '123456', '$2y$10$f/aW724U4vkrnVYD86KfY.1El0PFLDWihTeNL0GXBsuMi0Sh7/oOi', NULL, NULL, 'active', NULL, NULL, '2026-02-23 16:02:33', '2026-02-23 16:02:33', 1, NULL, NULL);
+(1, 'Mr. Admin', 'admin@mail.com', '12345679810', '123456', '$2y$10$ZMVqcidmZPk9ryt9iiYjB.xNufI8Kvse18ZziR4.mCtWEJzrWarX6', NULL, NULL, 'active', NULL, NULL, '2026-02-24 15:20:23', '2026-02-24 15:20:23', 1, NULL, NULL);
 
 --
 -- Indexes for dumped tables
@@ -397,8 +404,7 @@ ALTER TABLE `personal_access_tokens`
 -- Indexes for table `students`
 --
 ALTER TABLE `students`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `students_student_no_unique` (`student_no`);
+  ADD PRIMARY KEY (`id`);
 
 --
 -- Indexes for table `teachers`
@@ -429,7 +435,7 @@ ALTER TABLE `attendance_logs`
 -- AUTO_INCREMENT for table `devices`
 --
 ALTER TABLE `devices`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `failed_jobs`
