@@ -23,33 +23,11 @@ class AttendanceController extends Controller
         $from = $request->sync_from_date ?? Carbon::today()->toDateString();
         $to   = $request->sync_to_date   ?? Carbon::today()->toDateString();
 
-        $this->runInBackground($from, $to);
+        \App\Jobs\SyncAttendanceJob::dispatch($from, $to);
 
-        return back()->with(successMessage('success', "Attendance sync from {$from} to {$to} started in background."));
+        return back()->with(successMessage('success', "Attendance sync from {$from} to {$to} queued and running in background."));
     }
 
-    /**
-     * Spawn a detached background process to run the Artisan command.
-     * No queue worker, no scheduler — works on Windows (XAMPP) and Linux.
-     */
-    private function runInBackground(string $from, string $to): void
-    {
-        $phpBinary  = PHP_BINARY;                            // path to php.exe / php
-        $artisan    = base_path('artisan');                  // /path/to/artisan
-        $from       = escapeshellarg($from);
-        $to         = escapeshellarg($to);
-
-        if (PHP_OS_FAMILY === 'Windows') {
-            // Windows: start /B runs a process detached from the console window
-            $cmd = "start /B \"\" \"{$phpBinary}\" \"{$artisan}\" zk:sync-attendance --from={$from} --to={$to}";
-            pclose(popen($cmd, 'r'));
-        } else {
-            // Linux/Mac: redirect output to /dev/null and background with &
-            $logFile = storage_path('logs/sync_bg.log');
-            $cmd = "\"{$phpBinary}\" \"{$artisan}\" zk:sync-attendance --from={$from} --to={$to} >> \"{$logFile}\" 2>&1 &";
-            exec($cmd);
-        }
-    }
 
     public function presentLogs()
     {
@@ -92,7 +70,7 @@ class AttendanceController extends Controller
         $filter['student_id'] = request()->get('student_id') ?? '';
         $filter['teacher_no'] = request()->get('teacher_no') ?? '';
         $filter['from_date'] = request()->get('from_date') ?? Carbon::now()->startOfMonth()->toDateString();
-        $filter['to_date'] = request()->get('to_date') ?? $filter['from_date'] ?? Carbon::today()->toDateString();
+        $filter['to_date'] = request()->get('to_date') ?? Carbon::today()->toDateString();
         $filter['data_type'] = request()->get('data_type') ?? 'all_days';
 
         $from_date = $filter['from_date'];
@@ -124,7 +102,7 @@ class AttendanceController extends Controller
         $filter['student_no'] = request()->get('student_no') ?? '';
         $filter['teacher_no'] = request()->get('teacher_no') ?? '';
         $filter['from_date'] = request()->get('from_date') ?? Carbon::now()->startOfMonth()->toDateString();
-        $filter['to_date'] = request()->get('to_date') ?? $filter['from_date'] ?? Carbon::today()->toDateString();
+        $filter['to_date'] = request()->get('to_date') ??  Carbon::today()->toDateString();
         $display_type = request()->get('display_type') ?? 'show_data';
 
         $from_date = $filter['from_date'];
@@ -141,6 +119,11 @@ class AttendanceController extends Controller
                 new UserWiseSummaryExport($attendance_reports, $from_date, $to_date, $in_time, $out_time),
                 $bas_file_name . 'month_user_wise_summary_' . now()->format('Ymd_His') . '.xlsx'
             );
+        } elseif ($display_type === 'download_as_pdf') {
+            $attendance_reports = AttendanceService::monthWiseUserSummery($filter);
+            $bas_file_name = dateFormat($from_date, 'd_m_y') . '_to_' . dateFormat($to_date, 'd_m_y');
+            $report = PDF::loadView('pdf.month_wise_user_summery', compact('attendance_reports', 'from_date', 'to_date'));
+            return $report->download($bas_file_name . '_' . now()->format('Ymd_His') . '_attendance report' . '.pdf');
         }
     }
 }

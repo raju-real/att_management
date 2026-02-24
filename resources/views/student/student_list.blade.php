@@ -7,9 +7,9 @@
     <div class="d-flex justify-content-between align-items-center mb-2">
         <h3>Student Management</h3>
         <div>
-            <a href="{{ route('students.sync') }}" class="btn btn-info text-white mr-2" {!! tooltip('Sync Student') !!}>
+            {{-- <a href="{{ route('students.sync') }}" class="btn btn-info text-white mr-2" {!! tooltip('Sync Student') !!}>
                 <i class="fas fa-sync mr-2"></i> Sync Student
-            </a>
+            </a> --}}
             <a href="{{ route('students.push-to-device') }}" class="btn btn-warning text-white mr-2" {!! tooltip('Push to Device') !!}>
                 <i class="fas fa-upload mr-2"></i> Push to Device
             </a>
@@ -138,7 +138,7 @@
                             <tr>
                                 <td>{{ $loop->index + 1 }}</td>
                                 <td>{{ $student->student_no ?? '' }}</td>
-                                <td>{{ $student->student_id ?? '' }} X</td>
+                                <td>{{ $student->student_id ?? '' }}</td>
                                 <td>{{ showStudentFullName($student->firstname, $student->middlname, $student->lastname) ?? '' }}
                                 </td>
                                 <td>{{ $student->nickname ?? '' }}</td>

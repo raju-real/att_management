@@ -1,4 +1,4 @@
-Testing ZKTeco Device at 192.168.0.201:4370
+192Testing ZKTeco Device at 192.168.0.201:4370
 ===================================
 
 ✅ Connected successfully!

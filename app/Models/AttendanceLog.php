@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class AttendanceLog extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory;
     protected $table = 'attendance_logs';
     protected $guarded = [];
 

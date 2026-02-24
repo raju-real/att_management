@@ -94,7 +94,7 @@
                 <ul class="navbar-nav">
                     {{-- Manage Attendance --}}
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle {{ request()->routeIs(['attendance-summery', 'present-logs']) ? 'active' : '' }}"
+                        <a class="nav-link dropdown-toggle {{ request()->routeIs(['attendance-summery', 'present-logs', 'month-wise-present-report', 'month-wise-user-summery']) ? 'active' : '' }}"
                             href="#" id="attendanceDropdown" role="button" data-toggle="dropdown">
                             <i class="fas fa-clock mr-1"></i> Attendance
                         </a>

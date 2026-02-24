@@ -1,19 +1,25 @@
 <?php
 
-namespace App\Console\Commands;
+namespace App\Jobs;
 
-use Illuminate\Console\Command;
-use Illuminate\Support\Facades\DB;
 use App\Models\Student;
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
-class SyncStudent extends Command
+class SyncStudentFromDbJob implements ShouldQueue
 {
-    protected $signature = 'sync-student';
-    protected $description = 'Sync students from student_db to main db';
+    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public function handle()
+    public int $tries = 1;
+
+    public function handle(): void
     {
-        $this->info('Student sync started...');
+        Log::info('Job: SyncStudentFromDbJob started.');
 
         $students = DB::connection('student_db')
             ->table('student_info')
@@ -39,7 +45,6 @@ class SyncStudent extends Command
                 $updated++;
             }
 
-            // Always update these fields
             $student->firstname   = trim($s->firstname);
             $student->middlename  = $s->middlename;
             $student->lastname    = $s->lastname;
@@ -67,7 +72,6 @@ class SyncStudent extends Command
             $student->status      = $s->status;
             $student->sms_status  = $s->sms_status;
 
-            // Restore soft-deleted record if it was trashed
             if ($student->trashed()) {
                 $student->restore();
             }
@@ -75,6 +79,11 @@ class SyncStudent extends Command
             $student->save();
         }
 
-        $this->info("Student sync completed at " . now() . " — {$synced} inserted, {$updated} updated.");
+        Log::info("Job: SyncStudentFromDbJob completed. Inserted: {$synced}, Updated: {$updated}.");
+    }
+
+    public function failed(\Throwable $exception): void
+    {
+        Log::error('Job: SyncStudentFromDbJob failed. ' . $exception->getMessage());
     }
 }

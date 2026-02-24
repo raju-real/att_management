@@ -21,7 +21,7 @@
                 <br><code>student_id</code>, <code>firstname</code>, <code>middlename</code>, <code>lastname</code>,
                 <code>nickname</code>, <code>class</code>, <code>section</code>, <code>roll</code>, <code>shift</code>,
                 <code>medium</code>, <code>group</code>.
-                <br><code>student_id</code> and <code>firstname</code> are required.
+                <br><code>student_id</code> and <code>firstname</code> are required. User class name as <span class="text-danger">Six, Seven, Eight, Nine, Ten, Eleven, Twelve</span> in this format.
             </div>
 
             <form action="{{ route('students.upload') }}" method="POST" enctype="multipart/form-data" id="prevent-form">

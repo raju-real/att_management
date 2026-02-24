@@ -4,32 +4,24 @@
 @section('content')
 
     @php
-        $filterOpen = request()->hasAny([
-            'user_type','from_date','to_date','student_id','teacher_no'
-        ]);
+        $filterOpen = request()->hasAny(['user_type', 'from_date', 'to_date', 'student_id', 'teacher_no']);
     @endphp
 
     <div class="accordion mb-3" id="attendanceFilterAccordion">
         <div class="card">
             <div class="card-header p-0" id="filterHeading">
-                <button
-                    class="btn btn-link btn-block text-left d-flex justify-content-between align-items-center"
-                    type="button"
-                    data-toggle="collapse"
-                    data-target="#filterCollapse"
-                    aria-expanded="{{ $filterOpen ? 'true' : 'false' }}"
-                    aria-controls="filterCollapse">
-                            <span>
-                                <i class="fas fa-filter mr-1"></i> Filter Attendance
-                            </span>
+                <button class="btn btn-link btn-block text-left d-flex justify-content-between align-items-center"
+                    type="button" data-toggle="collapse" data-target="#filterCollapse"
+                    aria-expanded="{{ $filterOpen ? 'true' : 'false' }}" aria-controls="filterCollapse">
+                    <span>
+                        <i class="fas fa-filter mr-1"></i> Filter Attendance
+                    </span>
                     <i class="fas fa-chevron-down"></i>
                 </button>
             </div>
 
-            <div id="filterCollapse"
-                 class="collapse {{ $filterOpen ? 'show' : '' }}"
-                 aria-labelledby="filterHeading"
-                 data-parent="#attendanceFilterAccordion">
+            <div id="filterCollapse" class="collapse {{ $filterOpen ? 'show' : '' }}" aria-labelledby="filterHeading"
+                data-parent="#attendanceFilterAccordion">
 
                 <div class="card-body">
                     <form method="GET" action="{{ route('month-wise-user-summery') }}">
@@ -40,10 +32,10 @@
                                     <label class="form-label">User Type</label>
                                     <select name="user_type" class="form-control">
                                         <option value="">All</option>
-                                        <option value="student" {{ request('user_type')=='student'?'selected':'' }}>
+                                        <option value="student" {{ request('user_type') == 'student' ? 'selected' : '' }}>
                                             Student
                                         </option>
-                                        <option value="teacher" {{ request('user_type')=='teacher'?'selected':'' }}>
+                                        <option value="teacher" {{ request('user_type') == 'teacher' ? 'selected' : '' }}>
                                             Teacher
                                         </option>
                                     </select>
@@ -54,33 +46,25 @@
                             <div class="col-md-4">
                                 <div class="form-group">
                                     <label class="form-label">Student ID/Device ID</label>
-                                    <input type="search"
-                                           name="student_id"
-                                           class="form-control"
-                                           value="{{ request('student_id') }}" placeholder="Student ID">
+                                    <input type="search" name="student_id" class="form-control"
+                                        value="{{ request('student_id') }}" placeholder="Student ID">
                                 </div>
                             </div>
                             <!-- Teacher ID -->
                             <div class="col-md-4">
                                 <div class="form-group">
                                     <label class="form-label">Teacher ID</label>
-                                    <input type="search"
-                                           name="teacher_no"
-                                           class="form-control"
-                                           value="{{ request('teacher_no') }}" placeholder="Student ID">
+                                    <input type="search" name="teacher_no" class="form-control"
+                                        value="{{ request('teacher_no') }}" placeholder="Student ID">
                                 </div>
                             </div>
                             <!-- From Date -->
                             <div class="col-md-4">
                                 <div class="form-group input-clearable">
                                     <label class="form-label">From Date</label>
-                                    <input type="text"
-                                           name="from_date"
-                                           id="from_date"
-                                           class="form-control flat_datepicker"
-                                           value="{{ $from_date }}">
-                                    <span class="clear-btn"
-                                          onclick="document.getElementById('from_date').value='';"><i
+                                    <input type="text" name="from_date" id="from_date"
+                                        class="form-control flat_datepicker" value="{{ $from_date }}">
+                                    <span class="clear-btn" onclick="document.getElementById('from_date').value='';"><i
                                             class="fa fa-calendar"></i></span>
                                 </div>
                             </div>
@@ -88,13 +72,9 @@
                             <div class="col-md-4">
                                 <div class="form-group input-clearable">
                                     <label class="form-label">To Date</label>
-                                    <input type="text"
-                                           name="to_date"
-                                           id="to_date"
-                                           class="form-control flat_datepicker"
-                                           value="{{ $to_date ?? '' }}">
-                                    <span class="clear-btn"
-                                          onclick="document.getElementById('to_date').value='';"><i
+                                    <input type="text" name="to_date" id="to_date" class="form-control flat_datepicker"
+                                        value="{{ $to_date ?? '' }}">
+                                    <span class="clear-btn" onclick="document.getElementById('to_date').value='';"><i
                                             class="fa fa-calendar"></i></span>
                                 </div>
                             </div>
@@ -103,16 +83,16 @@
                                 <div class="form-group">
                                     <label class="form-label">Display Type</label>
                                     <select name="display_type" class="form-control">
-                                        <option
-                                            value="show_data" {{ request('display_type')=='show_data'?'selected':'' }}>
+                                        <option value="show_data"
+                                            {{ request('display_type') == 'show_data' ? 'selected' : '' }}>
                                             Show Data
                                         </option>
-                                        <option
-                                            value="download_as_xl" {{ request('display_type')=='download_as_xl'?'selected':'' }}>
+                                        <option value="download_as_xl"
+                                            {{ request('display_type') == 'download_as_xl' ? 'selected' : '' }}>
                                             Download as XL
                                         </option>
-                                        <option
-                                            value="download_as_pdf" {{ request('display_type')=='download_as_pdf'?'selected':'' }}>
+                                        <option value="download_as_pdf"
+                                            {{ request('display_type') == 'download_as_pdf' ? 'selected' : '' }}>
                                             Download as PDF
                                         </option>
 
@@ -132,8 +112,7 @@
                             <div class="col-md-1">
                                 <label class="form-label"></label>
                                 <div class="form-group">
-                                    <a href="{{ route('month-wise-user-summery') }}"
-                                       class="btn btn-secondary w-100">
+                                    <a href="{{ route('month-wise-user-summery') }}" class="btn btn-secondary w-100">
                                         <i class="fas fa-undo"></i>
                                     </a>
                                 </div>
@@ -150,46 +129,54 @@
         <div class="card-header">
             <h5 class="card-title">
                 <i class="fas fa-user-clock mr-2"></i> Monthly Summary
-                ({{ dateFormat($from_date,'d M, y') }}
-                to {{ dateFormat($to_date,'d M, y') ?? dateFormat($from_date,'d M, y') }})
+                ({{ dateFormat($from_date, 'd M, y') }}
+                to {{ dateFormat($to_date, 'd M, y') ?? dateFormat($from_date, 'd M, y') }})
             </h5>
         </div>
 
         <div class="card-body table-responsive">
             <table class="table table-striped table-bordered table-sm text-left">
                 <thead class="thead-light text-nowrap">
-                <tr>
-                    <th>User Type</th>
-                    <th>ID</th>
-                    <th>Name</th>
-                    <th>Earliest In</th>
-                    <th>Late In</th>
-                    <th>Earliest Out</th>
-                    <th>Late Out</th>
-                    <th>Present</th>
-                    <th>Absent</th>
-                    <th>Working Hour</th>
-                </tr>
+                    <tr>
+                        <th>User Type</th>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Earliest In</th>
+                        <th>Late In</th>
+                        <th>Earliest Out</th>
+                        <th>Late Out</th>
+                        <th>Present</th>
+                        <th>Absent</th>
+                        <th>Working Hour</th>
+                    </tr>
                 </thead>
                 <tbody class="table-bordered">
-                @forelse($attendance_reports as $row)
-                    <tr>
-                        <td>{{ ucfirst($row['user_type']) }}</td>
-                        <td>{{ $row['user_no'] }}</td>
-                        <td>{{ $row['name'] }}</td>
-                        <td>{{ $row['earliest_in'] }}</td>
-                        <td>{{ $row['latest_late_in'] }}</td>
-                        <td>{{ $row['earliest_out'] }}</td>
-                        <td>{{ $row['latest_late_out'] }}</td>
-                        <td>{{ $row['total_present_days'] }}</td>
-                        <td>{{ $row['total_absent_days'] }}</td>
-                        <td>{{ $row['total_working_hours'] }}</td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="10" class="text-center">No attendance found for selected filters</td>
-                    </tr>
-                @endforelse
+                    @forelse($attendance_reports as $row)
+                        <tr>
+                            <td>{{ ucfirst($row['user_type']) }}</td>
+                            <td>{{ $row['user_no'] }}</td>
+                            <td>{{ $row['name'] }}</td>
+                            <td class="{{ isLateIn($row['earliest_in']) ? 'text-danger' : 'text-success' }}">
+                                {{ timeFormat($row['earliest_in'], 'h:i a') }}
+                            </td>
+                            <td class="text-danger">
+                                {{ timeFormat($row['latest_late_in'], 'h:i a') }}
+                            </td>
+                            <td class="text-danger">
+                                {{ timeFormat($row['earliest_out'], 'h:i a') }}
+                            </td>
+                            <td class="{{ isEarlyOut($row['latest_late_out']) ? 'text-danger' : '' }}">
+                                {{ timeFormat($row['latest_late_out'], 'h:i a') }}
+                            </td>
+                            <td>{{ $row['total_present_days'] }}</td>
+                            <td>{{ $row['total_absent_days'] }}</td>
+                            <td>{{ $row['total_working_hours'] }}</td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="10" class="text-center">No attendance found for selected filters</td>
+                        </tr>
+                    @endforelse
                 </tbody>
             </table>
         </div>

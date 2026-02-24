@@ -16,7 +16,8 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule)
     {
         // $schedule->command('inspire')->hourly();
-        $schedule->command('zkteco:sync-users')->everyMinute()->withoutOverlapping()->runInBackground();
+        $schedule->command('zkteco:sync-users --direction=db --user-type=both')
+            ->everyMinute()->withoutOverlapping()->runInBackground();
         $schedule->command('zk:sync-attendance')->everyMinute()->withoutOverlapping()->runInBackground();
     }
 

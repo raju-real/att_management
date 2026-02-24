@@ -25,7 +25,7 @@ class TeacherController extends Controller
     public function pushToDevice()
     {
         \App\Jobs\SyncTeachersToDeviceJob::dispatch();
-        return redirect()->back()->with(successMessage('success', 'Pushing teachers to device started in background.'));
+        return redirect()->back()->with(successMessage('success', 'Pushing teachers to devices queued and running in background.'));
     }
 
     public function create()

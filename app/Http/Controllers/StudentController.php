@@ -46,14 +46,24 @@ class StudentController extends Controller
 
     public function sync()
     {
-        \Illuminate\Support\Facades\Artisan::queue('sync-student');
-        return redirect()->back()->with(successMessage('success', 'Student sync started in background.'));
+        // Check if the source student_db connection is reachable before dispatching
+        try {
+            \Illuminate\Support\Facades\DB::connection('student_db')->getPdo();
+        } catch (\Exception $e) {
+            return redirect()->back()->with(
+                dangerMessage('danger', 'Cannot connect to student database: ' . $e->getMessage())
+            );
+        }
+
+        \App\Jobs\SyncStudentFromDbJob::dispatch();
+
+        return redirect()->back()->with(successMessage('success', 'Student sync has been queued and is running in background.'));
     }
 
     public function pushToDevice()
     {
         \App\Jobs\SyncStudentsToDeviceJob::dispatch();
-        return redirect()->back()->with(successMessage('success', 'Pushing students to device started in background.'));
+        return redirect()->back()->with(successMessage('success', 'Pushing students to devices queued and running in background.'));
     }
 
     public function import()
