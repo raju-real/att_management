@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\Device;
+use App\Models\DeviceCommand;
 use App\Models\Teacher;
 use App\Services\ZkTecoService;
 use Illuminate\Bus\Queueable;
@@ -46,11 +47,27 @@ class SyncTeachersToDeviceJob implements ShouldQueue
         }
 
         // Fetch all teachers - adjust query if needed (e.g. only active)
-        $teachers = Teacher::all(); // Assuming all teachers should be synced
+        $teachers = Teacher::all();
 
         foreach ($devices as $device) {
-            Log::info("Syncing teachers to device: {$device->name} ({$device->ip_address})");
+            Log::info("Syncing teachers to device: {$device->name}");
 
+            // ── Push Mode ──────────────────────────────────────────────────
+            if ($device->use_push_mode) {
+                $queued = 0;
+                foreach ($teachers as $teacher) {
+                    $name = $teacher->name ?: 'Teacher';
+                    DeviceCommand::queue(
+                        $device->id,
+                        DeviceCommand::setUserCommand((string) $teacher->teacher_no, $name)
+                    );
+                    $queued++;
+                }
+                Log::info("Queued {$queued} SET USER commands for push-mode device: {$device->name}");
+                continue;
+            }
+
+            // ── TCP Mode ───────────────────────────────────────────────────
             $zk = $zkService->connect($device);
             if (!$zk) {
                 Log::error("Failed to connect to device: {$device->name}");
@@ -70,8 +87,8 @@ class SyncTeachersToDeviceJob implements ShouldQueue
                 }
             }
 
-            $zkService->disconnect($zk); // Ensure clean disconnect
-            Log::info("Finished syncing teachers to device: {$device->name}");
+            $zkService->disconnect($zk);
+            Log::info("Finished syncing teachers to device (TCP): {$device->name}");
         }
 
         Log::info("Job: SyncTeachersToDeviceJob finished.");

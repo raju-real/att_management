@@ -5,6 +5,7 @@ use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DeviceActivityController;
 use App\Http\Controllers\DeviceController;
+use App\Http\Controllers\IClockController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\StudentController;
@@ -19,6 +20,25 @@ use Illuminate\Support\Facades\Session;
 |--------------------------------------------------------------------------
 */
 
+/*
+|--------------------------------------------------------------------------
+| iClock / ZkTeco ADMS Push Protocol (PUBLIC — no auth)
+|--------------------------------------------------------------------------
+| ZkTeco devices call these endpoints over HTTP. Configure on device:
+|   MENU → COMM → Cloud Server / ADMS
+|   Server Address: your-domain.com
+|   Server Port:    80  (or 443 for HTTPS)
+|--------------------------------------------------------------------------
+*/
+Route::controller(IClockController::class)->prefix('iclock')->group(function () {
+    // Heartbeat + command delivery
+    Route::get('getrequest',  'getRequest')->name('iclock.getrequest');
+    // Attendance / user data pushed by device
+    Route::post('cdata',      'capture')->name('iclock.cdata');
+    // Alternate command endpoint (some firmware variants)
+    Route::get('devicecmd',   'deviceCmd')->name('iclock.devicecmd');
+});
+
 Route::view('/', 'auth.admin_login')->name('home');
 //Route::post('admin-login', AdminLogin::class)->middleware('throttle:5,1')->name('admin-login');
 Route::post('admin-login', AdminLogin::class)->name('admin-login');
@@ -31,6 +51,7 @@ Route::middleware('auth')->group(function () {
     // Dashboard
     Route::controller(DashboardController::class)->group(function () {
         Route::get('dashboard', 'dashboard')->name('dashboard');
+        Route::get('dashboard/teacher-status', 'teacherAttendanceStatus')->name('dashboard.teacher-status');
     });
     // Profile
     Route::controller(ProfileController::class)->group(function () {

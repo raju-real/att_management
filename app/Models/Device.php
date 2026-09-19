@@ -9,16 +9,50 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Device extends Model
 {
-    use HasFactory,ModelHelper,SoftDeletes;
-    protected $table = "devices";
+    use HasFactory, ModelHelper, SoftDeletes;
 
-    protected $fillable = ['name', 'branch_id', 'serial_no', 'ip', 'enabled', 'last_seen_at'];
-    protected $casts = ['enabled' => 'boolean', 'last_seen_at' => 'datetime'];
-    protected $dates = ['last_synced_at'];
+    protected $table = 'devices';
 
-    public function branch()
+    protected $fillable = [
+        'name',
+        'slug',
+        'serial_no',
+        'ip_address',
+        'device_port',
+        'comm_key',
+        'device_for',
+        'status',
+        'use_push_mode',
+        'last_synced_at',
+        'last_seen_at',
+        'created_by',
+        'updated_by',
+        'deleted_by',
+    ];
+
+    protected $casts = [
+        'use_push_mode'  => 'boolean',
+        'last_seen_at'   => 'datetime',
+        'last_synced_at' => 'datetime',
+    ];
+
+    /**
+     * True when device last called-in within the last 5 minutes.
+     */
+    public function getIsOnlineAttribute(): bool
     {
-        return $this->belongsTo(Branch::class);
+        if (! $this->use_push_mode) {
+            return false; // online status is N/A for TCP devices
+        }
+        return $this->last_seen_at && $this->last_seen_at->diffInMinutes(now()) <= 5;
+    }
+
+    /**
+     * Human-readable connection mode.
+     */
+    public function getConnectionModeAttribute(): string
+    {
+        return $this->use_push_mode ? 'Push (HTTP)' : 'TCP/UDP';
     }
 
     public function commands()
@@ -28,6 +62,7 @@ class Device extends Model
 
     public function employees()
     {
-        return $this->belongsToMany(User::class, 'device_employee')->withPivot('status', 'synced_at');
+        return $this->belongsToMany(User::class, 'device_employee')
+                    ->withPivot('status', 'synced_at');
     }
 }

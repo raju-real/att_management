@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\Device;
+use App\Models\DeviceCommand;
 use App\Models\Student;
 use App\Services\ZkTecoService;
 use Illuminate\Bus\Queueable;
@@ -49,8 +50,24 @@ class SyncStudentsToDeviceJob implements ShouldQueue
         $students = Student::all();
 
         foreach ($devices as $device) {
-            Log::info("Syncing students to device: {$device->name} ({$device->ip_address})");
+            Log::info("Syncing students to device: {$device->name}");
 
+            // ── Push Mode ──────────────────────────────────────────────────
+            if ($device->use_push_mode) {
+                $queued = 0;
+                foreach ($students as $student) {
+                    $name = showStudentFullName($student->firstname, $student->middlename, $student->lastname) ?: 'Student';
+                    DeviceCommand::queue(
+                        $device->id,
+                        DeviceCommand::setUserCommand((string) $student->student_no, $name)
+                    );
+                    $queued++;
+                }
+                Log::info("Queued {$queued} SET USER commands for push-mode device: {$device->name}");
+                continue;
+            }
+
+            // ── TCP Mode ───────────────────────────────────────────────────
             $zk = $zkService->connect($device);
             if (!$zk) {
                 Log::error("Failed to connect to device: {$device->name}");
@@ -61,7 +78,7 @@ class SyncStudentsToDeviceJob implements ShouldQueue
                 try {
                     $uid = (int)$student->student_no;
                     $userId = (string)$student->student_no;
-                    $name = showStudentFullName($student->firstname, $student->middlename, $student->lastname);
+                    $name = showStudentFullName($student->firstname, $student->middlename, $student->lastname) ?: 'Student';
 
                     // setUser(uid, userid, name, password, role)
                     $zk->setUser($uid, $userId, $name, '', 0);
@@ -70,8 +87,8 @@ class SyncStudentsToDeviceJob implements ShouldQueue
                 }
             }
 
-            $zkService->disconnect($zk); // Ensure clean disconnect
-            Log::info("Finished syncing students to device: {$device->name}");
+            $zkService->disconnect($zk);
+            Log::info("Finished syncing students to device (TCP): {$device->name}");
         }
 
         Log::info("Job: SyncStudentsToDeviceJob finished.");

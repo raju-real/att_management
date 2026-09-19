@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Feb 24, 2026 at 04:23 PM
+-- Generation Time: Jul 02, 2026 at 04:33 PM
 -- Server version: 10.4.25-MariaDB
 -- PHP Version: 8.1.10
 
@@ -134,6 +134,15 @@ CREATE TABLE `jobs` (
   `available_at` int(10) UNSIGNED NOT NULL,
   `created_at` int(10) UNSIGNED NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `jobs`
+--
+
+INSERT INTO `jobs` (`id`, `queue`, `payload`, `attempts`, `reserved_at`, `available_at`, `created_at`) VALUES
+(1, 'default', '{\"uuid\":\"79641598-74f7-4ff5-a02b-a8addf2ae482\",\"displayName\":\"App\\\\Jobs\\\\SyncAttendanceJob\",\"job\":\"Illuminate\\\\Queue\\\\CallQueuedHandler@call\",\"maxTries\":null,\"maxExceptions\":null,\"failOnTimeout\":false,\"backoff\":null,\"timeout\":null,\"retryUntil\":null,\"data\":{\"commandName\":\"App\\\\Jobs\\\\SyncAttendanceJob\",\"command\":\"O:26:\\\"App\\\\Jobs\\\\SyncAttendanceJob\\\":2:{s:11:\\\"\\u0000*\\u0000fromDate\\\";s:10:\\\"2026-04-10\\\";s:9:\\\"\\u0000*\\u0000toDate\\\";s:10:\\\"2026-04-10\\\";}\"}}', 0, NULL, 1775806761, 1775806761),
+(2, 'default', '{\"uuid\":\"25c2cf15-04fe-46df-a75f-2b253ef40461\",\"displayName\":\"App\\\\Jobs\\\\SyncStudentsToDeviceJob\",\"job\":\"Illuminate\\\\Queue\\\\CallQueuedHandler@call\",\"maxTries\":null,\"maxExceptions\":null,\"failOnTimeout\":false,\"backoff\":null,\"timeout\":null,\"retryUntil\":null,\"data\":{\"commandName\":\"App\\\\Jobs\\\\SyncStudentsToDeviceJob\",\"command\":\"O:32:\\\"App\\\\Jobs\\\\SyncStudentsToDeviceJob\\\":0:{}\"}}', 0, NULL, 1775806915, 1775806915),
+(3, 'default', '{\"uuid\":\"c05d1e29-1202-41ff-a4d3-65c841fe030a\",\"displayName\":\"App\\\\Jobs\\\\SyncAttendanceJob\",\"job\":\"Illuminate\\\\Queue\\\\CallQueuedHandler@call\",\"maxTries\":null,\"maxExceptions\":null,\"failOnTimeout\":false,\"backoff\":null,\"timeout\":null,\"retryUntil\":null,\"data\":{\"commandName\":\"App\\\\Jobs\\\\SyncAttendanceJob\",\"command\":\"O:26:\\\"App\\\\Jobs\\\\SyncAttendanceJob\\\":2:{s:11:\\\"\\u0000*\\u0000fromDate\\\";s:10:\\\"2026-05-18\\\";s:9:\\\"\\u0000*\\u0000toDate\\\";s:10:\\\"2026-05-18\\\";}\"}}', 0, NULL, 1779093526, 1779093526);
 
 -- --------------------------------------------------------
 
@@ -293,6 +302,7 @@ CREATE TABLE `teachers` (
   `email` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `mobile` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `designation` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `image` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   `deleted_at` timestamp NULL DEFAULT NULL
@@ -328,7 +338,7 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`id`, `name`, `email`, `mobile`, `password_plain`, `password`, `remember_token`, `image`, `status`, `last_login_at`, `last_logout_at`, `created_at`, `updated_at`, `created_by`, `deleted_at`, `deleted_by`) VALUES
-(1, 'Mr. Admin', 'admin@mail.com', '12345679810', '123456', '$2y$10$ZMVqcidmZPk9ryt9iiYjB.xNufI8Kvse18ZziR4.mCtWEJzrWarX6', NULL, NULL, 'active', NULL, NULL, '2026-02-24 15:20:23', '2026-02-24 15:20:23', 1, NULL, NULL);
+(1, 'Mr. Admin', 'admin@mail.com', '12345679810', '123456', '$2y$10$ZMVqcidmZPk9ryt9iiYjB.xNufI8Kvse18ZziR4.mCtWEJzrWarX6', NULL, NULL, 'active', '2026-07-01 22:30:07', NULL, '2026-02-24 15:20:23', '2026-07-01 16:30:07', 1, NULL, NULL);
 
 --
 -- Indexes for dumped tables
@@ -453,7 +463,7 @@ ALTER TABLE `fee_lots`
 -- AUTO_INCREMENT for table `jobs`
 --
 ALTER TABLE `jobs`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `migrations`
