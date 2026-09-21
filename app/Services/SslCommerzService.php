@@ -27,7 +27,7 @@ class SslCommerzService
         # Student Information
         $studentName = showStudentFullName(
             $studentFee->student->firstname ?? 'Student',
-            $studentFee->student->middlname ?? '',
+            $studentFee->student->middlename ?? '',
             $studentFee->student->lastname ?? ''
         );
         $mobile = $studentFee->student->phone ?? '01700000000';

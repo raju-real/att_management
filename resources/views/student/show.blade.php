@@ -10,7 +10,7 @@
     <div class="card admin-card">
         <div class="card-header">
             <h5 class="card-title"><i class="fas fa-user mr-2"></i>Student Details:
-                {{ showStudentFullName($student->firstname, $student->middlname, $student->lastname) }}</h5>
+                {{ showStudentFullName($student->firstname, $student->middlename, $student->lastname) }}</h5>
         </div>
         <div class="card-body">
             <div class="row">
@@ -28,7 +28,7 @@
                                 </tr>
                                 <tr>
                                     <th>Full Name</th>
-                                    <td>{{ showStudentFullName($student->firstname, $student->middlname, $student->lastname) }}
+                                    <td>{{ showStudentFullName($student->firstname, $student->middlename, $student->lastname) }}
                                     </td>
                                 </tr>
                                 <tr>

@@ -133,7 +133,7 @@
                                 <td>{{ ($studentFees->currentPage() - 1) * $studentFees->perPage() + $loop->iteration }}
                                 </td>
                                 <td>{{ $fee->student->student_id ?? 'N/A' }}</td>
-                                <td>{{ showStudentFullName($fee->student->firstname ?? '', $fee->student->middlname ?? '', $fee->student->lastname ?? '') }}
+                                <td>{{ showStudentFullName($fee->student->firstname ?? '', $fee->student->middlename ?? '', $fee->student->lastname ?? '') }}
                                 </td>
                                 <td>{{ $fee->student->class ?? 'N/A' }}</td>
                                 <td>{{ numberFormat($fee->amount) }} BDT</td>

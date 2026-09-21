@@ -50,7 +50,7 @@ class DashboardController extends Controller
         }
 
         // All active teachers
-        $allTeachers = Teacher::all();
+        $allTeachers = Teacher::with('shift')->get();
 
         // Teachers who punched in on that date
         $presentLogs = AttendanceLog::query()
@@ -82,8 +82,8 @@ class DashboardController extends Controller
                     'initial' => strtoupper(substr($teacher->name ?? 'T', 0, 1)),
                 ];
             } else {
-                // Present — check if late
-                if (isLateIn($log->in_time)) {
+                // Present — check if late (against this teacher's own shift, if assigned)
+                if (isLateIn($log->in_time, $teacher->shift->in_time ?? null)) {
                     $lateTeachers[] = [
                         'id'      => $teacher->id,
                         'name'    => $teacher->name,

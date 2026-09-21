@@ -11,6 +11,16 @@ class Teacher extends Model
     use HasFactory, SoftDeletes;
     protected $table = "teachers";
 
+    public function department()
+    {
+        return $this->belongsTo(Department::class);
+    }
+
+    public function shift()
+    {
+        return $this->belongsTo(Shift::class);
+    }
+
     public static function getTeacherSlNo(): string
     {
         $last = self::withTrashed()

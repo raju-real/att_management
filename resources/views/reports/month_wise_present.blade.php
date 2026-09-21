@@ -208,8 +208,8 @@
                                             <tr>
                                                 <td>{{ $record['user_no'] }}</td>
                                                 <td>{{ $record['name'] }}</td>
-                                                <td class="text-nowrap {{ isLateIn($record['in_time']) ? 'text-danger' : '' }}">{{ timeFormat($record['in_time'], 'h:i a') }}</td>
-                                                <td class="text-nowrap {{ isEarlyOut($record['out_time']) ? 'text-danger' : '' }}">{{ timeFormat($record['out_time'], 'h:i a') ?? '-' }}</td>
+                                                <td class="text-nowrap {{ isLateIn($record['in_time'], $record['standard_in'] ?? null) ? 'text-danger' : '' }}">{{ timeFormat($record['in_time'], 'h:i a') }}</td>
+                                                <td class="text-nowrap {{ isEarlyOut($record['out_time'], $record['standard_out'] ?? null) ? 'text-danger' : '' }}">{{ timeFormat($record['out_time'], 'h:i a') ?? '-' }}</td>
                                                 <td class="text-nowrap">{{ hourCount($record['out_time'], $record['in_time']) }}</td>
                                             </tr>
                                         @endforeach

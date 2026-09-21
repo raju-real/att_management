@@ -30,9 +30,28 @@
                     <div class="col-md-4">
                         <div class="form-group">
                             <label class="form-label">First Name {!! starSign() !!}</label>
-                            <input type="text" name="firstname" value="{{ old('firstname') }}"
+                            <input type="text" name="firstname" value="{{ old('firstname') ?? request('name') }}"
                                 class="form-control {{ hasError('firstname') }}" placeholder="First Name">
                             @error('firstname')
+                                {!! displayError($message) !!}
+                            @enderror
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label class="form-label">
+                                Device ID / Student No
+                                <small class="text-muted">(optional — leave blank to auto-assign)</small>
+                            </label>
+                            <input type="text" name="student_no" value="{{ old('student_no') ?? request('pin') }}"
+                                class="form-control {{ hasError('student_no') }}"
+                                placeholder="Auto-assigned if left blank">
+                            <small class="text-muted">
+                                Set this to match a PIN already enrolled on a fingerprint device
+                                (e.g. from Unmatched Attendance or Pull Users) so it links up instead of
+                                creating a duplicate.
+                            </small>
+                            @error('student_no')
                                 {!! displayError($message) !!}
                             @enderror
                         </div>

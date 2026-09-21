@@ -156,7 +156,7 @@
                             <td>{{ ucfirst($row['user_type']) }}</td>
                             <td>{{ $row['user_no'] }}</td>
                             <td>{{ $row['name'] }}</td>
-                            <td class="{{ isLateIn($row['earliest_in']) ? 'text-danger' : 'text-success' }}">
+                            <td class="{{ isLateIn($row['earliest_in'], $row['standard_in'] ?? null) ? 'text-danger' : 'text-success' }}">
                                 {{ timeFormat($row['earliest_in'], 'h:i a') }}
                             </td>
                             <td class="text-danger">
@@ -165,7 +165,7 @@
                             <td class="text-danger">
                                 {{ timeFormat($row['earliest_out'], 'h:i a') }}
                             </td>
-                            <td class="{{ isEarlyOut($row['latest_late_out']) ? 'text-danger' : '' }}">
+                            <td class="{{ isEarlyOut($row['latest_late_out'], $row['standard_out'] ?? null) ? 'text-danger' : '' }}">
                                 {{ timeFormat($row['latest_late_out'], 'h:i a') }}
                             </td>
                             <td>{{ $row['total_present_days'] }}</td>

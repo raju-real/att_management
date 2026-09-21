@@ -8,8 +8,8 @@
         <h3>Attendance Management</h3>
 
         <div>
-            <button type="button" class="btn btn-warning text-white" data-toggle="modal" data-target="#syncAttendanceModal">
-                <i class="fas fa-sync mr-1"></i> Sync Background
+            <button type="button" class="btn btn-success text-white" data-toggle="modal" data-target="#syncAttendanceModal">
+                <i class="fas fa-cloud-download-alt mr-1"></i> Pull from Device
             </button>
         </div>
     </div>
@@ -153,9 +153,9 @@
                                 <td class="text-center">{{ ucFirst($attendance['user_type']) }}</td>
                                 <td>{{ $attendance['user_no'] ?? '' }}</td>
                                 <td>{{ $attendance['name'] ?? '' }}</td>
-                                <td class="text-center {{ isLateIn($attendance['in_time']) ? 'text-danger' : '' }}">
+                                <td class="text-center {{ isLateIn($attendance['in_time'], $attendance['shift_in_time'] ?? null) ? 'text-danger' : '' }}">
                                     {{ timeFormat($attendance['in_time'], 'h:i a') }}</td>
-                                <td class="text-center {{ isEarlyOut($attendance['out_time']) ? 'text-danger' : '' }}">
+                                <td class="text-center {{ isEarlyOut($attendance['out_time'], $attendance['shift_out_time'] ?? null) ? 'text-danger' : '' }}">
                                     {{ timeFormat($attendance['out_time'], 'h:i a') ?? '-' }}</td>
                                 <td class="text-center">{{ hourCount($attendance['out_time'], $attendance['in_time']) }}
                                 </td>
@@ -175,35 +175,52 @@
         </div>
     </div>
 
-    <!-- Modal -->
-    <div class="modal fade" id="syncAttendanceModal" tabindex="-1" role="dialog" aria-labelledby="syncModalLabel"
-        aria-hidden="true">
+    <!-- Pull from Device Modal -->
+    <div class="modal fade" id="syncAttendanceModal" tabindex="-1" role="dialog" aria-labelledby="syncModalLabel" aria-hidden="true">
         <div class="modal-dialog" role="document">
             <form action="{{ route('attendance.sync.background') }}" method="POST">
                 @csrf
                 <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="syncModalLabel"><i class="fas fa-sync"></i> Sync Attendance</h5>
-                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <div class="modal-header" style="background:linear-gradient(90deg,#059669,#10b981);color:#fff">
+                        <h5 class="modal-title" id="syncModalLabel"><i class="fas fa-cloud-download-alt mr-2"></i>Pull Attendance from Device</h5>
+                        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
                             <span aria-hidden="true">&times;</span>
                         </button>
                     </div>
                     <div class="modal-body">
                         <div class="form-group">
-                            <label>From Date</label>
-                            <input type="text" name="sync_from_date" class="form-control flat_datepicker"
-                                placeholder="{{ dateFormat(today()) }}">
+                            <label class="font-weight-bold">Select Device</label>
+                            <select name="device_id" class="form-control">
+                                <option value="">All Active Devices</option>
+                                @foreach(\App\Models\Device::where('status','active')->get() as $dev)
+                                    <option value="{{ $dev->id }}">{{ $dev->name }} ({{ $dev->serial_no }})
+                                        — {{ $dev->use_push_mode ? 'Push Mode' : 'TCP' }}</option>
+                                @endforeach
+                            </select>
                         </div>
                         <div class="form-group">
-                            <label>To Date</label>
-                            <input type="text" name="sync_to_date" class="form-control flat_datepicker"
-                                placeholder="{{ dateFormat(today()) }}">
+                            <label class="font-weight-bold">From Date</label>
+                            <input type="text" name="sync_from_date" class="form-control flat_datepicker"
+                                placeholder="{{ dateFormat(today()) }}"
+                                value="{{ \Carbon\Carbon::today()->toDateString() }}">
                         </div>
-                        <small class="text-muted">Leave empty to sync today's attendance only.</small>
+                        <div class="form-group">
+                            <label class="font-weight-bold">To Date</label>
+                            <input type="text" name="sync_to_date" class="form-control flat_datepicker"
+                                placeholder="{{ dateFormat(today()) }}"
+                                value="{{ \Carbon\Carbon::today()->toDateString() }}">
+                        </div>
+                        <div class="alert alert-info py-2 small mb-0">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            <strong>Push Mode devices:</strong> Shows count of records already in database.<br>
+                            <strong>TCP devices:</strong> Connects live and pulls logs from device memory.
+                        </div>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                        <button type="submit" class="btn btn-primary">Start Sync</button>
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-cloud-download-alt mr-1"></i> Pull Now
+                        </button>
                     </div>
                 </div>
             </form>

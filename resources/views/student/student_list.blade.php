@@ -139,7 +139,7 @@
                                 <td>{{ $loop->index + 1 }}</td>
                                 <td>{{ $student->student_no ?? '' }}</td>
                                 <td>{{ $student->student_id ?? '' }}</td>
-                                <td>{{ showStudentFullName($student->firstname, $student->middlname, $student->lastname) ?? '' }}
+                                <td>{{ showStudentFullName($student->firstname, $student->middlename, $student->lastname) ?? '' }}
                                 </td>
                                 <td>{{ $student->nickname ?? '' }}</td>
                                 <td>{{ $student->class ?? '' }}</td>

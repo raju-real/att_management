@@ -19,6 +19,9 @@ class Device extends Model
         'serial_no',
         'ip_address',
         'device_port',
+        'subnet_label',
+        'gateway_ip',
+        'location_note',
         'comm_key',
         'device_for',
         'status',
@@ -37,14 +40,25 @@ class Device extends Model
     ];
 
     /**
-     * True when device last called-in within the last 5 minutes.
+     * True when device last called-in within the last 10 minutes.
+     * (Device polls every 30 sec — 10 min gives plenty of buffer for slow networks.)
      */
     public function getIsOnlineAttribute(): bool
     {
         if (! $this->use_push_mode) {
             return false; // online status is N/A for TCP devices
         }
-        return $this->last_seen_at && $this->last_seen_at->diffInMinutes(now()) <= 5;
+        return $this->last_seen_at && $this->last_seen_at->diffInMinutes(now()) <= 10;
+    }
+
+    /**
+     * Returns 'online', 'offline', or 'never' string for blade templates.
+     */
+    public function getOnlineStatusAttribute(): string
+    {
+        if (! $this->use_push_mode)       return 'tcp';
+        if (! $this->last_seen_at)        return 'never';
+        return $this->is_online ? 'online' : 'offline';
     }
 
     /**

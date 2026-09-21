@@ -86,7 +86,7 @@
                 </div>
                 <div class="card-body">
                     <p><strong>Name:</strong>
-                        {{ showStudentFullName($transaction->studentFee->student->firstname ?? '', $transaction->studentFee->student->middlname ?? '', $transaction->studentFee->student->lastname ?? '') }}
+                        {{ showStudentFullName($transaction->studentFee->student->firstname ?? '', $transaction->studentFee->student->middlename ?? '', $transaction->studentFee->student->lastname ?? '') }}
                     </p>
                     <p><strong>Student ID:</strong> {{ $transaction->studentFee->student->student_id ?? 'N/A' }}</p>
                     <p><strong>Class:</strong> {{ $transaction->studentFee->student->class ?? 'N/A' }}</p>

@@ -17,8 +17,6 @@ class SettingController extends Controller
             'site_name' => 'required|string|max:100',
             'email' => 'nullable|email|max:100',
             'mobile' => 'nullable|string|max:15',
-            'in_time' => 'required',
-            'out_time' => 'required',
             'weekly_holidays' => 'nullable|sometimes|array',
             'office_holidays' => 'nullable|string|max:2000',
         ]);

@@ -160,6 +160,60 @@
                     </div>
                 </div>
 
+                {{-- ═══ NETWORK / SUBNET INFO (optional, for multi-building deployments) ═══ --}}
+                <div class="row mb-3">
+                    <div class="col-12">
+                        <div class="card border-secondary">
+                            <div class="card-header py-2 d-flex align-items-center">
+                                <i class="fas fa-map-marker-alt mr-2 text-secondary"></i>
+                                <strong>Network / Location Notes</strong>
+                                <small class="text-muted ml-2">(optional — helpful once you have devices in more than one building/subnet)</small>
+                            </div>
+                            <div class="card-body py-3">
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            <label class="form-label">Subnet / Building Label</label>
+                                            <input type="text" name="subnet_label"
+                                                value="{{ old('subnet_label') ?? ($device->subnet_label ?? '') }}"
+                                                class="form-control {{ hasError('subnet_label') }}"
+                                                placeholder="e.g. Building A / 192.168.0.0/24">
+                                            @error('subnet_label')
+                                                {!! displayError($message) !!}
+                                            @enderror
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            <label class="form-label">Gateway IP for this Device</label>
+                                            <input type="text" name="gateway_ip"
+                                                value="{{ old('gateway_ip') ?? ($device->gateway_ip ?? '') }}"
+                                                class="form-control {{ hasError('gateway_ip') }}"
+                                                placeholder="e.g. 192.168.0.1">
+                                            <small class="text-muted">The router port on the device's own subnet that routes to this server.</small>
+                                            @error('gateway_ip')
+                                                {!! displayError($message) !!}
+                                            @enderror
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            <label class="form-label">Location Note</label>
+                                            <input type="text" name="location_note"
+                                                value="{{ old('location_note') ?? ($device->location_note ?? '') }}"
+                                                class="form-control {{ hasError('location_note') }}"
+                                                placeholder="e.g. Main gate, 1st floor">
+                                            @error('location_note')
+                                                {!! displayError($message) !!}
+                                            @enderror
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="text-right mt-2">
                     <x-submit-button />
                 </div>

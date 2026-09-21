@@ -267,38 +267,17 @@ class DeviceActivityController extends Controller
 
             foreach ($filteredLogs as $log) {
                 $punchTime = Carbon::parse($log['timestamp']);
-                $userId    = (string) ($log['id'] ?? '');
-
-                // Identify student or teacher
-                $student = Student::where('student_no', $userId)->first();
-                $teacher = ! $student ? Teacher::where('teacher_no', $userId)->first() : null;
-
-                $studentNo = $student ? (string) $student->student_no : null;
-                $teacherNo = $teacher ? (string) $teacher->teacher_no : null;
-                $userType  = $student ? 'student' : ($teacher ? 'teacher' : null);
-                $name      = $student ? trim(($student->firstname ?? '') . ' ' . ($student->lastname ?? ''))
-                           : ($teacher ? $teacher->name : null);
-
+                $pin       = (string) ($log['id'] ?? '');
+                $resolved  = \App\Services\UserResolver::resolve($pin, $device);
                 $punchType = $this->mapPunchType($log['type'] ?? null);
 
-                // Build unique criteria
-                $criteria = [
-                    'device_serial' => $device->serial_no,
-                    'punch_time'    => $punchTime->format('Y-m-d H:i:s'),
-                ];
-                if ($studentNo) {
-                    $criteria['student_no'] = $studentNo;
-                } elseif ($teacherNo) {
-                    $criteria['teacher_no'] = $teacherNo;
-                } else {
-                    $criteria['student_no'] = $userId; // unknown fallback
-                }
+                $criteria = \App\Services\UserResolver::attendanceLogFields($pin, $resolved, $device->serial_no, $punchTime);
 
                 AttendanceLog::firstOrCreate($criteria, [
-                    'user_type'     => $userType,
-                    'student_no'    => $studentNo,
-                    'teacher_no'    => $teacherNo,
-                    'name'          => $name,
+                    'user_type'     => $resolved['user_type'],
+                    'student_no'    => $resolved['student_no'],
+                    'teacher_no'    => $resolved['teacher_no'],
+                    'name'          => $resolved['name'],
                     'device_id'     => $device->id,
                     'device_serial' => $device->serial_no,
                     'punch_time'    => $punchTime->format('Y-m-d H:i:s'),

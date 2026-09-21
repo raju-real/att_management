@@ -468,12 +468,18 @@ if (!function_exists('hourCount')) {
 }
 
 if (!function_exists('isLateIn')) {
-    function isLateIn($in_time = null): bool
+    /**
+     * $standard_in optionally overrides the comparison time — pass a
+     * teacher's assigned Shift in_time so lateness is judged against their
+     * own shift rather than the site-wide default.
+     */
+    function isLateIn($in_time = null, $standard_in = null): bool
     {
-        if (!$in_time || empty(siteSettings()->in_time)) {
+        $standard_in = $standard_in ?: (siteSettings()->in_time ?? null);
+        if (!$in_time || empty($standard_in)) {
             return false;
         }
-        $standard_in = Carbon::parse(siteSettings()->in_time);
+        $standard_in = Carbon::parse($standard_in);
         $user_in = Carbon::parse($in_time);
         return $user_in->gt($standard_in);
     }
@@ -507,12 +513,18 @@ if (!function_exists('gatewaySettings')) {
 
 
 if (!function_exists('isEarlyOut')) {
-    function isEarlyOut($check_out = null): bool
+    /**
+     * $standard_out optionally overrides the comparison time — pass a
+     * teacher's assigned Shift out_time so early-out is judged against their
+     * own shift rather than the site-wide default.
+     */
+    function isEarlyOut($check_out = null, $standard_out = null): bool
     {
-        if (!$check_out || empty(siteSettings()->out_time)) {
+        $standard_out = $standard_out ?: (siteSettings()->out_time ?? null);
+        if (!$check_out || empty($standard_out)) {
             return false;
         }
-        $standard_out = Carbon::parse(siteSettings()->out_time);
+        $standard_out = Carbon::parse($standard_out);
         $user_out = Carbon::parse($check_out);
         return $user_out->lt($standard_out);
     }

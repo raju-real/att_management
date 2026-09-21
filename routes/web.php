@@ -63,7 +63,14 @@ Route::middleware('auth')->group(function () {
     Route::controller(DeviceController::class)->group(function () {
         Route::delete('remove-users/{device_id}', 'removeUsers')->name('devices.remove-users');
         Route::get('test-connection/{device_id}', 'testConnection')->name('devices.test-connection');
+        Route::get('test-connection-json/{device_id}', 'testConnectionJson')->name('devices.test-connection-json');
         Route::get('device-users/{device_id}', 'getUsers')->name('devices.users');
+        Route::get('device-setup-guide', 'setupGuide')->name('devices.setup-guide');
+        // Push students / teachers to specific device
+        Route::post('devices/{device_id}/push-students', 'pushStudents')->name('devices.push-students');
+        Route::post('devices/{device_id}/push-teachers', 'pushTeachers')->name('devices.push-teachers');
+        Route::post('devices/{device_id}/pull-attendance', 'pullAttendance')->name('devices.pull-attendance');
+        Route::post('devices/{device_id}/pull-users', 'pullUsers')->name('devices.pull-users');
     });
     // Manage Student
     Route::get('students/sync', [StudentController::class, 'sync'])->name('students.sync');
@@ -75,10 +82,15 @@ Route::middleware('auth')->group(function () {
     // Manage Teacher
     Route::get('teachers/push-to-device', [TeacherController::class, 'pushToDevice'])->name('teachers.push-to-device');
     Route::resource('teachers', TeacherController::class);
+    // Department & Shift (teacher timing config)
+    Route::resource('departments', \App\Http\Controllers\DepartmentController::class)->except('show');
+    Route::resource('shifts', \App\Http\Controllers\ShiftController::class)->except('show');
+    Route::get('shifts-by-department/{department}', [\App\Http\Controllers\ShiftController::class, 'byDepartment'])->name('shifts.by-department');
     // Attendance manage
     Route::controller(AttendanceController::class)->group(function () {
         Route::post('attendance-sync-background', 'syncBackground')->name('attendance.sync.background');
         Route::get('present-logs', 'presentLogs')->name('present-logs');
+        Route::get('attendance-unmatched', 'unmatched')->name('attendance.unmatched');
         Route::get('attendance-summery', 'attendanceSummery')->name('attendance-summery');
         // Report
         Route::get('month-wise-present-report', 'monthWisePresentReport')->name('month-wise-present-report');

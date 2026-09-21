@@ -23,28 +23,41 @@ class AttendanceService
 
         return AttendanceLog::query()
             ->selectRaw("
-                user_type,
-                COALESCE(student_no, teacher_no) AS user_no,
-                MIN(name) as name,
-                DATE(punch_time) as attendance_date,
-                MIN(punch_time) as in_time,
-                MAX(punch_time) as out_time,
-                COUNT(*) as total_punches
+                al.user_type,
+                COALESCE(al.student_no, al.teacher_no) AS user_no,
+                COALESCE(
+                    NULLIF(TRIM(CONCAT(COALESCE(MIN(s.firstname),''),' ',COALESCE(MIN(s.middlename),''),' ',COALESCE(MIN(s.lastname),''))), ''),
+                    MIN(t.name),
+                    MIN(al.name),
+                    '(Unknown)'
+                ) AS name,
+                DATE(al.punch_time) as attendance_date,
+                MIN(al.punch_time) as in_time,
+                MAX(al.punch_time) as out_time,
+                COUNT(*) as total_punches,
+                MIN(sh.in_time) as shift_in_time,
+                MIN(sh.out_time) as shift_out_time
             ")
-            ->whereBetween(DB::raw('DATE(punch_time)'), [$from, $to])
-            ->when($filters['user_type'] ?? null, fn($q, $v) => $q->where('user_type', $v))
-            ->when($filters['user_no']    ?? null, fn($q, $v) => $q->where('student_no', $v)->orWhere('teacher_no', $v))
-            ->when($filters['student_no'] ?? null, fn($q, $v) => $q->where('student_no', $v))
-            ->when($filters['student_id'] ?? null, fn($q, $v) => $q->where('student_id', $v))
-            ->when($filters['teacher_no'] ?? null, fn($q, $v) => $q->where('teacher_no', $v))
+            ->from('attendance_logs as al')
+            ->leftJoin('students as s', 's.student_no', '=', 'al.student_no')
+            ->leftJoin('teachers as t', 't.teacher_no', '=', 'al.teacher_no')
+            ->leftJoin('shifts as sh', 'sh.id', '=', 't.shift_id')
+            ->whereNull('al.deleted_at')
+            ->whereBetween(DB::raw('DATE(al.punch_time)'), [$from, $to])
+            ->when($filters['user_type'] ?? null, fn($q, $v) => $q->where('al.user_type', $v))
+            ->when($filters['user_no']    ?? null, fn($q, $v) => $q->where('al.student_no', $v)->orWhere('al.teacher_no', $v))
+            ->when($filters['student_no'] ?? null, fn($q, $v) => $q->where('al.student_no', $v))
+            ->when($filters['student_id'] ?? null, fn($q, $v) => $q->where('s.student_id', $v))
+            ->when($filters['teacher_no'] ?? null, fn($q, $v) => $q->where('al.teacher_no', $v))
             ->groupBy(
-                'user_type',
-                DB::raw('COALESCE(student_no, teacher_no)'),
-                DB::raw('DATE(punch_time)')
+                'al.user_type',
+                DB::raw('COALESCE(al.student_no, al.teacher_no)'),
+                DB::raw('DATE(al.punch_time)')
             )
             ->orderBy('attendance_date', 'desc')
             ->paginate($paginate);
     }
+
 
     public static function attendanceSummery(array $filters = [])
     {
@@ -102,6 +115,7 @@ class AttendanceService
 
         if (empty($filters['user_type']) || $filters['user_type'] === 'teacher') {
             $teachers = Teacher::query()
+                ->with('shift')
                 ->when($filters['teacher_no'] ?? null, fn($q, $v) => $q->where('teacher_no', $v))
                 ->get();
         }
@@ -134,6 +148,8 @@ class AttendanceService
                     'status' => $log ? 'Present' : 'Absent',
                     'in_time' => $log?->in_time,
                     'out_time' => $log?->out_time,
+                    'standard_in' => null,
+                    'standard_out' => null,
                 ]);
             }
 
@@ -151,6 +167,8 @@ class AttendanceService
                     'status' => $log ? 'Present' : 'Absent',
                     'in_time' => $log?->in_time,
                     'out_time' => $log?->out_time,
+                    'standard_in' => $teacher->shift->in_time ?? null,
+                    'standard_out' => $teacher->shift->out_time ?? null,
                 ]);
             }
         }
@@ -176,13 +194,12 @@ class AttendanceService
             $status = strtolower($filters['attendance_type']);
             if (in_array($status, ['late-in', 'early-out'])) {
                 if ($status === 'late-in') {
-                    $report = $report->filter(fn($row) => $row['status'] === 'Present' && !empty($row['in_time']) && isLateIn($row['in_time']));
-                } elseif ($status === 'early-out' && !empty(siteSettings()->out_time)) {
-                    $standardOut = Carbon::createFromFormat('H:i:s', siteSettings()->out_time);
+                    $report = $report->filter(fn($row) => $row['status'] === 'Present' && !empty($row['in_time']) && isLateIn($row['in_time'], $row['standard_in'] ?? null));
+                } elseif ($status === 'early-out') {
                     $report = $report->filter(
                         fn($row) => $row['status'] === 'Present'
                             && !empty($row['out_time'])
-                            && Carbon::parse($row['out_time'])->format('H:i:s') < $standardOut->format('H:i:s')
+                            && isEarlyOut($row['out_time'], $row['standard_out'] ?? null)
                     );
                 }
             }
@@ -241,22 +258,27 @@ class AttendanceService
          */
         $rows = AttendanceLog::query()
             ->selectRaw("
-                DATE(punch_time) as attendance_date,
-                user_type,
-                MIN(name) as name,
-                COALESCE(student_no, teacher_no) as user_no,
-                MIN(punch_time) as in_time,
-                MAX(punch_time) as out_time,
-                COUNT(*) as punch_count
+                DATE(al.punch_time) as attendance_date,
+                al.user_type,
+                MIN(al.name) as name,
+                COALESCE(al.student_no, al.teacher_no) as user_no,
+                MIN(al.punch_time) as in_time,
+                MAX(al.punch_time) as out_time,
+                COUNT(*) as punch_count,
+                MIN(sh.in_time) as shift_in_time,
+                MIN(sh.out_time) as shift_out_time
             ")
-            ->whereBetween(DB::raw('DATE(punch_time)'), [$from, $to])
-            ->when($filters['user_type'] ?? null, fn($q, $v) => $q->where('user_type', $v))
-            ->when($filters['student_id'] ?? null, fn($q, $v) => $q->where('student_id', $v)->orWhere('student_no', $v))
-            ->when($filters['teacher_no'] ?? null, fn($q, $v) => $q->where('teacher_no', $v))
+            ->from('attendance_logs as al')
+            ->leftJoin('teachers as t', 't.teacher_no', '=', 'al.teacher_no')
+            ->leftJoin('shifts as sh', 'sh.id', '=', 't.shift_id')
+            ->whereBetween(DB::raw('DATE(al.punch_time)'), [$from, $to])
+            ->when($filters['user_type'] ?? null, fn($q, $v) => $q->where('al.user_type', $v))
+            ->when($filters['student_id'] ?? null, fn($q, $v) => $q->where('al.student_id', $v)->orWhere('al.student_no', $v))
+            ->when($filters['teacher_no'] ?? null, fn($q, $v) => $q->where('al.teacher_no', $v))
             ->groupBy(
-                DB::raw('DATE(punch_time)'),
-                'user_type',
-                DB::raw('COALESCE(student_no, teacher_no)')
+                DB::raw('DATE(al.punch_time)'),
+                'al.user_type',
+                DB::raw('COALESCE(al.student_no, al.teacher_no)')
             )
             ->get()
             ->groupBy('attendance_date');
@@ -326,6 +348,8 @@ class AttendanceService
                     'out_time' => $row->out_time,
                     'punch_count' => $row->punch_count,
                     'working_hours' => self::calculateHours($row->in_time, $row->out_time),
+                    'standard_in' => $row->shift_in_time,
+                    'standard_out' => $row->shift_out_time,
                 ])->values()
             );
         }
@@ -410,29 +434,34 @@ class AttendanceService
         // 1️⃣ Fetch attendance — join students/teachers for reliable name
         $query = AttendanceLog::query()
             ->selectRaw("
-                user_type,
-                COALESCE(student_no, teacher_no) as user_no,
-                MIN(name) as name,
-                DATE(punch_time) as punch_date,
-                MIN(punch_time) as first_in,
-                MAX(punch_time) as last_out
+                al.user_type,
+                COALESCE(al.student_no, al.teacher_no) as user_no,
+                MIN(al.name) as name,
+                DATE(al.punch_time) as punch_date,
+                MIN(al.punch_time) as first_in,
+                MAX(al.punch_time) as last_out,
+                MIN(sh.in_time) as shift_in_time,
+                MIN(sh.out_time) as shift_out_time
             ")
-            ->whereBetween(DB::raw('DATE(punch_time)'), [$from, $to])
+            ->from('attendance_logs as al')
+            ->leftJoin('teachers as t', 't.teacher_no', '=', 'al.teacher_no')
+            ->leftJoin('shifts as sh', 'sh.id', '=', 't.shift_id')
+            ->whereBetween(DB::raw('DATE(al.punch_time)'), [$from, $to])
             ->groupBy(
-                'user_type',
-                DB::raw('COALESCE(student_no, teacher_no)'),
-                DB::raw('DATE(punch_time)')
+                'al.user_type',
+                DB::raw('COALESCE(al.student_no, al.teacher_no)'),
+                DB::raw('DATE(al.punch_time)')
             )
-            ->orderBy('user_type');
+            ->orderBy('al.user_type');
 
         if (!empty($filters['user_type'])) {
-            $query->where('user_type', $filters['user_type']);
+            $query->where('al.user_type', $filters['user_type']);
         }
         if (!empty($filters['student_no'])) {
-            $query->where('student_no', $filters['student_no']);
+            $query->where('al.student_no', $filters['student_no']);
         }
         if (!empty($filters['teacher_no'])) {
-            $query->where('teacher_no', $filters['teacher_no']);
+            $query->where('al.teacher_no', $filters['teacher_no']);
         }
 
         $attendanceRows = $query->get();
@@ -483,6 +512,8 @@ class AttendanceService
                 'total_present_days' => $presentDays,
                 'total_absent_days'  => $absentDays,
                 'total_working_hours' => $totalHours,
+                'standard_in'        => $records->first()->shift_in_time,
+                'standard_out'       => $records->first()->shift_out_time,
             ]);
         }
 

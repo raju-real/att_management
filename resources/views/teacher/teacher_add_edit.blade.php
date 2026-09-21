@@ -131,7 +131,8 @@
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label class="form-label">Name {!! starSign() !!}</label>
-                                    <input type="text" name="name" value="{{ old('name') ?? ($teacher->name ?? '') }}"
+                                    <input type="text" name="name"
+                                        value="{{ old('name') ?? request('name') ?? ($teacher->name ?? '') }}"
                                         class="form-control {{ hasError('name') }}" placeholder="Full Name">
                                     @error('name')
                                         {!! displayError($message) !!}
@@ -140,7 +141,27 @@
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    <label class="form-label">Email {!! starSign() !!}</label>
+                                    <label class="form-label">
+                                        Device ID / Teacher No {!! starSign() !!}
+                                    </label>
+                                    <input type="text" name="teacher_no"
+                                        value="{{ old('teacher_no') ?? request('pin') ?? ($teacher->teacher_no ?? \App\Models\Teacher::getTeacherNo()) }}"
+                                        class="form-control {{ hasError('teacher_no') }}"
+                                        placeholder="PIN used on the fingerprint device">
+                                    <small class="text-muted">
+                                        Must be unique. Set this to match a PIN already enrolled on a device
+                                        (e.g. from Unmatched Attendance or Pull Users) so it links up instead of
+                                        creating a duplicate. Changing it later re-points which device PIN this
+                                        teacher is pushed/matched under.
+                                    </small>
+                                    @error('teacher_no')
+                                        {!! displayError($message) !!}
+                                    @enderror
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="form-label">Email <small class="text-muted">(optional)</small></label>
                                     <input type="text" name="email" value="{{ old('email') ?? ($teacher->email ?? '') }}"
                                         class="form-control {{ hasError('email') }}" placeholder="Email Address">
                                     @error('email')
@@ -150,7 +171,7 @@
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    <label class="form-label">Mobile {!! starSign() !!}</label>
+                                    <label class="form-label">Mobile <small class="text-muted">(optional)</small></label>
                                     <input type="text" name="mobile" value="{{ old('mobile') ?? ($teacher->mobile ?? '') }}"
                                         class="form-control {{ hasError('mobile') }}" placeholder="Mobile Number">
                                     @error('mobile')
@@ -160,11 +181,42 @@
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group">
-                                    <label class="form-label">Designation {!! starSign() !!}</label>
+                                    <label class="form-label">Designation <small class="text-muted">(optional)</small></label>
                                     <input type="text" name="designation"
                                         value="{{ old('designation') ?? ($teacher->designation ?? '') }}"
                                         class="form-control {{ hasError('designation') }}" placeholder="Designation">
                                     @error('designation')
+                                        {!! displayError($message) !!}
+                                    @enderror
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="form-label">Department {!! starSign() !!}</label>
+                                    <select name="department_id" id="departmentSelect" class="form-control {{ hasError('department_id') }}">
+                                        <option value="">-- Select Department --</option>
+                                        @foreach ($departments as $department)
+                                            <option value="{{ $department->id }}"
+                                                {{ (old('department_id') ?? ($teacher->department_id ?? '')) == $department->id ? 'selected' : '' }}>
+                                                {{ $department->name }}</option>
+                                        @endforeach
+                                    </select>
+                                    @if($departments->isEmpty())
+                                        <small class="text-danger">No active departments yet — <a href="{{ route('departments.create') }}">create one first</a>.</small>
+                                    @endif
+                                    @error('department_id')
+                                        {!! displayError($message) !!}
+                                    @enderror
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="form-label">Shift {!! starSign() !!}</label>
+                                    <select name="shift_id" id="shiftSelect" class="form-control {{ hasError('shift_id') }}">
+                                        <option value="">-- Select Department First --</option>
+                                    </select>
+                                    <small class="text-muted" id="shiftTimesHint"></small>
+                                    @error('shift_id')
                                         {!! displayError($message) !!}
                                     @enderror
                                 </div>
@@ -183,6 +235,66 @@
 
 @push('js')
 <script>
+// ── Department -> Shift cascading select ──
+(function () {
+    const ALL_SHIFTS = @json($shifts->values());
+    const preselectedShiftId = {{ (int) (old('shift_id') ?? ($teacher->shift_id ?? 0)) }};
+
+    const deptSelect  = document.getElementById('departmentSelect');
+    const shiftSelect = document.getElementById('shiftSelect');
+    const shiftHint   = document.getElementById('shiftTimesHint');
+
+    function formatTime12(t) {
+        if (!t) return '';
+        const [h, m] = t.split(':');
+        const hour = parseInt(h, 10);
+        const ampm = hour >= 12 ? 'PM' : 'AM';
+        const h12  = ((hour % 12) || 12);
+        return h12 + ':' + m + ' ' + ampm;
+    }
+
+    function populateShifts(departmentId, selectShiftId) {
+        shiftSelect.innerHTML = '';
+        const matching = ALL_SHIFTS.filter(s => String(s.department_id) === String(departmentId));
+
+        if (!departmentId) {
+            shiftSelect.innerHTML = '<option value="">-- Select Department First --</option>';
+            shiftHint.textContent = '';
+            return;
+        }
+        if (matching.length === 0) {
+            shiftSelect.innerHTML = '<option value="">-- No shifts for this department --</option>';
+            shiftHint.innerHTML = 'Add one on the <a href="{{ route('shifts.create') }}" target="_blank">Shift</a> page.';
+            return;
+        }
+
+        shiftSelect.innerHTML = '<option value="">-- Select Shift --</option>' +
+            matching.map(s => `<option value="${s.id}" data-in="${s.in_time}" data-out="${s.out_time}">${s.title}</option>`).join('');
+
+        if (selectShiftId) {
+            shiftSelect.value = String(selectShiftId);
+        }
+        updateHint();
+    }
+
+    function updateHint() {
+        const opt = shiftSelect.options[shiftSelect.selectedIndex];
+        if (opt && opt.dataset && opt.dataset.in) {
+            shiftHint.textContent = 'In: ' + formatTime12(opt.dataset.in) + '  •  Out: ' + formatTime12(opt.dataset.out);
+        } else {
+            shiftHint.textContent = '';
+        }
+    }
+
+    deptSelect.addEventListener('change', function () {
+        populateShifts(this.value, null);
+    });
+    shiftSelect.addEventListener('change', updateHint);
+
+    // Initial load (edit mode, or validation-failed re-render)
+    populateShifts(deptSelect.value, preselectedShiftId || null);
+})();
+
 (function () {
     const input   = document.getElementById('teacherImageInput');
     const preview = document.getElementById('imgPreview');

@@ -64,7 +64,7 @@ class SslCommerzService
             // Customer information
             'cus_name' => showStudentFullName(
                 $studentFee->student->firstname ?? 'Student',
-                $studentFee->student->middlname ?? '',
+                $studentFee->student->middlename ?? '',
                 $studentFee->student->lastname ?? ''
             ),
             'cus_email' => $studentFee->student->email ?? 'student@school.com',

@@ -72,31 +72,14 @@
                         </div>
                     </div>
 
-                    <div class="col-md-4">
-                        <div class="form-group">
-                            <label class="form-label">In Time {!! starSign() !!}</label>
-                            <input type="text" name="in_time"
-                                   value="{{ old('in_time') ?? siteSettings()->in_time ?? '' }}"
-                                   class="form-control {{ hasError('in_time') }} flat_timepicker"
-                                   placeholder="In Time">
-                            @error('in_time')
-                            {!! displayError($message) !!}
-                            @enderror
+                    <div class="col-md-12">
+                        <div class="alert alert-info py-2 mb-3">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            Standard In/Out time is no longer set here — each teacher's lateness is now calculated
+                            from their assigned <a href="{{ route('shifts.index') }}">Shift</a> (Shift belongs to a
+                            <a href="{{ route('departments.index') }}">Department</a>).
                         </div>
                     </div>
-                    <div class="col-md-4">
-                        <div class="form-group">
-                            <label class="form-label">Out Time {!! starSign() !!}</label>
-                            <input type="text" name="out_time"
-                                   value="{{ old('out_time') ?? siteSettings()->out_time ?? '' }}"
-                                   class="form-control {{ hasError('out_time') }} flat_timepicker"
-                                   placeholder="Out">
-                            @error('out_time')
-                            {!! displayError($message) !!}
-                            @enderror
-                        </div>
-                    </div>
-
                     <div class="col-md-4">
                         <div class="form-group">
                             <label for="weekly_holidays" class="form-label">Weekly Holidays</label>

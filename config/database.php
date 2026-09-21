@@ -51,7 +51,27 @@ return [
             'database' => 'att_management',
             'username' => 'root',
             'password' => '',
-            'unix_socket' =>'',
+            'unix_socket' => '',
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
+            'options' => extension_loaded('pdo_mysql') ? array_filter([
+                PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
+            ]) : [],
+        ],
+
+        'live' => [
+            'driver' => 'mysql',
+            'url' => '',
+            'host' => '127.0.0.1',
+            'port' => '3306',
+            'database' => 'edusoftb_att_management',
+            'username' => 'edusoftb_att_management',
+            'password' => 'UU3AsB.7OyC82H!9',
+            'unix_socket' => '',
             'charset' => 'utf8mb4',
             'collation' => 'utf8mb4_unicode_ci',
             'prefix' => '',
@@ -71,27 +91,7 @@ return [
             'database' => 'att_demo',
             'username' => 'root',
             'password' => '',
-            'unix_socket' =>'',
-            'charset' => 'utf8mb4',
-            'collation' => 'utf8mb4_unicode_ci',
-            'prefix' => '',
-            'prefix_indexes' => true,
-            'strict' => true,
-            'engine' => null,
-            'options' => extension_loaded('pdo_mysql') ? array_filter([
-                PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
-            ]) : [],
-        ],
-
-        'live' => [
-            'driver' => 'mysql',
-            'url' => '',
-            'host' => '127.0.0.1',
-            'port' => '3306',
-            'database' => 'pkfaxywe_audit',
-            'username' => 'rytowork_admin',
-            'password' => 'XIR5)oaRjj0w',
-            'unix_socket' =>'',
+            'unix_socket' => '',
             'charset' => 'utf8mb4',
             'collation' => 'utf8mb4_unicode_ci',
             'prefix' => '',
@@ -163,7 +163,7 @@ return [
 
         'options' => [
             'cluster' => env('REDIS_CLUSTER', 'redis'),
-            'prefix' => env('REDIS_PREFIX', Str::slug(env('APP_NAME', 'laravel'), '_').'_database_'),
+            'prefix' => env('REDIS_PREFIX', Str::slug(env('APP_NAME', 'laravel'), '_') . '_database_'),
         ],
 
         'default' => [

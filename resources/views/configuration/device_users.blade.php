@@ -91,6 +91,15 @@
     </div>
 
 
+    @if($pushMode ?? false)
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle mr-1"></i>
+            This device uses <strong>Push Mode</strong> — there is no live user list to fetch from the device.
+            Users are managed by queuing push commands from the Student/Teacher list or the Device list's
+            "Push Students" / "Push Teachers" buttons.
+        </div>
+    @endif
+
     <div class="card admin-card">
         <div class="card-header">
             <h5 class="card-title"><i class="fas fa-users mr-2"></i>Device Users List</h5>

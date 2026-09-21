@@ -196,9 +196,9 @@
                                     <span
                                         class="badge badge-{{ $attendance['status'] == 'Present' ? 'primary' : 'danger' }}">{{ $attendance['status'] ?? '' }}</span>
                                 </td>
-                                <td class="text-center {{ isLateIn($attendance['in_time']) ? 'text-danger' : '' }}">
+                                <td class="text-center {{ isLateIn($attendance['in_time'], $attendance['standard_in'] ?? null) ? 'text-danger' : '' }}">
                                     {{ timeFormat($attendance['in_time'], 'h:i a') }}</td>
-                                <td class="text-center {{ isEarlyOut($attendance['out_time']) ? 'text-danger' : '' }}">
+                                <td class="text-center {{ isEarlyOut($attendance['out_time'], $attendance['standard_out'] ?? null) ? 'text-danger' : '' }}">
                                     {{ timeFormat($attendance['out_time'], 'h:i a') ?? '-' }}</td>
                                 <td class="text-center">{{ hourCount($attendance['out_time'], $attendance['in_time']) }}
                                 </td>

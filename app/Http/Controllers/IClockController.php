@@ -3,10 +3,8 @@
 namespace App\Http\Controllers;
 
 use Carbon\Carbon;
-use App\Models\User;
 use App\Models\Device;
-use App\Models\Student;
-use App\Models\Teacher;
+use App\Services\UserResolver;
 use Illuminate\Http\Request;
 use App\Models\AttendanceLog;
 use App\Models\DeviceCommand;
@@ -177,44 +175,9 @@ class IClockController extends Controller
             return;
         }
 
-        // ── Identify user type ────────────────────────────────────────────
-        $studentNo = null;
-        $teacherNo = null;
-        $userType  = null;
-        $name      = null;
-
-        // Check if pin matches a student
-        $student = Student::where('student_no', $pin)
-            ->orWhere('id', $pin)
-            ->first();
-
-        if ($student) {
-            $studentNo = $student->student_no ?? (string) $student->id;
-            $userType  = 'student';
-            $name      = $student->name ?? null;
-        }
-
-        // If not a student, check teacher
-        if (! $student) {
-            $teacher = Teacher::where('teacher_no', $pin)
-                ->orWhere('id', $pin)
-                ->first();
-
-            if ($teacher) {
-                $teacherNo = $teacher->teacher_no ?? (string) $teacher->id;
-                $userType  = 'teacher';
-                $name      = $teacher->name ?? null;
-            }
-        }
-
-        // If device_for is set, respect it
-        if ($device && $device->device_for === 'student') {
-            $teacherNo = null;
-            $userType  = $studentNo ? 'student' : null;
-        } elseif ($device && $device->device_for === 'teacher') {
-            $studentNo = null;
-            $userType  = $teacherNo ? 'teacher' : null;
-        }
+        // ── Identify user type — PIN matched only against student_no /
+        //    teacher_no (never internal row id), scoped by device_for. ────────
+        $resolved = UserResolver::resolve($pin, $device);
 
         // ── Map punch type ────────────────────────────────────────────────
         $punchType = match ((int) $status) {
@@ -223,41 +186,33 @@ class IClockController extends Controller
             default => 'UNKNOWN',
         };
 
-        // ── Persist ───────────────────────────────────────────────────────
-        // Use firstOrCreate to avoid duplicates
-        $criteria = [
-            'device_serial' => $device?->serial_no ?? 'PUSH',
-            'punch_time'    => $punchTime->format('Y-m-d H:i:s'),
-        ];
+        $deviceSerial = $device?->serial_no ?? 'PUSH';
 
-        // Add unique-identifying key depending on user type
-        if ($studentNo) {
-            $criteria['student_no'] = $studentNo;
-        } elseif ($teacherNo) {
-            $criteria['teacher_no'] = $teacherNo;
-        } else {
-            // Unknown user — store with raw pin so admin can review
-            $criteria['student_no'] = $pin; // Fallback
-        }
+        // ── Persist ───────────────────────────────────────────────────────
+        // Use firstOrCreate to avoid duplicates. Unmatched/ambiguous PINs are
+        // kept under `unmatched_pin` (not guessed as a student) so they show
+        // up in the Unmatched Attendance review screen.
+        $criteria = UserResolver::attendanceLogFields($pin, $resolved, $deviceSerial, $punchTime);
 
         AttendanceLog::firstOrCreate($criteria, [
-            'user_type'     => $userType,
-            'student_no'    => $studentNo,
-            'teacher_no'    => $teacherNo,
-            'name'          => $name,
+            'user_type'     => $resolved['user_type'],
+            'student_no'    => $resolved['student_no'],
+            'teacher_no'    => $resolved['teacher_no'],
+            'name'          => $resolved['name'],
             'device_id'     => $device?->id,
-            'device_serial' => $device?->serial_no ?? 'PUSH',
+            'device_serial' => $deviceSerial,
             'punch_time'    => $punchTime->format('Y-m-d H:i:s'),
             'attendance_by' => 'fingerprint',
             'verify_mode'   => $verifyMode,
             'work_code'     => $workCode,
             'punch_type'    => $punchType,
             'raw_payload'   => json_encode([
-                'line'        => $line,
-                'pin'         => $pin,
-                'verify_mode' => $verifyMode,
-                'status'      => $status,
-                'work_code'   => $workCode,
+                'line'            => $line,
+                'pin'             => $pin,
+                'verify_mode'     => $verifyMode,
+                'status'          => $status,
+                'work_code'       => $workCode,
+                'resolve_status'  => $resolved['status'],
             ]),
         ]);
     }

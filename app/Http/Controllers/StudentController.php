@@ -2,18 +2,23 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AttendanceLog;
 use App\Models\Device;
+use App\Models\DeviceCommand;
 use App\Models\Student;
+use App\Services\DeviceSyncService;
 use App\Services\ZkTecoService;
 use Illuminate\Http\Request;
 
 class StudentController extends Controller
 {
     protected ZkTecoService $zkService;
+    protected DeviceSyncService $deviceSync;
 
-    public function __construct(ZkTecoService $zkService)
+    public function __construct(ZkTecoService $zkService, DeviceSyncService $deviceSync)
     {
-        $this->zkService = $zkService;
+        $this->zkService  = $zkService;
+        $this->deviceSync = $deviceSync;
     }
 
     public function index(Request $request)
@@ -60,10 +65,59 @@ class StudentController extends Controller
         return redirect()->back()->with(successMessage('success', 'Student sync has been queued and is running in background.'));
     }
 
+    /**
+     * Push ALL students to ALL active devices — synchronous, no background job.
+     */
     public function pushToDevice()
     {
-        \App\Jobs\SyncStudentsToDeviceJob::dispatch();
-        return redirect()->back()->with(successMessage('success', 'Pushing students to devices queued and running in background.'));
+        $devices = Device::where('status', 'active')
+            ->whereIn('device_for', ['student', 'student_teacher'])
+            ->get();
+
+        if ($devices->isEmpty()) {
+            return redirect()->back()->with(dangerMessage('danger', 'No active devices found for students.'));
+        }
+
+        $students = Student::all();
+        $total    = 0;
+        $messages = [];
+
+        foreach ($devices as $device) {
+            if ($device->use_push_mode) {
+                $queued = 0;
+                foreach ($students as $student) {
+                    $name = showStudentFullName($student->firstname, $student->middlename, $student->lastname) ?: 'Student';
+                    DeviceCommand::queue(
+                        $device->id,
+                        DeviceCommand::setUserCommand((string) $student->student_no, $name)
+                    );
+                    $queued++;
+                }
+                $messages[] = "✓ [{$device->name}] Push Mode: {$queued} students queued (sync within 30 sec)";
+                $total += $queued;
+            } else {
+                $zk = $this->zkService->connect($device);
+                if (! $zk) {
+                    $messages[] = "✗ [{$device->name}] TCP connect failed — check IP/network";
+                    continue;
+                }
+                $pushed = 0;
+                foreach ($students as $student) {
+                    try {
+                        $name = showStudentFullName($student->firstname, $student->middlename, $student->lastname) ?: 'Student';
+                        $this->zkService->pushUser($zk, (string) $student->student_no, $name);
+                        $pushed++;
+                    } catch (\Throwable) {}
+                }
+                $this->zkService->disconnect($zk);
+                $messages[] = "✓ [{$device->name}] TCP: {$pushed} students pushed directly";
+                $total += $pushed;
+            }
+        }
+
+        $msg = implode("\n", $messages);
+        return redirect()->back()->with(successMessage('success',
+            "{$total} student(s) processed across " . $devices->count() . " device(s).\n{$msg}"));
     }
 
     public function import()
@@ -108,6 +162,7 @@ class StudentController extends Controller
     {
         $this->validate($request, [
             'student_id' => 'required|unique:students,student_id',
+            'student_no' => 'nullable|string|max:255|unique:students,student_no',
             'firstname' => 'required|string|max:255',
             'middlename' => 'nullable|string|max:255',
             'lastname' => 'nullable|string|max:255',
@@ -121,7 +176,10 @@ class StudentController extends Controller
         ]);
 
         $student = new Student();
-        $student->student_no = Student::getStudentNo(); // Auto Generate
+        // A custom student_no lets you match a PIN already enrolled on a
+        // device (e.g. resolving an Unmatched Attendance / Pull Users
+        // record) instead of always minting a brand new number.
+        $student->student_no = $request->filled('student_no') ? trim($request->student_no) : Student::getStudentNo();
         $student->student_id = $request->student_id;
         $student->firstname = $request->firstname;
         $student->middlename = $request->middlename;
@@ -134,6 +192,15 @@ class StudentController extends Controller
         $student->medium = $request->medium;
         $student->group = $request->group;
         $student->save();
+
+        // Historical attendance punches that came in with this PIN before we
+        // knew who it belonged to — re-attach them now.
+        $this->healUnmatchedAttendance($student);
+
+        // Push this one student to every device that should have them —
+        // no need to re-run the bulk "Push to Device" for a single addition.
+        $name = showStudentFullName($student->firstname, $student->middlename, $student->lastname);
+        $this->deviceSync->pushOne('student', (string) $student->student_no, $name);
 
         return redirect()->route('students.index')->with(successMessage());
     }
@@ -174,6 +241,10 @@ class StudentController extends Controller
         $student->group = $request->group;
         $student->save();
 
+        // Keep the device's copy of this student's name in sync.
+        $name = showStudentFullName($student->firstname, $student->middlename, $student->lastname);
+        $this->deviceSync->pushOne('student', (string) $student->student_no, $name);
+
         return redirect()->route('students.index')->with(successMessage('success', 'Student updated successfully'));
     }
 
@@ -187,24 +258,40 @@ class StudentController extends Controller
     {
         $student = Student::findOrFail($id);
 
-        foreach (Device::active()->get() as $device) {
-            $zk = $this->zkService->connect($device);
-            if (!$zk) {
-                continue;
-            }
+        $this->deviceSync->deleteOne('student', (string) $student->student_no);
 
-            //$userId = $student->student_no;
-            //$uid = $this->zkService->findUidByUserId($zk, $userId);
-            $uid = $student->student_no;
-            if ($uid !== null) {
-                $this->zkService->deleteUser($zk, $uid);
-            }
-            $this->zkService->disconnect($zk);
-        }
         $student->delete();
 
         return redirect()
             ->route('students.index')
             ->with(deleteMessage());
+    }
+
+    /**
+     * Re-attach any attendance punches that arrived under this student's PIN
+     * before the student existed in our DB (stored under `unmatched_pin`).
+     */
+    protected function healUnmatchedAttendance(Student $student): void
+    {
+        $name = showStudentFullName($student->firstname, $student->middlename, $student->lastname);
+
+        AttendanceLog::where('unmatched_pin', $student->student_no)
+            ->whereNull('teacher_no')
+            ->whereNull('student_no')
+            ->get()
+            ->each(function (AttendanceLog $log) use ($student, $name) {
+                try {
+                    $log->update([
+                        'student_no'    => $student->student_no,
+                        'user_type'     => 'student',
+                        'name'          => $name,
+                        'unmatched_pin' => null,
+                    ]);
+                } catch (\Throwable) {
+                    // Unique constraint clash against an existing row for this
+                    // student/time/device — leave that one under review rather
+                    // than fail the whole batch.
+                }
+            });
     }
 }

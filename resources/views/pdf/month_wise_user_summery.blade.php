@@ -146,7 +146,7 @@
                     <td>{{ ucfirst($row['user_type']) }}</td>
                     <td>{{ $row['user_no'] }}</td>
                     <td>{{ $row['name'] ?? '-' }}</td>
-                    <td style="color: {{ isLateIn($row['earliest_in']) ? '#c0392b' : '#1a7d34' }}; font-weight:bold;">
+                    <td style="color: {{ isLateIn($row['earliest_in'], $row['standard_in'] ?? null) ? '#c0392b' : '#1a7d34' }}; font-weight:bold;">
                         {{ timeFormat($row['earliest_in'], 'h:i a') }}
                     </td>
                     <td style="color:#c0392b; font-weight:bold;">
@@ -155,7 +155,7 @@
                     <td style="color:#c0392b; font-weight:bold;">
                         {{ timeFormat($row['earliest_out'], 'h:i a') }}
                     </td>
-                    <td style="color: {{ isEarlyOut($row['latest_late_out']) ? '#c0392b' : '#333' }};">
+                    <td style="color: {{ isEarlyOut($row['latest_late_out'], $row['standard_out'] ?? null) ? '#c0392b' : '#333' }};">
                         {{ timeFormat($row['latest_late_out'], 'h:i a') }}
                     </td>
                     <td class="present-badge">{{ $row['total_present_days'] }}</td>
