@@ -2,11 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\AttendanceLog;
 use App\Models\Device;
-use App\Models\DeviceCommand;
-use App\Models\Student;
-use App\Models\Teacher;
+use App\Services\DeviceActivityService;
 use App\Services\ZkTecoService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -17,10 +14,12 @@ use Illuminate\Validation\Rule;
 class DeviceController extends Controller
 {
     protected ZkTecoService $zkService;
+    protected DeviceActivityService $activity;
 
-    public function __construct(ZkTecoService $zkService)
+    public function __construct(ZkTecoService $zkService, DeviceActivityService $activity)
     {
         $this->zkService = $zkService;
+        $this->activity  = $activity;
     }
 
     // ─── CRUD ──────────────────────────────────────────────────────────────────
@@ -95,7 +94,7 @@ class DeviceController extends Controller
         return view('configuration.device_setup_guide', compact('localIp', 'appUrl', 'appDomain', 'appPort', 'devices'));
     }
 
-    // ─── Device Actions ────────────────────────────────────────────────────────
+    // ─── Device Actions (all delegate to DeviceActivityService) ───────────────
 
     /**
      * Test connection — redirect version (for non-JS fallback).
@@ -103,7 +102,7 @@ class DeviceController extends Controller
     public function testConnection($id)
     {
         $device = Device::findOrFail($id);
-        $result = $this->zkService->testConnection($device);
+        $result = $this->activity->testConnection($device);
 
         if ($result['success']) {
             return redirect()->back()->with(successMessage('success', $result['message']));
@@ -117,7 +116,7 @@ class DeviceController extends Controller
     public function testConnectionJson($id)
     {
         $device = Device::findOrFail($id);
-        $result = $this->zkService->testConnection($device);
+        $result = $this->activity->testConnection($device);
 
         return response()->json([
             'success'    => $result['success'],
@@ -128,73 +127,26 @@ class DeviceController extends Controller
         ]);
     }
 
-    /**
-     * Push ALL students to a specific device.
-     * Push mode → queues commands. TCP mode → direct socket.
-     */
+    /** Push ALL students to a specific device. */
     public function pushStudents($deviceId)
     {
-        $device   = Device::findOrFail($deviceId);
-        $students = Student::all();
-        $count    = 0;
+        $device = Device::findOrFail($deviceId);
+        $result = $this->activity->pushStudents($device);
 
-        if ($device->use_push_mode) {
-            foreach ($students as $student) {
-                $name = trim(($student->firstname ?? '') . ' ' . ($student->lastname ?? '')) ?: 'Student';
-                DeviceCommand::queue($device->id, DeviceCommand::setUserCommand((string) $student->student_no, $name));
-                $count++;
-            }
-            return redirect()->back()->with(successMessage('success',
-                "{$count} student(s) queued for push to device [{$device->name}]. Device will sync within 30 seconds."));
-        }
-
-        // TCP mode
-        $zk = $this->zkService->connect($device);
-        if (! $zk) {
-            return redirect()->back()->with(dangerMessage('danger', 'Cannot connect to device via TCP. Check IP and network.'));
-        }
-        foreach ($students as $student) {
-            try {
-                $name = trim(($student->firstname ?? '') . ' ' . ($student->lastname ?? '')) ?: 'Student';
-                $this->zkService->pushUser($zk, (string) $student->student_no, $name);
-                $count++;
-            } catch (\Throwable $e) { /* skip failed */ }
-        }
-        $this->zkService->disconnect($zk);
-        return redirect()->back()->with(successMessage('success', "{$count} student(s) pushed to device [{$device->name}] successfully."));
+        return redirect()->back()->with($result['success']
+            ? successMessage('success', $result['message'])
+            : dangerMessage('danger', $result['message']));
     }
 
-    /**
-     * Push ALL teachers to a specific device.
-     */
+    /** Push ALL teachers to a specific device. */
     public function pushTeachers($deviceId)
     {
-        $device   = Device::findOrFail($deviceId);
-        $teachers = Teacher::all();
-        $count    = 0;
+        $device = Device::findOrFail($deviceId);
+        $result = $this->activity->pushTeachers($device);
 
-        if ($device->use_push_mode) {
-            foreach ($teachers as $teacher) {
-                DeviceCommand::queue($device->id, DeviceCommand::setUserCommand((string) $teacher->teacher_no, $teacher->name ?? 'Teacher'));
-                $count++;
-            }
-            return redirect()->back()->with(successMessage('success',
-                "{$count} teacher(s) queued for push to device [{$device->name}]. Device will sync within 30 seconds."));
-        }
-
-        // TCP mode
-        $zk = $this->zkService->connect($device);
-        if (! $zk) {
-            return redirect()->back()->with(dangerMessage('danger', 'Cannot connect to device via TCP. Check IP and network.'));
-        }
-        foreach ($teachers as $teacher) {
-            try {
-                $this->zkService->pushUser($zk, (string) $teacher->teacher_no, $teacher->name ?? 'Teacher');
-                $count++;
-            } catch (\Throwable $e) { /* skip failed */ }
-        }
-        $this->zkService->disconnect($zk);
-        return redirect()->back()->with(successMessage('success', "{$count} teacher(s) pushed to device [{$device->name}] successfully."));
+        return redirect()->back()->with($result['success']
+            ? successMessage('success', $result['message'])
+            : dangerMessage('danger', $result['message']));
     }
 
     /**
@@ -206,164 +158,36 @@ class DeviceController extends Controller
         $device = Device::findOrFail($deviceId);
         $from   = $request->from ? Carbon::parse($request->from)->toDateString() : Carbon::today()->toDateString();
         $to     = $request->to   ? Carbon::parse($request->to)->toDateString()   : $from;
-        $saved  = 0;
 
-        if ($device->use_push_mode) {
-            $saved = AttendanceLog::where('device_serial', $device->serial_no)
-                ->whereBetween('punch_time', [
-                    Carbon::parse($from)->startOfDay(),
-                    Carbon::parse($to)->endOfDay(),
-                ])->count();
-            return redirect()->back()->with(successMessage('success',
-                "Push Mode: {$saved} attendance record(s) already in database for [{$device->name}] ({$from} → {$to})."));
-        }
+        $result = $this->activity->pullAttendance($device, $from, $to);
 
-        // TCP mode
-        $zk = $this->zkService->connect($device);
-        if (! $zk) {
-            return redirect()->back()->with(dangerMessage('danger', 'Cannot connect to device via TCP.'));
-        }
-        $logs         = $this->zkService->getAttendance($zk);
-        $filteredLogs = $this->zkService->filterAttendance($logs, $from, $to);
-        $this->zkService->disconnect($zk);
-
-        foreach ($filteredLogs as $log) {
-            $punchTime = Carbon::parse($log['timestamp']);
-            $pin       = (string) ($log['id'] ?? '');
-            $resolved  = \App\Services\UserResolver::resolve($pin, $device);
-
-            $criteria = \App\Services\UserResolver::attendanceLogFields($pin, $resolved, $device->serial_no, $punchTime);
-
-            AttendanceLog::firstOrCreate($criteria, [
-                'user_type'     => $resolved['user_type'],
-                'student_no'    => $resolved['student_no'],
-                'teacher_no'    => $resolved['teacher_no'],
-                'name'          => $resolved['name'],
-                'device_id'     => $device->id,
-                'device_serial' => $device->serial_no,
-                'punch_time'    => $punchTime->format('Y-m-d H:i:s'),
-                'attendance_by' => 'fingerprint',
-                'punch_type'    => match ((int) ($log['type'] ?? 0)) { 0 => 'IN', 1 => 'OUT', default => 'UNKNOWN' },
-            ]);
-            $saved++;
-        }
-
-        return redirect()->back()->with(successMessage('success', "{$saved} attendance record(s) pulled from device [{$device->name}]."));
+        return redirect()->back()->with($result['success']
+            ? successMessage('success', $result['message'])
+            : dangerMessage('danger', $result['message']));
     }
 
     /**
      * Pull the user list ALREADY enrolled on a device and create/update the
      * matching Student or Teacher record in the project DB — the reverse
-     * direction of "Push Students/Teachers". TCP mode only: Push/iClock mode
-     * devices never send a full user list on demand (only attendance and
-     * command-delivery polls), so new push-mode users are instead picked up
-     * automatically the first time they punch attendance (see Unmatched
-     * Attendance for anyone not yet recognized).
-     *
-     * device_for = 'student' or 'teacher' → unambiguous, always safe to
-     * create/update directly by PIN.
-     * device_for = 'student_teacher'      → a brand-new PIN could belong to
-     * either group, so we only auto-update PINs that already match an
-     * existing student_no/teacher_no, and report anything new as
-     * "unclassified" for you to add manually (one click, pre-filled).
+     * direction of "Push Students/Teachers". See DeviceActivityService::pullUsers().
      */
     public function pullUsers($deviceId)
     {
         $device = Device::findOrFail($deviceId);
+        $result = $this->activity->pullUsers($device);
 
-        if ($device->use_push_mode) {
-            return redirect()->back()->with(dangerMessage('danger',
-                'Push Mode devices don\'t support a live "Pull Users" — the device never sends its full enrolled-user list on demand. New push-mode users are picked up automatically the first time they punch; unrecognized PINs show up under Unmatched Attendance for you to classify.'));
-        }
-
-        $zk = $this->zkService->connect($device);
-        if (! $zk) {
-            return redirect()->back()->with(dangerMessage('danger', 'Cannot connect to device via TCP.'));
-        }
-        $deviceUsers = $this->zkService->getUsers($zk);
-        $this->zkService->disconnect($zk);
-
-        $createdStudents = 0;
-        $createdTeachers = 0;
-        $updatedTeachers = 0;
-        $skipped         = 0;
-        $unclassified    = [];
-
-        foreach ($deviceUsers as $u) {
-            $pin  = trim((string) ($u['userid'] ?? ''));
-            $name = trim((string) ($u['name'] ?? ''));
-            if ($pin === '') {
-                continue;
-            }
-
-            $scope = $device->device_for;
-
-            if ($scope === 'student') {
-                if (! Student::where('student_no', $pin)->exists()) {
-                    $student = new Student();
-                    $student->student_no = $pin;
-                    $student->firstname  = $name ?: "Student {$pin}";
-                    $student->save();
-                    $createdStudents++;
-                } else {
-                    $skipped++;
-                }
-                continue;
-            }
-
-            if ($scope === 'teacher') {
-                $teacher = Teacher::where('teacher_no', $pin)->first();
-                if (! $teacher) {
-                    $teacher = new Teacher();
-                    $teacher->teacher_no = $pin;
-                    $teacher->name       = $name ?: "Teacher {$pin}";
-                    $teacher->save();
-                    $createdTeachers++;
-                } elseif ($name && $teacher->name !== $name) {
-                    $teacher->name = $name;
-                    $teacher->save();
-                    $updatedTeachers++;
-                } else {
-                    $skipped++;
-                }
-                continue;
-            }
-
-            // Mixed device: only auto-touch PINs that already exist in one
-            // table. A brand-new PIN's type can't be guessed safely.
-            $existingStudent = Student::where('student_no', $pin)->first();
-            $existingTeacher = Teacher::where('teacher_no', $pin)->first();
-
-            if ($existingStudent && $existingTeacher) {
-                $unclassified[] = ['pin' => $pin, 'name' => $name, 'reason' => 'PIN exists as BOTH a student and a teacher — needs manual review'];
-                continue;
-            }
-            if ($existingStudent) {
-                $skipped++;
-                continue;
-            }
-            if ($existingTeacher) {
-                if ($name && $existingTeacher->name !== $name) {
-                    $existingTeacher->name = $name;
-                    $existingTeacher->save();
-                    $updatedTeachers++;
-                } else {
-                    $skipped++;
-                }
-                continue;
-            }
-
-            $unclassified[] = ['pin' => $pin, 'name' => $name, 'reason' => 'New PIN not yet in your Student or Teacher list'];
+        if (! $result['success']) {
+            return redirect()->back()->with(dangerMessage('danger', $result['message']));
         }
 
         return view('configuration.device_pull_result', [
-            'device'           => $device,
-            'createdStudents'  => $createdStudents,
-            'createdTeachers'  => $createdTeachers,
-            'updatedTeachers'  => $updatedTeachers,
-            'skipped'          => $skipped,
-            'unclassified'     => $unclassified,
-            'totalOnDevice'    => count($deviceUsers),
+            'device'          => $device,
+            'createdStudents' => $result['createdStudents'],
+            'createdTeachers' => $result['createdTeachers'],
+            'updatedTeachers' => $result['updatedTeachers'],
+            'skipped'         => $result['skipped'],
+            'unclassified'    => $result['unclassified'],
+            'totalOnDevice'   => $result['totalOnDevice'],
         ]);
     }
 
@@ -420,33 +244,15 @@ class DeviceController extends Controller
         return view('configuration.device_users', compact('device', 'paginatedUsers'));
     }
 
-    /**
-     * Remove all users from device.
-     */
+    /** Remove all users from device. */
     public function removeUsers($id): \Illuminate\Http\RedirectResponse
     {
         $device = Device::findOrFail($id);
+        $result = $this->activity->removeAllUsers($device);
 
-        if ($device->use_push_mode) {
-            DeviceCommand::queue($device->id, 'DATA CLEAR USERINFO');
-            return redirect()->route('devices.index')
-                ->with(successMessage('success', 'Command queued: all users will be removed from device on next sync.'));
-        }
-
-        try {
-            $zk = $this->zkService->connect($device);
-            if (! $zk) {
-                return redirect()->route('devices.index')
-                    ->with(dangerMessage('danger', 'Device not connected or connection failed!'));
-            }
-            $zk->clearUsers();
-            $this->zkService->disconnect($zk);
-            return redirect()->route('devices.index')
-                ->with(successMessage('success', 'All users removed from device successfully.'));
-        } catch (\Throwable $e) {
-            return redirect()->route('devices.index')
-                ->with(dangerMessage('danger', 'Connection Failed! Device not connected.'));
-        }
+        return redirect()->route('devices.index')->with($result['success']
+            ? successMessage('success', $result['message'])
+            : dangerMessage('danger', $result['message']));
     }
 
     // ─── Helpers ───────────────────────────────────────────────────────────────
@@ -490,7 +296,10 @@ class DeviceController extends Controller
         $device->comm_key      = $request->comm_key ?? 0;
         $device->device_for    = $request->device_for;
         $device->status        = $request->status;
-        $device->use_push_mode = $request->boolean('use_push_mode');
+        // Push Mode (ADMS) is the only supported connection mode — fixed
+        // server-side regardless of any request input, not just hidden in
+        // the form. See the Setup Guide for why.
+        $device->use_push_mode = true;
     }
 
     protected function getServerLocalIp(): string

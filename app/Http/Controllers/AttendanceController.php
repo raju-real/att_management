@@ -6,6 +6,7 @@ use App\Exports\DateWisePresentExport;
 use App\Exports\MonthWisePresentExport;
 use App\Exports\UserWiseSummaryExport;
 use App\Services\AttendanceService;
+use App\Services\DeviceActivityService;
 use Carbon\Carbon;
 use Maatwebsite\Excel\Facades\Excel;
 use niklasravnsborg\LaravelPdf\Facades\Pdf;
@@ -13,6 +14,10 @@ use niklasravnsborg\LaravelPdf\Facades\Pdf;
 
 class AttendanceController extends Controller
 {
+    public function __construct(protected DeviceActivityService $activity)
+    {
+    }
+
     public function syncBackground(\Illuminate\Http\Request $request)
     {
         $request->validate([
@@ -24,71 +29,15 @@ class AttendanceController extends Controller
         $from = $request->sync_from_date ?? Carbon::today()->toDateString();
         $to   = $request->sync_to_date   ?? Carbon::today()->toDateString();
 
-        $deviceQuery = \App\Models\Device::where('status', 'active');
-        if ($request->filled('device_id')) {
-            $deviceQuery->where('id', $request->device_id);
-        }
-        $devices = $deviceQuery->get();
+        $result = $this->activity->pullAttendanceFromAllDevices($from, $to, $request->device_id);
 
-        if ($devices->isEmpty()) {
+        if ($result['deviceCount'] === 0) {
             return back()->with(dangerMessage('danger', 'No active devices found.'));
         }
 
-        $zkService = app(\App\Services\ZkTecoService::class);
-        $totalSaved = 0;
-        $messages   = [];
-
-        foreach ($devices as $device) {
-            if ($device->use_push_mode) {
-                // Push mode: data is already in DB — just count records for this period
-                $count = \App\Models\AttendanceLog::where('device_serial', $device->serial_no)
-                    ->whereBetween(\Illuminate\Support\Facades\DB::raw('DATE(punch_time)'), [$from, $to])
-                    ->count();
-                $messages[] = "✓ [{$device->name}] Push Mode: {$count} records already in database";
-                $totalSaved += $count;
-                continue;
-            }
-
-            // TCP mode: fetch live from device
-            $zk = $zkService->connect($device);
-            if (! $zk) {
-                $messages[] = "✗ [{$device->name}] TCP connect failed — check IP/network";
-                continue;
-            }
-
-            $logs         = $zkService->getAttendance($zk);
-            $filteredLogs = $zkService->filterAttendance($logs, $from, $to);
-            $zkService->disconnect($zk);
-
-            $saved = 0;
-            foreach ($filteredLogs as $log) {
-                $punchTime = Carbon::parse($log['timestamp']);
-                $pin       = (string) ($log['id'] ?? '');
-                $resolved  = \App\Services\UserResolver::resolve($pin, $device);
-
-                $criteria = \App\Services\UserResolver::attendanceLogFields($pin, $resolved, $device->serial_no, $punchTime);
-
-                \App\Models\AttendanceLog::firstOrCreate($criteria, [
-                    'user_type'     => $resolved['user_type'],
-                    'student_no'    => $resolved['student_no'],
-                    'teacher_no'    => $resolved['teacher_no'],
-                    'name'          => $resolved['name'],
-                    'device_id'     => $device->id,
-                    'device_serial' => $device->serial_no,
-                    'punch_time'    => $punchTime->format('Y-m-d H:i:s'),
-                    'attendance_by' => 'fingerprint',
-                    'punch_type'    => match ((int) ($log['type'] ?? 0)) { 0 => 'IN', 1 => 'OUT', default => 'UNKNOWN' },
-                ]);
-                $saved++;
-            }
-
-            $messages[] = "✓ [{$device->name}] TCP: {$saved} record(s) pulled ({$from} → {$to})";
-            $totalSaved += $saved;
-        }
-
-        $msg = implode("\n", $messages);
+        $msg = implode("\n", $result['messages']);
         return back()->with(successMessage('success',
-            "Attendance sync complete. {$totalSaved} record(s) total.\n{$msg}"));
+            "Attendance sync complete. {$result['total']} record(s) total.\n{$msg}"));
     }
 
 

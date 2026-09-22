@@ -3,22 +3,20 @@
 namespace App\Http\Controllers;
 
 use App\Models\AttendanceLog;
-use App\Models\Device;
-use App\Models\DeviceCommand;
 use App\Models\Student;
+use App\Services\DeviceActivityService;
 use App\Services\DeviceSyncService;
-use App\Services\ZkTecoService;
 use Illuminate\Http\Request;
 
 class StudentController extends Controller
 {
-    protected ZkTecoService $zkService;
     protected DeviceSyncService $deviceSync;
+    protected DeviceActivityService $activity;
 
-    public function __construct(ZkTecoService $zkService, DeviceSyncService $deviceSync)
+    public function __construct(DeviceSyncService $deviceSync, DeviceActivityService $activity)
     {
-        $this->zkService  = $zkService;
         $this->deviceSync = $deviceSync;
+        $this->activity   = $activity;
     }
 
     public function index(Request $request)
@@ -70,54 +68,15 @@ class StudentController extends Controller
      */
     public function pushToDevice()
     {
-        $devices = Device::where('status', 'active')
-            ->whereIn('device_for', ['student', 'student_teacher'])
-            ->get();
+        $result = $this->activity->pushStudentsToAllDevices();
 
-        if ($devices->isEmpty()) {
+        if ($result['deviceCount'] === 0) {
             return redirect()->back()->with(dangerMessage('danger', 'No active devices found for students.'));
         }
 
-        $students = Student::all();
-        $total    = 0;
-        $messages = [];
-
-        foreach ($devices as $device) {
-            if ($device->use_push_mode) {
-                $queued = 0;
-                foreach ($students as $student) {
-                    $name = showStudentFullName($student->firstname, $student->middlename, $student->lastname) ?: 'Student';
-                    DeviceCommand::queue(
-                        $device->id,
-                        DeviceCommand::setUserCommand((string) $student->student_no, $name)
-                    );
-                    $queued++;
-                }
-                $messages[] = "✓ [{$device->name}] Push Mode: {$queued} students queued (sync within 30 sec)";
-                $total += $queued;
-            } else {
-                $zk = $this->zkService->connect($device);
-                if (! $zk) {
-                    $messages[] = "✗ [{$device->name}] TCP connect failed — check IP/network";
-                    continue;
-                }
-                $pushed = 0;
-                foreach ($students as $student) {
-                    try {
-                        $name = showStudentFullName($student->firstname, $student->middlename, $student->lastname) ?: 'Student';
-                        $this->zkService->pushUser($zk, (string) $student->student_no, $name);
-                        $pushed++;
-                    } catch (\Throwable) {}
-                }
-                $this->zkService->disconnect($zk);
-                $messages[] = "✓ [{$device->name}] TCP: {$pushed} students pushed directly";
-                $total += $pushed;
-            }
-        }
-
-        $msg = implode("\n", $messages);
+        $msg = implode("\n", $result['messages']);
         return redirect()->back()->with(successMessage('success',
-            "{$total} student(s) processed across " . $devices->count() . " device(s).\n{$msg}"));
+            "{$result['total']} student(s) processed across {$result['deviceCount']} device(s).\n{$msg}"));
     }
 
     public function import()

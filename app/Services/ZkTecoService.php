@@ -50,8 +50,15 @@ class ZkTecoService
     /**
      * Connect to the device via TCP/UDP.
      * Returns null if connection fails or sockets are unavailable.
+     *
+     * The underlying library hardcodes a 60.5s socket receive timeout, which
+     * makes an unreachable device hang every "Test Connection" click (and any
+     * other TCP action) for a full minute before failing. We override it to
+     * something reasonable right after the socket is created — short for a
+     * quick reachability check, a bit longer for real data pulls that may
+     * need to wait on a larger response.
      */
-    public function connect(Device $device): ?ZKTeco
+    public function connect(Device $device, int $timeoutSeconds = 8): ?ZKTeco
     {
         if (! $this->canUseTcp($device)) {
             return null;
@@ -61,6 +68,9 @@ class ZkTecoService
             $ip = trim($device->ip_address);
             $port = (int) ($device->device_port ?: 4370);
             $zk = new ZKTeco($ip, $port);
+            if (isset($zk->_zkclient) && $zk->_zkclient) {
+                socket_set_option($zk->_zkclient, SOL_SOCKET, SO_RCVTIMEO, ['sec' => $timeoutSeconds, 'usec' => 0]);
+            }
             return $zk->connect() ? $zk : null;
         } catch (\Throwable $e) {
             return null;
@@ -209,15 +219,19 @@ class ZkTecoService
             ];
         }
 
-        $zk = $this->connect($device);
+        $start = microtime(true);
+        $zk = $this->connect($device, 4); // short timeout — this is just a reachability check
+        $elapsed = round(microtime(true) - $start, 1);
+
         if ($zk) {
             $this->disconnect($zk);
-            return ['success' => true, 'message' => 'Device connected successfully via TCP/UDP.'];
+            return ['success' => true, 'message' => "Device connected successfully via TCP/UDP ({$elapsed}s)."];
         }
 
         return [
             'success' => false,
-            'message' => 'Connection failed. Check IP address, port, and network reachability.',
+            'message' => "Connection failed after {$elapsed}s. The device didn't answer on {$device->ip_address}:" . ($device->device_port ?: 4370)
+                . '. Check: device is powered on, IP/port are correct, and the device menu has TCP/IP communication enabled (some firmware disables it while in ADMS/Cloud Server mode).',
         ];
     }
 }

@@ -20,48 +20,37 @@
                     @method('PUT')
                 @endisset
 
-                {{-- ═══ CONNECTION MODE ═══ --}}
+                {{-- ═══ CONNECTION MODE — locked to Push Mode, the only supported mode ═══ --}}
+                <input type="hidden" name="use_push_mode" value="1">
                 <div class="row mb-3">
                     <div class="col-12">
-                        <div class="card border-info">
-                            <div class="card-header bg-info text-white d-flex align-items-center py-2">
-                                <i class="fas fa-network-wired mr-2"></i>
-                                <strong>Connection Mode</strong>
+                        <div class="card border-success">
+                            <div class="card-header bg-success text-white d-flex align-items-center py-2">
+                                <i class="fas fa-check-circle mr-2"></i>
+                                <strong>Connection Mode: Push Mode (iClock / ADMS)</strong>
+                                <span class="badge bg-light text-success ms-2">Only supported mode</span>
                             </div>
                             <div class="card-body py-3">
-                                <div class="form-check form-switch">
-                                    <input class="form-check-input" type="checkbox" id="use_push_mode"
-                                           name="use_push_mode" value="1"
-                                           {{ old('use_push_mode', $device->use_push_mode ?? false) ? 'checked' : '' }}
-                                           onchange="toggleConnectionMode(this.checked)">
-                                    <label class="form-check-label fw-semibold" for="use_push_mode">
-                                        Use Push Mode (HTTP / iClock)
-                                        <span class="badge bg-success ms-1">Recommended for Shared Hosting &amp; Multi-Subnet</span>
-                                    </label>
-                                </div>
-
-                                {{-- TCP Mode hint --}}
-                                <div id="tcp-hint" class="alert alert-warning mt-2 mb-0 py-2" style="{{ old('use_push_mode', $device->use_push_mode ?? false) ? 'display:none' : '' }}">
-                                    <i class="fas fa-exclamation-triangle mr-1"></i>
-                                    <strong>TCP/UDP Mode:</strong>
-                                    The server directly connects to the device via UDP port 4370.
-                                    This <strong>requires direct network access</strong> from the server to the device.
-                                    It <strong>will NOT work</strong> on shared hosting or across different subnets without a routed gateway.
-                                </div>
-
-                                {{-- Push Mode hint --}}
-                                <div id="push-hint" class="alert alert-success mt-2 mb-0 py-2" style="{{ old('use_push_mode', $device->use_push_mode ?? false) ? '' : 'display:none' }}">
+                                @php
+                                    $curAppUrl  = config('app.url');
+                                    $curAppHost = parse_url($curAppUrl, PHP_URL_HOST);
+                                    $curAppPort = parse_url($curAppUrl, PHP_URL_PORT) ?: (str_starts_with($curAppUrl, 'https') ? 443 : 80);
+                                @endphp
+                                <p class="mb-2 small text-muted">
+                                    Every device connects this same way — the device calls this server, not the
+                                    other way around. This works identically in local development and on a VPS in
+                                    production, so there's nothing to choose here.
+                                </p>
+                                <div class="alert alert-success mt-2 mb-0 py-2">
                                     <i class="fas fa-check-circle mr-1"></i>
-                                    <strong>Push Mode (iClock / ADMS):</strong>
-                                    The <strong>device connects to this server</strong> via HTTP — works on shared hosting and across subnets.<br>
-                                    <strong>Configure on device:</strong>
-                                    <code>MENU → COMM → Cloud Server / ADMS</code>
-                                    <ul class="mb-0 mt-1">
-                                        <li>Enable: <strong>ON</strong></li>
-                                        <li>Server Address: <strong>{{ parse_url(config('app.url'), PHP_URL_HOST) }}</strong></li>
-                                        <li>Server Port: <strong>80</strong> (or 443 for HTTPS)</li>
-                                        <li>Server Path: <strong>/iclock</strong></li>
+                                    <strong>Configure on the device</strong> (<code>MENU → COMM → Cloud Server / ADMS</code>):
+                                    <ul class="mb-1 mt-1">
+                                        <li>Server Mode / Enable: whichever your firmware calls it — pick <strong>ADMS</strong>, not Disabled</li>
+                                        <li>Server Address: <strong>{{ $curAppHost ?: 'this server\'s address' }}</strong></li>
+                                        <li>Server Port: <strong>{{ $curAppPort }}</strong></li>
+                                        <li>Proxy Server: <strong>OFF</strong></li>
                                     </ul>
+                                    <a href="{{ route('devices.setup-guide') }}" target="_blank">Full Setup Guide with a live test button →</a>
                                 </div>
                             </div>
                         </div>
@@ -94,13 +83,18 @@
                     <div class="col-md-4" id="ip-field">
                         <div class="form-group">
                             <label class="form-label">
-                                Device IP Address
-                                <span id="ip-required-star" class="text-danger" style="{{ old('use_push_mode', $device->use_push_mode ?? false) ? 'display:none' : '' }}">*</span>
-                                <small id="ip-optional-note" class="text-muted" style="{{ old('use_push_mode', $device->use_push_mode ?? false) ? '' : 'display:none' }}">(optional in push mode)</small>
+                                Device's Own IP Address
+                                <small class="text-muted">(optional — diagnostics only)</small>
                             </label>
                             <input type="text" name="ip_address"
                                 value="{{ old('ip_address') ?? ($device->ip_address ?? '') }}"
                                 class="form-control {{ hasError('ip_address') }}" placeholder="e.g. 192.168.1.201">
+                            <small class="text-muted">
+                                Copy this from the device's own screen (<span class="text-monospace">MENU → COMM → Ethernet</span>) —
+                                <strong>not</strong> an example from any guide, and not this server's own address.
+                                Not needed for normal operation; only used by the diagnostic Test/Pull-Users buttons
+                                on the same LAN.
+                            </small>
                             @error('ip_address')
                                 {!! displayError($message) !!}
                             @enderror
@@ -221,14 +215,3 @@
         </div>
     </div>
 @endsection
-
-@push('js')
-<script>
-function toggleConnectionMode(isPush) {
-    document.getElementById('tcp-hint').style.display  = isPush ? 'none' : '';
-    document.getElementById('push-hint').style.display = isPush ? '' : 'none';
-    document.getElementById('ip-required-star').style.display  = isPush ? 'none' : '';
-    document.getElementById('ip-optional-note').style.display  = isPush ? '' : 'none';
-}
-</script>
-@endpush
