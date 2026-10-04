@@ -31,9 +31,9 @@ return new class extends Migration {
             $table->enum('attendance_by', ['fingerprint', 'card', 'face', 'pin', 'manual'])->default('fingerprint');
             $table->timestamps();
             // ✅ STUDENT attendance uniqueness
-            $table->unique(['student_no', 'punch_time', 'device_serial'], 'uniq_student_attendance');
-            // ✅ TEACHER attendance uniqueness
-            $table->unique(['teacher_no', 'punch_time', 'device_serial'], 'uniq_teacher_attendance');
+            // $table->unique(['student_no', 'punch_time', 'device_serial'], 'uniq_student_attendance');
+            // // ✅ TEACHER attendance uniqueness
+            // $table->unique(['teacher_no', 'punch_time', 'device_serial'], 'uniq_teacher_attendance');
             /*
             |--------------------------------------------------------------------------
             | INDEXES (PERFORMANCE)
