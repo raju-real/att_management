@@ -2,13 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use Carbon\Carbon;
-use App\Models\Device;
-use App\Services\UserResolver;
-use Illuminate\Http\Request;
 use App\Models\AttendanceLog;
+use App\Models\Device;
 use App\Models\DeviceCommand;
+use App\Services\UserResolver;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Log;
 
 /**
  * IClockController — ZkTeco iClock / ADMS HTTP Push Protocol
@@ -98,6 +99,7 @@ class IClockController extends Controller
      */
     public function capture(Request $request): Response
     {
+        Log::info("c data info". json_encode($request->all()));
         $sn = $this->serialNo($request);
         $device = $sn ? Device::where('serial_no', $sn)->first() : null;
 
@@ -113,6 +115,7 @@ class IClockController extends Controller
 
         $lines = preg_split("/\r\n|\n|\r/", $raw);
         $count = 0;
+
 
         foreach ($lines as $line) {
             $line = trim($line);
