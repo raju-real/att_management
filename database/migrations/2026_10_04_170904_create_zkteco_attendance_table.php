@@ -12,10 +12,6 @@ return new class extends Migration
 
             $table->id();
 
-            $table->foreignId('device_id')
-                ->constrained('zkteco_devices')
-                ->cascadeOnDelete();
-
             $table->string('serial_number');
 
             $table->string('pin');
