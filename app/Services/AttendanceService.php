@@ -42,7 +42,6 @@ class AttendanceService
             ->leftJoin('students as s', 's.student_no', '=', 'al.student_no')
             ->leftJoin('teachers as t', 't.teacher_no', '=', 'al.teacher_no')
             ->leftJoin('shifts as sh', 'sh.id', '=', 't.shift_id')
-            ->whereNull('al.deleted_at')
             ->whereBetween(DB::raw('DATE(al.punch_time)'), [$from, $to])
             ->when($filters['user_type'] ?? null, fn($q, $v) => $q->where('al.user_type', $v))
             ->when($filters['user_no']    ?? null, fn($q, $v) => $q->where('al.student_no', $v)->orWhere('al.teacher_no', $v))
