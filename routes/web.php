@@ -10,6 +10,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\StudentController;
 use App\Http\Controllers\TeacherController;
+use App\Http\Controllers\ZktecoAdmsController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Session;
@@ -30,14 +31,30 @@ use Illuminate\Support\Facades\Session;
 |   Server Port:    80  (or 443 for HTTPS)
 |--------------------------------------------------------------------------
 */
-Route::controller(IClockController::class)->prefix('iclock')->group(function () {
-    // Heartbeat + command delivery
-    Route::get('getrequest',  'getRequest')->name('iclock.getrequest');
-    // Attendance / user data pushed by device
-    Route::any('cdata',      'capture')->name('iclock.cdata');
-    // Alternate command endpoint (some firmware variants)
-    Route::get('devicecmd',   'deviceCmd')->name('iclock.devicecmd');
-});
+// Route::controller(IClockController::class)->prefix('iclock')->group(function () {
+//     // Heartbeat + command delivery
+//     Route::get('getrequest',  'getRequest')->name('iclock.getrequest');
+//     // Attendance / user data pushed by device
+//     Route::any('cdata',      'capture')->name('iclock.cdata');
+//     // Alternate command endpoint (some firmware variants)
+//     Route::get('devicecmd',   'deviceCmd')->name('iclock.devicecmd');
+// });
+
+Route::match(
+    ['GET', 'POST'],
+    '/iclock/cdata',
+    [ZktecoAdmsController::class, 'cdata']
+);
+
+Route::get(
+    '/iclock/getrequest',
+    [ZktecoAdmsController::class, 'getRequest']
+);
+
+Route::post(
+    '/iclock/devicecmd',
+    [ZktecoAdmsController::class, 'deviceCommand']
+);
 
 Route::view('/', 'auth.admin_login')->name('home');
 //Route::post('admin-login', AdminLogin::class)->middleware('throttle:5,1')->name('admin-login');
