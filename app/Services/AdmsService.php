@@ -2,11 +2,9 @@
 
 namespace App\Services;
 
-use App\Models\AttendanceLog as ZktecoAttendance;
 use App\Models\Device as ZktecoDevice;
-// use App\Models\ZktecoAttendance;
+use App\Models\ZktecoAttendance;
 // use App\Models\ZktecoDevice;
-use App\Models\ZktecoUser;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
