@@ -1,6 +1,7 @@
 <?php
 namespace App\Services;
 
+use App\Models\AttendanceLog;
 use App\Models\Device as ZktecoDevice;
 use App\Models\Teacher;
 use App\Models\ZktecoAttendance;
@@ -184,9 +185,9 @@ class AdmsService
                 'work_code'       => $workCode,
                 'raw_data'        => $line
             ];
-            ZktecoAttendance::firstOrCreate(
+            AttendanceLog::firstOrCreate(
                 [
-                    'device_id'       => $device->id,
+                    'device_id'       => $device->id ?? null,
                     'pin'             => $pin,
                     'attendance_time' => $attendanceTime,
                     'status'          => $status,
