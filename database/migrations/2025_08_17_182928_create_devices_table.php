@@ -17,6 +17,7 @@ return new class extends Migration {
             $table->string('name')->nullable();
             $table->string('slug')->nullable();
             $table->string('serial_no')->unique();
+            $table->string('user_agent')->unique();
             $table->string('ip_address')->nullable();
             $table->string('device_port')->nullable();
             $table->string('comm_key')->nullable()->comment("Communication Key| Menu → Comm / Network → Comm Key/ Menu ->Pc Connection(Comm Key) | 0 (most devices) | Sometimes 12345");
@@ -25,6 +26,7 @@ return new class extends Migration {
             $table->timestamp('last_synced_at')->nullable();
             $table->timestamp('last_seen_at')->nullable();
             $table->integer('created_by')->nullable();
+            $table->boolean('is_active')->default(true);
             $table->timestamps();
             $table->integer('updated_by')->nullable();
             $table->softDeletes();
