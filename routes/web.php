@@ -34,7 +34,7 @@ Route::controller(IClockController::class)->prefix('iclock')->group(function () 
     // Heartbeat + command delivery
     Route::get('getrequest',  'getRequest')->name('iclock.getrequest');
     // Attendance / user data pushed by device
-    Route::post('cdata',      'capture')->name('iclock.cdata');
+    Route::any('cdata',      'capture')->name('iclock.cdata');
     // Alternate command endpoint (some firmware variants)
     Route::get('devicecmd',   'deviceCmd')->name('iclock.devicecmd');
 });
