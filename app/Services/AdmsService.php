@@ -7,6 +7,7 @@ use App\Models\Teacher;
 use App\Models\ZktecoAttendance;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class AdmsService
 {
@@ -27,6 +28,8 @@ class AdmsService
                 'serial_no' => $serial,
             ],
             [
+                'name' => $serial,
+                'slug' => Str::slug($serial),
                 'ip_address'   => $request->ip(),
                 'user_agent'   => $request->userAgent(),
                 'last_seen_at' => now(),
