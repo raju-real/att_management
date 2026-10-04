@@ -22,20 +22,14 @@ return new class extends Migration {
             $table->integer('device_id')->nullable();
             $table->string('device_serial', 255)->nullable();
             $table->timestamp('punch_time')->nullable();
+            $table->string('pin')->nullable();
+            $table->dateTime('attendance_time')->nullable();
+            $table->unsignedTinyInteger('status')->default(0);
+            $table->unsignedTinyInteger('verify_type')->nullable();
+            $table->string('work_code')->nullable();
+            $table->string('raw_data')->nullable();
             $table->enum('attendance_by', ['fingerprint', 'card', 'face', 'pin', 'manual'])->default('fingerprint');
-            $table->string('client_ip')->nullable();
-            $table->decimal('latitude', 10, 7)->nullable();
-            $table->decimal('longitude', 10, 7)->nullable();
-            $table->string('location_text')->nullable(); // optional reverse geocoded address
-            $table->json('raw_payload')->nullable();
-            $table->string('verify_mode')->nullable(); // fingerprint, card, face, pin, password, etc.
-            $table->string('work_code')->nullable(); // work code from device, if any
-            $table->string('punch_type')->nullable(); // work code from device, if any
-            $table->integer('created_by')->nullable();
             $table->timestamps();
-            $table->integer('updated_by')->nullable();
-            $table->softDeletes();
-            $table->integer('deleted_by')->nullable();
             // ✅ STUDENT attendance uniqueness
             $table->unique(['student_no', 'punch_time', 'device_serial'], 'uniq_student_attendance');
             // ✅ TEACHER attendance uniqueness

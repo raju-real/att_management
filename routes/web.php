@@ -5,7 +5,6 @@ use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DeviceActivityController;
 use App\Http\Controllers\DeviceController;
-use App\Http\Controllers\IClockController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\StudentController;
@@ -40,21 +39,25 @@ use Illuminate\Support\Facades\Session;
 //     Route::get('devicecmd',   'deviceCmd')->name('iclock.devicecmd');
 // });
 
-Route::match(
-    ['GET', 'POST'],
-    '/iclock/cdata',
-    [ZktecoAdmsController::class, 'cdata']
-);
+Route::controller(ZktecoAdmsController::class)->prefix('iclock')->group(function() {
+    Route::match(['GET', 'POST'], 'cdata', 'cdata');
+    Route::get('getrequest', 'getRequest');
+    Route::post('devicecmd', 'deviceCommand');
+});
 
-Route::get(
-    '/iclock/getrequest',
-    [ZktecoAdmsController::class, 'getRequest']
-);
+// Route::match(
+//     ['GET', 'POST'],
+//     '/iclock/cdata',
+//     [ZktecoAdmsController::class, 'cdata']
+// );
 
-Route::post(
-    '/iclock/devicecmd',
-    [ZktecoAdmsController::class, 'deviceCommand']
-);
+// Route::get('/iclock/getrequest',[ZktecoAdmsController::class, 'getRequest']
+// );
+
+// Route::post(
+//     '/iclock/devicecmd',
+//     [ZktecoAdmsController::class, 'deviceCommand']
+// );
 
 Route::view('/', 'auth.admin_login')->name('home');
 //Route::post('admin-login', AdminLogin::class)->middleware('throttle:5,1')->name('admin-login');
@@ -117,10 +120,10 @@ Route::middleware('auth')->group(function () {
     // Device Activity controller
     Route::controller(DeviceActivityController::class)->group(function () {
         Route::view('/commands/activities', 'configuration.device_activities')->name('commands.activities');
-        Route::post('/commands/sync-users', 'syncUsers')->name('commands.sync.users'); // USERS
-        Route::post('/commands/sync-attendance', 'syncAttendance')->name('commands.sync.attendance'); // ATTENDANCE
+        Route::post('/commands/sync-users', 'syncUsers')->name('commands.sync.users');                   // USERS
+        Route::post('/commands/sync-attendance', 'syncAttendance')->name('commands.sync.attendance');    // ATTENDANCE
         Route::post('/commands/clear-attendance', 'clearAttendance')->name('commands.clear.attendance'); // CLEAR ATTENDANCE
-        Route::post('/commands/delete-user', 'deleteUserFromDevice')->name('commands.delete.user'); // DELETE USER FROM DEVICE
+        Route::post('/commands/delete-user', 'deleteUserFromDevice')->name('commands.delete.user');      // DELETE USER FROM DEVICE
     });
     // Settings
     Route::controller(SettingController::class)->group(function () {

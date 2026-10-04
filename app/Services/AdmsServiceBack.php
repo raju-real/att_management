@@ -1,10 +1,12 @@
 <?php
+
 namespace App\Services;
 
 use App\Models\Device as ZktecoDevice;
-use App\Models\Teacher;
 use App\Models\ZktecoAttendance;
+// use App\Models\ZktecoDevice;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class AdmsService
@@ -18,23 +20,26 @@ class AdmsService
     public function registerDevice(Request $request): ZktecoDevice
     {
         $serial = $request->query('SN');
-        if (! $serial) {
+
+        if (!$serial) {
             abort(400, 'Missing SN');
         }
+
         $device = ZktecoDevice::updateOrCreate(
             [
-                'serial_no' => $serial,
+                'serial_no' => $serial
             ],
             [
-                'ip_address'   => $request->ip(),
-                'user_agent'   => $request->userAgent(),
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
                 'last_seen_at' => now(),
-                'is_active'    => true,
+                'is_active' => true,
             ]
         );
 
         return $device;
     }
+
 
     /*
     |--------------------------------------------------------------------------
@@ -71,41 +76,66 @@ class AdmsService
         ]);
     }
 
+
     /*
     |--------------------------------------------------------------------------
     | Process cdata
     |--------------------------------------------------------------------------
     */
 
-    public function processData(Request $request, string $table): string
-    {
-        $device = $this->registerDevice($request);
-        $body   = $request->getContent();
+    public function processData(
+        Request $request,
+        string $table
+    ): string {
 
-        if (! $body) {
+        $device = $this->registerDevice($request);
+
+        $body = $request->getContent();
+
+        if (!$body) {
             return "OK";
         }
 
         switch (strtoupper($table)) {
 
             case 'ATTLOG':
-                $this->processAttendance($device, $body);
+
+                $this->processAttendance(
+                    $device,
+                    $body
+                );
+
                 break;
+
 
             case 'OPERLOG':
-                $this->processOperationLog($device, $body);
+
+                $this->processOperationLog(
+                    $device,
+                    $body
+                );
+
                 break;
 
-            // case 'USER':
-            //     $this->processUsers($device, $body);
-            //     break;
+
+            case 'USER':
+
+                $this->processUsers(
+                    $device,
+                    $body
+                );
+
+                break;
+
 
             default:
-                Log::info('Unknown ZKTeco table',
+
+                Log::info(
+                    'Unknown ZKTeco table',
                     [
-                        'table'  => $table,
+                        'table' => $table,
                         'serial' => $device->serial_no,
-                        'body'   => $body,
+                        'body' => $body,
                     ]
                 );
 
@@ -115,18 +145,25 @@ class AdmsService
         return "OK";
     }
 
+
     /*
     |--------------------------------------------------------------------------
     | Attendance
     |--------------------------------------------------------------------------
     */
 
-    private function processAttendance(ZktecoDevice $device, string $body): void
-    {
+    private function processAttendance(
+        ZktecoDevice $device,
+        string $body
+    ): void {
 
-        $lines = preg_split("/\r\n|\n|\r/", trim($body));
+        $lines = preg_split(
+            "/\r\n|\n|\r/",
+            trim($body)
+        );
 
         foreach ($lines as $line) {
+
             if (trim($line) === '') {
                 continue;
             }
@@ -141,18 +178,40 @@ class AdmsService
              * WorkCode
              */
 
-            $fields = preg_split("/\t+/", trim($line));
+            $fields = preg_split(
+                "/\t+/",
+                trim($line)
+            );
 
             if (count($fields) < 2) {
-                Log::warning('Invalid ZKTeco ATTLOG', ['serial' => $device->serial_no, 'line' => $line]);
+
+                Log::warning(
+                    'Invalid ZKTeco ATTLOG',
+                    [
+                        'serial' => $device->serial_no,
+                        'line' => $line,
+                    ]
+                );
+
                 continue;
             }
 
-            $pin        = trim($fields[0]);
-            $dateTime   = trim($fields[1]);
-            $status     = isset($fields[2]) ? (int) $fields[2] : 0;
-            $verifyType = isset($fields[3]) ? (int) $fields[3] : null;
-            $workCode   = isset($fields[4]) ? trim($fields[4]) : null;
+            $pin = trim($fields[0]);
+
+            $dateTime = trim($fields[1]);
+
+            $status = isset($fields[2])
+                ? (int) $fields[2]
+                : 0;
+
+            $verifyType = isset($fields[3])
+                ? (int) $fields[3]
+                : null;
+
+            $workCode = isset($fields[4])
+                ? trim($fields[4])
+                : null;
+
 
             /*
              * Convert device time to application time.
@@ -161,43 +220,52 @@ class AdmsService
              */
 
             try {
-                $attendanceTime = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $dateTime, $device->timezone ?: 'Asia/Dhaka');
+
+                $attendanceTime = \Carbon\Carbon::createFromFormat(
+                    'Y-m-d H:i:s',
+                    $dateTime,
+                    $device->timezone ?: 'Asia/Dhaka'
+                );
 
             } catch (\Throwable $e) {
-                Log::warning('Invalid attendance date', ['serial' => $device->serial_no, 'date' => $dateTime]);
+
+                Log::warning(
+                    'Invalid attendance date',
+                    [
+                        'serial' => $device->serial_no,
+                        'date' => $dateTime,
+                    ]
+                );
+
                 continue;
             }
+
 
             /*
              * Duplicate protection.
              */
-            $teacher  = Teacher::whereTeacherNo($pin)->first();
-            $att_data = [
-                'user_type'       => 'teacher',
-                'teacher_no'      => $pin,
-                'name'            => $teacher->name ?? null,
-                'device_id'       => $device->id,
-                'device_serial'   => $device->serial_no ?? null,
-                'punch_time'      => $attendanceTime,
-                'pin'             => $pin,
-                'attendance_time' => $attendanceTime,
-                'work_code'       => $workCode,
-                'raw_data'        => $line
-            ];
             ZktecoAttendance::firstOrCreate(
                 [
-                    'device_id'       => $device->id,
-                    'pin'             => $pin,
+                    'device_id' => $device->id,
+                    'pin' => $pin,
                     'attendance_time' => $attendanceTime,
-                    'status'          => $status,
-                    'verify_type'     => $verifyType,
+                    'status' => $status,
+                    'verify_type' => $verifyType,
                 ],
-                $att_data
+                [
+                    'serial_no' => $device->serial_no,
+                    'work_code' => $workCode,
+                    'raw_data' => $line,
+                ]
             );
         }
 
-        $device->update(['last_seen_at' => now()]);
+
+        $device->update([
+            'last_seen_at' => now(),
+        ]);
     }
+
 
     /*
     |--------------------------------------------------------------------------
@@ -205,9 +273,16 @@ class AdmsService
     |--------------------------------------------------------------------------
     */
 
-    private function processUsers(ZktecoDevice $device,string $body): void {
+    private function processUsers(
+        ZktecoDevice $device,
+        string $body
+    ): void {
 
-        $lines = preg_split( "/\r\n|\n|\r/",trim($body));
+        $lines = preg_split(
+            "/\r\n|\n|\r/",
+            trim($body)
+        );
+
         foreach ($lines as $line) {
 
             if (trim($line) === '') {
@@ -222,18 +297,29 @@ class AdmsService
 
             $data = $this->parseKeyValueLine($line);
 
-            if (! isset($data['PIN'])) {
+            if (!isset($data['PIN'])) {
                 continue;
             }
 
-            Teacher::updateOrCreate([
-                'teacher_no' => $data['PIN']
-            ],[
-                'teacher_no' => $data['PIN'],
-                'name'      => $data['Name'] ?? null
-            ]);
+            ZktecoUser::updateOrCreate(
+                [
+                    'device_id' => $device->id,
+                    'pin' => $data['PIN'],
+                ],
+                [
+                    'name' => $data['Name'] ?? null,
+                    'privilege' => isset($data['Privilege'])
+                        ? (int) $data['Privilege']
+                        : null,
+                    'card' => $data['Card'] ?? null,
+                    'password' => $data['Password'] ?? null,
+                    'group' => $data['Grp'] ?? null,
+                    'timezone' => $data['TZ'] ?? null,
+                ]
+            );
         }
     }
+
 
     /*
     |--------------------------------------------------------------------------
@@ -241,10 +327,24 @@ class AdmsService
     |--------------------------------------------------------------------------
     */
 
-    private function processOperationLog(ZktecoDevice $device, string $body): void {
-        Log::info('ZKTeco OPERLOG',['serial' => $device->serial_no,'body'   => $body,]);
-        $device->update(['last_seen_at' => now(),]);
+    private function processOperationLog(
+        ZktecoDevice $device,
+        string $body
+    ): void {
+
+        Log::info(
+            'ZKTeco OPERLOG',
+            [
+                'serial' => $device->serial_no,
+                'body' => $body,
+            ]
+        );
+
+        $device->update([
+            'last_seen_at' => now(),
+        ]);
     }
+
 
     /*
     |--------------------------------------------------------------------------
@@ -252,7 +352,9 @@ class AdmsService
     |--------------------------------------------------------------------------
     */
 
-    private function parseKeyValueLine(string $line): array {
+    private function parseKeyValueLine(
+        string $line
+    ): array {
 
         $result = [];
 
@@ -277,6 +379,7 @@ class AdmsService
 
         return $result;
     }
+
 
     /*
     |--------------------------------------------------------------------------
@@ -303,6 +406,7 @@ class AdmsService
         return "OK";
     }
 
+
     /*
     |--------------------------------------------------------------------------
     | Device Command Result
@@ -323,8 +427,8 @@ class AdmsService
             'ZKTeco command result',
             [
                 'serial' => $device->serial_no,
-                'body'   => $request->getContent(),
-                'query'  => $request->query(),
+                'body' => $request->getContent(),
+                'query' => $request->query(),
             ]
         );
 
