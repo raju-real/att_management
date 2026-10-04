@@ -28,13 +28,6 @@ return new class extends Migration
 
             $table->timestamps();
 
-            $table->unique([
-                'device_id',
-                'pin',
-                'attendance_time',
-                'status',
-                'verify_type'
-            ], 'zk_attendance_unique');
         });
     }
 
