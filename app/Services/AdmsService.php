@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\Zkteco;
+namespace App\Services;
 
 use App\Models\AttendanceLog as ZktecoAttendance;
 use App\Models\Device as ZktecoDevice;

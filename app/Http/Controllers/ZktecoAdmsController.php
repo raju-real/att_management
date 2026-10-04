@@ -1,7 +1,7 @@
 <?php
 namespace App\Http\Controllers;
 
-use App\Services\Zkteco\AdmsService;
+use App\Services\AdmsService;
 use Illuminate\Http\Request;
 
 class ZktecoAdmsController extends Controller
