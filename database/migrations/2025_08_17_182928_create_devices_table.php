@@ -16,8 +16,8 @@ return new class extends Migration {
             $table->id();
             $table->string('name')->nullable();
             $table->string('slug')->nullable();
-            $table->string('serial_no')->unique();
-            $table->string('user_agent')->unique();
+            $table->string('serial_no')->unique()->nullable();
+            $table->string('user_agent')->unique()->nullable();
             $table->string('ip_address')->nullable();
             $table->string('device_port')->nullable();
             $table->string('comm_key')->nullable()->comment("Communication Key| Menu → Comm / Network → Comm Key/ Menu ->Pc Connection(Comm Key) | 0 (most devices) | Sometimes 12345");
