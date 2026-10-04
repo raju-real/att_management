@@ -29,7 +29,7 @@ class AdmsService
 
         $device = ZktecoDevice::updateOrCreate(
             [
-                'serial_number' => $serial
+                'serial_no' => $serial
             ],
             [
                 'ip_address' => $request->ip(),
@@ -53,7 +53,7 @@ class AdmsService
     {
         $device = $this->registerDevice($request);
 
-        $serial = $device->serial_number;
+        $serial = $device->serial_no;
 
         /*
          * ATTLOGStamp is important.
@@ -136,7 +136,7 @@ class AdmsService
                     'Unknown ZKTeco table',
                     [
                         'table' => $table,
-                        'serial' => $device->serial_number,
+                        'serial' => $device->serial_no,
                         'body' => $body,
                     ]
                 );
@@ -190,7 +190,7 @@ class AdmsService
                 Log::warning(
                     'Invalid ZKTeco ATTLOG',
                     [
-                        'serial' => $device->serial_number,
+                        'serial' => $device->serial_no,
                         'line' => $line,
                     ]
                 );
@@ -234,7 +234,7 @@ class AdmsService
                 Log::warning(
                     'Invalid attendance date',
                     [
-                        'serial' => $device->serial_number,
+                        'serial' => $device->serial_no,
                         'date' => $dateTime,
                     ]
                 );
@@ -255,7 +255,7 @@ class AdmsService
                     'verify_type' => $verifyType,
                 ],
                 [
-                    'serial_number' => $device->serial_number,
+                    'serial_no' => $device->serial_no,
                     'work_code' => $workCode,
                     'raw_data' => $line,
                 ]
@@ -337,7 +337,7 @@ class AdmsService
         Log::info(
             'ZKTeco OPERLOG',
             [
-                'serial' => $device->serial_number,
+                'serial' => $device->serial_no,
                 'body' => $body,
             ]
         );
@@ -428,7 +428,7 @@ class AdmsService
         Log::info(
             'ZKTeco command result',
             [
-                'serial' => $device->serial_number,
+                'serial' => $device->serial_no,
                 'body' => $request->getContent(),
                 'query' => $request->query(),
             ]
