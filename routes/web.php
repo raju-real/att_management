@@ -60,8 +60,8 @@ Route::controller(ZktecoAdmsController::class)->prefix('iclock')->group(function
 // );
 
 Route::view('/', 'auth.admin_login')->name('home');
-//Route::post('admin-login', AdminLogin::class)->middleware('throttle:5,1')->name('admin-login');
-Route::post('admin-login', AdminLogin::class)->name('admin-login');
+// 5 attempts per minute per email/IP (RateLimiter "admin-login" in RouteServiceProvider)
+Route::post('admin-login', AdminLogin::class)->middleware('throttle:admin-login')->name('admin-login');
 Route::view('permission-denied', 'permission_denied')->name('permission-denied');
 
 Route::middleware('auth')->group(function () {
@@ -135,30 +135,16 @@ Route::middleware('auth')->group(function () {
         Route::put('update-fee-settings', 'updateFeeSettings')->name('update-fee-settings');
     });
 
-    // Gateway Settings
-    Route::controller(\App\Http\Controllers\PaymentGatewayController::class)->group(function () {
-        Route::get('gateway-settings', 'index')->name('gateway-settings');
-        Route::put('gateway-settings', 'update')->name('gateway-settings.update');
-    });
-
-    // Fee Lots
-    Route::resource('fee-lots', \App\Http\Controllers\FeeLotController::class);
-
-    // Payments
-    Route::controller(\App\Http\Controllers\PaymentController::class)->prefix('payment')->group(function () {
-        Route::get('initiate/{id}', 'initiate')->name('payment.initiate');
-        Route::post('success', 'success')->name('payment.success');
-        Route::post('fail', 'fail')->name('payment.fail');
-        Route::post('cancel', 'cancel')->name('payment.cancel');
-        Route::post('ipn', 'ipn')->name('payment.ipn');
-        Route::get('transaction/{transactionId}', 'transactionDetails')->name('payment.transaction.details');
-        Route::post('transaction/{transactionId}/refund', 'refund')->name('payment.transaction.refund');
-    });
 });
 
 // Logout
-Route::get('logout', function () {
+Route::get('logout', function (\Illuminate\Http\Request $request) {
+    if ($user = Auth::user()) {
+        $user->last_logout_at = now();
+        $user->save();
+    }
     Auth::logout();
-    Session::reflash();
+    $request->session()->invalidate();
+    $request->session()->regenerateToken();
     return redirect()->route('home');
 })->name('logout');

@@ -63,7 +63,10 @@ class RouteServiceProvider extends ServiceProvider
         RateLimiter::for('admin-login', function ($request) {
             $email = (string) $request->email;
 
-            return Limit::perMinute(5)->by($email ?: $request->ip());
+            return Limit::perMinute(5)->by(($email ?: '-') . '|' . $request->ip())
+                ->response(fn ($request, array $headers) => redirect()->route('home')
+                    ->withInput($request->only('email'))
+                    ->with(dangerMessage('danger', 'Too many login attempts. Please wait a minute and try again.')));
         });
 
         RateLimiter::for('api', function (Request $request) {

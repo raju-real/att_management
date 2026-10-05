@@ -4,6 +4,7 @@ namespace App\Imports;
 
 use App\Models\Department;
 use App\Models\Teacher;
+use App\Rules\UniqueDevicePin;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
@@ -49,8 +50,13 @@ class TeachersImport implements ToCollection, WithHeadingRow
                 $this->skipped[] = "Row {$line}: teacher_no is empty.";
                 continue;
             }
-            if (mb_strlen($teacherNo) > 50) {
-                $this->skipped[] = "Row {$line}: teacher_no is too long.";
+            if (!preg_match('/^[0-9]{1,9}$/', $teacherNo)) {
+                $this->skipped[] = "Row {$line}: teacher_no \"{$teacherNo}\" must be a number of 1 to 9 digits.";
+                continue;
+            }
+            $pinRule = new UniqueDevicePin('teacher');
+            if (!$pinRule->passes('teacher_no', $teacherNo)) {
+                $this->skipped[] = "Row {$line} ({$teacherNo}): " . $pinRule->message();
                 continue;
             }
 

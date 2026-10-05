@@ -397,6 +397,28 @@ class AttendanceReportService
         ];
     }
 
+    /** Cards per slide the board can show. */
+    public const BOARD_PAGE_SIZES = [12, 24, 48, 96, 200];
+    public const BOARD_PAGE_SIZE_DEFAULT = 24;
+
+    /**
+     * The signed-in user's board page size, kept in the cache so the same
+     * choice applies to the dashboard board and the full-page board, on
+     * any browser. Pass $set to change it (invalid values are ignored).
+     */
+    public static function boardPerPage($set = null): int
+    {
+        $key = 'attendance_board.per_page.user.' . (auth()->id() ?? 'guest');
+
+        if ($set !== null && in_array((int) $set, self::BOARD_PAGE_SIZES, true)) {
+            cache()->forever($key, (int) $set);
+            return (int) $set;
+        }
+
+        $value = (int) cache()->get($key, self::BOARD_PAGE_SIZE_DEFAULT);
+        return in_array($value, self::BOARD_PAGE_SIZES, true) ? $value : self::BOARD_PAGE_SIZE_DEFAULT;
+    }
+
     // ───────────────────────────── Helpers ─────────────────────────────
 
     public static function minutesToHm(?int $minutes): string

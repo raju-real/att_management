@@ -42,7 +42,7 @@
                 <div class="ab-crest"><i class="fas fa-school"></i></div>
                 <div>
                     <div class="ab-school">{{ siteSettings()->site_name ?? 'Attendance Management' }}</div>
-                    <div class="ab-sub">Daily Teacher Attendance</div>
+                    <div class="ab-sub">Daily Attendance Monitor</div>
                 </div>
             </a>
             <div class="ab-actions">

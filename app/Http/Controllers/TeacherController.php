@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\AttendanceLog;
 use App\Models\Department;
 use App\Models\Teacher;
+use App\Rules\UniqueDevicePin;
 use App\Services\DeviceActivityService;
 use App\Services\DeviceSyncService;
 use Illuminate\Http\Request;
@@ -219,11 +220,11 @@ class TeacherController extends Controller
         $unique = fn () => Rule::unique('teachers')->whereNull('deleted_at')->ignore($ignoreId);
 
         return [
-            'name'          => ['required', 'string', 'max:50', $unique()],
-            'teacher_no'    => ['required', 'string', 'max:50', $unique()],
-            'email'         => ['nullable', 'email', 'string', 'max:50', $unique()],
-            'mobile'        => ['nullable', 'string', 'max:50', $unique()],
-            'designation'   => ['nullable', 'max:50'],
+            'name'          => ['required', 'string', 'max:100'],
+            'teacher_no'    => ['required', 'regex:/^[0-9]{1,9}$/', Rule::unique('teachers')->ignore($ignoreId), new UniqueDevicePin('teacher')],
+            'email'         => ['nullable', 'email', 'max:100', $unique()],
+            'mobile'        => ['nullable', 'regex:/^[0-9+\-\s]{6,20}$/', $unique()],
+            'designation'   => ['nullable', 'string', 'max:100'],
             'department_id' => ['required', Rule::exists('departments', 'id')->whereNull('deleted_at')],
             'image'         => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:2048'],
         ];
@@ -233,6 +234,9 @@ class TeacherController extends Controller
     {
         return [
             'department_id.required' => 'Please select a department (its shift sets the in/out time).',
+            'teacher_no.regex'       => 'Device ID must be a number of 1 to 9 digits (fingerprint devices only accept numeric IDs).',
+            'teacher_no.unique'      => 'This device ID already belongs to another teacher (including deleted teachers).',
+            'mobile.regex'           => 'Enter a valid phone number (digits, +, - and spaces only).',
         ];
     }
 

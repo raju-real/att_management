@@ -6,7 +6,9 @@ use App\Models\AttendanceLog;
 use App\Models\Student;
 use App\Services\DeviceActivityService;
 use App\Services\DeviceSyncService;
+use App\Rules\UniqueDevicePin;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class StudentController extends Controller
 {
@@ -101,14 +103,14 @@ class StudentController extends Controller
     public function upload(Request $request)
     {
         $this->validate($request, [
-            'file' => 'required|mimes:xls,xlsx,csv|max:2048'
+            'file' => 'required|file|mimes:xls,xlsx,csv,txt|max:5120'
         ]);
 
         try {
             \Maatwebsite\Excel\Facades\Excel::import(new \App\Imports\StudentsImport, $request->file('file'));
             return redirect()->route('students.index')->with(successMessage('success', 'Students imported successfully.'));
         } catch (\Exception $e) {
-            return redirect()->back()->withErrors('Error importing file: ' . $e->getMessage());
+            return redirect()->back()->withErrors(['file' => 'Error importing file: ' . $e->getMessage()]);
         }
     }
 
@@ -119,20 +121,12 @@ class StudentController extends Controller
 
     public function store(Request $request)
     {
-        $this->validate($request, [
-            'student_id' => 'required|unique:students,student_id',
-            'student_no' => 'nullable|string|max:255|unique:students,student_no',
-            'firstname' => 'required|string|max:255',
-            'middlename' => 'nullable|string|max:255',
-            'lastname' => 'nullable|string|max:255',
-            'nickname' => 'nullable|string|max:255',
-            'class' => 'nullable|string|max:255',
-            'section' => 'nullable|string|max:255',
-            'roll' => 'nullable|string|max:255',
-            'shift' => 'nullable|string|max:255',
-            'medium' => 'nullable|string|max:255',
-            'group' => 'nullable|string|max:255',
-        ]);
+        $this->validate($request, $this->rules() + [
+            'student_id' => ['required', 'string', 'max:191', Rule::unique('students', 'student_id')->whereNull('deleted_at')],
+            // Device PIN: numeric, unique among students (incl. deleted — the PIN
+            // may still be enrolled on a device) and not used by any teacher.
+            'student_no' => ['nullable', 'regex:/^[0-9]{1,9}$/', Rule::unique('students', 'student_no'), new UniqueDevicePin('student')],
+        ], $this->messages());
 
         $student = new Student();
         // A custom student_no lets you match a PIN already enrolled on a
@@ -172,19 +166,9 @@ class StudentController extends Controller
 
     public function update(Request $request, $id)
     {
-        $this->validate($request, [
-            'student_id' => 'required|unique:students,student_id,' . $id,
-            'firstname' => 'required|string|max:255',
-            'middlename' => 'nullable|string|max:255',
-            'lastname' => 'nullable|string|max:255',
-            'nickname' => 'nullable|string|max:255',
-            'class' => 'nullable|string|max:255',
-            'section' => 'nullable|string|max:255',
-            'roll' => 'nullable|string|max:255',
-            'shift' => 'nullable|string|max:255',
-            'medium' => 'nullable|string|max:255',
-            'group' => 'nullable|string|max:255',
-        ]);
+        $this->validate($request, $this->rules() + [
+            'student_id' => ['required', 'string', 'max:191', Rule::unique('students', 'student_id')->whereNull('deleted_at')->ignore($id)],
+        ], $this->messages());
 
         $student = Student::findOrFail($id);
         $student->student_id = $request->student_id;
@@ -224,6 +208,32 @@ class StudentController extends Controller
         return redirect()
             ->route('students.index')
             ->with(deleteMessage());
+    }
+
+    /** Field rules shared by store() and update(). Columns are varchar(191). */
+    protected function rules(): array
+    {
+        return [
+            'firstname'  => ['required', 'string', 'max:191'],
+            'middlename' => ['nullable', 'string', 'max:191'],
+            'lastname'   => ['nullable', 'string', 'max:191'],
+            'nickname'   => ['nullable', 'string', 'max:191'],
+            'class'      => ['nullable', 'string', 'max:191'],
+            'section'    => ['nullable', 'string', 'max:191'],
+            'roll'       => ['nullable', 'string', 'max:191'],
+            'shift'      => ['nullable', 'string', 'max:191'],
+            'medium'     => ['nullable', 'string', 'max:191'],
+            'group'      => ['nullable', 'string', 'max:191'],
+        ];
+    }
+
+    protected function messages(): array
+    {
+        return [
+            'student_id.unique' => 'Another student already has this Student ID.',
+            'student_no.regex'  => 'Device ID must be a number of 1 to 9 digits (fingerprint devices only accept numeric IDs).',
+            'student_no.unique' => 'This device ID already belongs to another student (including deleted students).',
+        ];
     }
 
     /**

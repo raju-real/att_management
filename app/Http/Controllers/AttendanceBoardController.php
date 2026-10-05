@@ -18,11 +18,15 @@ class AttendanceBoardController extends Controller
     }
 
     /**
-     * GET /attendance-board/data?date=YYYY-MM-DD
+     * GET /attendance-board/data?date=YYYY-MM-DD[&per_page=24]
+     * A valid per_page is remembered for this user (see Report::boardPerPage).
      */
     public function data(Request $request)
     {
-        return response()->json(Report::teacherBoard($this->date($request)));
+        $payload = Report::teacherBoard($this->date($request));
+        $payload['per_page'] = Report::boardPerPage($request->query('per_page'));
+
+        return response()->json($payload);
     }
 
     protected function date(Request $request): string

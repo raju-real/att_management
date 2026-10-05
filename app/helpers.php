@@ -344,16 +344,53 @@ if (!function_exists('ucFirst')) {
     }
 }
 
+if (!function_exists('jsonSettingsPath')) {
+    /**
+     * Single location for every JSON settings file (site / fee / gateway).
+     * Reading and writing MUST both go through here.
+     */
+    function jsonSettingsPath(string $file): string
+    {
+        return public_path('assets/common/json/' . $file);
+    }
+}
+
+if (!function_exists('readJsonSettings')) {
+    function readJsonSettings(string $file, string $cacheKey): object
+    {
+        return cache()->rememberForever($cacheKey, function () use ($file) {
+            $path = jsonSettingsPath($file);
+            if (!is_file($path)) {
+                return (object)[];
+            }
+            $data = json_decode((string) file_get_contents($path));
+            return is_object($data) ? $data : (object)[];
+        });
+    }
+}
+
+if (!function_exists('writeJsonSettings')) {
+    /**
+     * Merge $values into the existing file (unknown keys are kept), write it
+     * atomically and drop the cached copy.
+     */
+    function writeJsonSettings(string $file, string $cacheKey, array $values): void
+    {
+        $path = jsonSettingsPath($file);
+        File::ensureDirectoryExists(dirname($path));
+        $current = is_file($path) ? (json_decode((string) file_get_contents($path), true) ?: []) : [];
+        $json = json_encode(array_merge($current, $values), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        if (file_put_contents($path, $json, LOCK_EX) === false) {
+            throw new RuntimeException("Cannot write settings file: {$path}");
+        }
+        cache()->forget($cacheKey);
+    }
+}
+
 if (!function_exists('siteSettings')) {
     function siteSettings()
     {
-        return cache()->rememberForever('site_settings', function () {
-            $path = base_path('assets/common/json/site_setting.json');
-            if (!file_exists($path)) {
-                return (object)[];
-            }
-            return json_decode(file_get_contents($path));
-        });
+        return readJsonSettings('site_setting.json', 'site_settings');
     }
 }
 
@@ -410,8 +447,12 @@ if (!function_exists('authUser')) {
 if(!function_exists('getClassList')) {
     function getClassList(): array
     {
-        return Student::groupBy('class')->pluck('class')->toArray();
-    }   
+        // Standard classes first (so the list is never empty on a fresh
+        // install), then any other class names already used by students.
+        $defaults = ['Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve'];
+        $used = Student::whereNotNull('class')->where('class', '<>', '')->distinct()->pluck('class')->all();
+        return array_values(array_unique(array_merge($defaults, $used)));
+    }
 }
 
 if (!function_exists('weekDays')) {
@@ -488,26 +529,14 @@ if (!function_exists('isLateIn')) {
 if(!function_exists('feeSettings')) {
 function feeSettings()
     {
-        return cache()->rememberForever('fee_settings', function () {
-            $path = base_path('assets/common/json/fee_setting.json');
-            if (!file_exists($path)) {
-                return (object)[];
-            }
-            return json_decode(file_get_contents($path));
-        });
+        return readJsonSettings('fee_setting.json', 'fee_settings');
     }
 }
 
 if (!function_exists('gatewaySettings')) {
     function gatewaySettings()
     {
-        return cache()->rememberForever('gateway_settings', function () {
-            $path = base_path('assets/common/json/gateway_settings.json');
-            if (!file_exists($path)) {
-                return (object)[];
-            }
-            return json_decode(file_get_contents($path));
-        });
+        return readJsonSettings('gateway_settings.json', 'gateway_settings');
     }
 }
 

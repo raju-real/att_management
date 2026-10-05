@@ -185,3 +185,9 @@
 /* ── Auto-refresh stamp ── */
 .tb-updated { font-size: 11px; color: var(--tb-muted); font-variant-numeric: tabular-nums; }
 .tb-updated.tb-updated-error { color: var(--tb-red-text); font-weight: 600; }
+
+/* ── Cards-per-slide selector ── */
+.tb-size-select { height: 36px; border-radius: 10px; border: 1px solid var(--tb-ctrl-border); background: var(--tb-ctrl-bg);
+    color: var(--tb-ctrl-text); font-size: 13px; padding: 0 8px; cursor: pointer; }
+.tb-size-select option { color: #0f172a; background: #fff; }
+.tb-size-select:focus, .tb-date-input:focus { outline: 2px solid var(--tb-accent); outline-offset: 1px; }

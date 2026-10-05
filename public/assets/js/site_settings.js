@@ -4,19 +4,25 @@ $(document).ready(function () {
 
     try {
         selectedDates = JSON.parse($('#office_holidays').val()) || [];
+        if (!Array.isArray(selectedDates)) selectedDates = [];
     } catch (e) {
         selectedDates = [];
     }
 
+    const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
     function renderChips() {
-        let container = $('#holiday_tags');
+        const container = $('#holiday_tags');
         container.empty();
 
+        if (!selectedDates.length) {
+            container.append('<small class="text-muted">No office holidays added yet.</small>');
+        }
         selectedDates.forEach(function (date) {
             container.append(
                 `<div class="holiday-chip">
-                    ${date}
-                    <span class="remove-date" data-date="${date}">&times;</span>
+                    ${esc(date)}
+                    <span class="remove-date" data-date="${esc(date)}" title="Remove">&times;</span>
                 </div>`
             );
         });
@@ -25,7 +31,7 @@ $(document).ready(function () {
     }
 
     $(document).on('click', '.remove-date', function () {
-        let date = $(this).data('date');
+        const date = String($(this).data('date'));
         selectedDates = selectedDates.filter(d => d !== date);
         renderChips();
     });
@@ -33,12 +39,13 @@ $(document).ready(function () {
     flatpickr("#holiday_picker", {
         dateFormat: "Y-m-d",
         allowInput: false,
-        onChange: function (selected, dateStr) {
+        onChange: function (selected, dateStr, instance) {
             if (dateStr && !selectedDates.includes(dateStr)) {
                 selectedDates.push(dateStr);
                 selectedDates.sort();
                 renderChips();
             }
+            instance.clear();
         }
     });
 

@@ -349,12 +349,13 @@
             <div class="login-logo">
                 <i class="fas fa-chart-line"></i>
             </div>
-            <h1 class="login-title">AdminPanel</h1>
+            <h1 class="login-title">{{ siteSettings()->site_name ?? 'Attendance Management' }}</h1>
             <p class="login-subtitle">Sign in to access your dashboard</p>
         </div>
 
         <!-- Login Body -->
         <div class="login-body">
+            <x-alert-message />
             <form action="{{ route('admin-login') }}" method="POST">
                 @csrf
                 <!-- Email Field -->
@@ -406,7 +407,7 @@
                         </div>
                     </div>
                     @error('password')
-                        {!! displayError('password') !!}
+                        {!! displayError($message) !!}
                     @enderror
                 </div>
                 <!-- Remember Me & Forgot Password -->
@@ -417,7 +418,7 @@
                         id="rememberMe"
                         name="remember_me"
                         value="1"
-                        {{ old('remember') ? 'checked' : '' }}
+                        {{ old('remember_me') ? 'checked' : '' }}
                     >
                     <label class="form-check-label" for="rememberMe">Remember me</label>
                 </div>
@@ -432,7 +433,7 @@
 
         <!-- Login Footer -->
         <div class="login-footer">
-            © 2023 AdminPanel. All rights reserved.
+            &copy; {{ date('Y') }} {{ siteSettings()->site_name ?? 'Attendance Management' }}. All rights reserved.
         </div>
     </div>
 </div>

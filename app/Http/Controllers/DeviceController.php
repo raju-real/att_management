@@ -40,9 +40,16 @@ class DeviceController extends Controller
     {
         $this->validateDevice($request);
 
-        $device = new Device();
+        // serial_no is UNIQUE in the database even for deleted devices, so
+        // re-adding a previously deleted device restores that row instead of
+        // failing on the unique index.
+        $device = Device::onlyTrashed()->where('serial_no', trim($request->serial_no))->first() ?? new Device();
+        if ($device->exists) {
+            $device->restore();
+            $device->deleted_by = null;
+        }
         $this->fillDevice($device, $request);
-        $device->created_by = Auth::id();
+        $device->created_by = $device->created_by ?? Auth::id();
         $device->save();
 
         return redirect()->route('devices.index')->with(successMessage());
@@ -265,21 +272,25 @@ class DeviceController extends Controller
                 Rule::unique('devices')->whereNull('deleted_at')->ignore($ignoreId),
             ],
             'serial_no' => [
-                'required', 'string', 'max:255',
+                'required', 'string', 'max:100', 'regex:/^[A-Za-z0-9_\-]+$/',
                 Rule::unique('devices')->whereNull('deleted_at')->ignore($ignoreId),
             ],
             'ip_address' => [
-                'nullable', 'string', 'max:100',
+                'nullable', 'ip', 'max:45',
                 Rule::unique('devices')->whereNull('deleted_at')->ignore($ignoreId),
             ],
             'device_port'    => 'nullable|numeric|between:1,65535',
             'subnet_label'   => 'nullable|string|max:100',
-            'gateway_ip'     => 'nullable|string|max:45',
+            'gateway_ip'     => 'nullable|ip|max:45',
             'location_note'  => 'nullable|string|max:255',
             'comm_key'       => 'nullable|numeric|between:0,65535',
             'status'         => 'required|in:active,inactive',
             'device_for'     => 'required|in:student_teacher,student,teacher',
             'use_push_mode'  => 'sometimes|boolean',
+        ], [
+            'serial_no.regex' => 'Serial number may only contain letters, numbers, - and _ (as shown on the device: Menu → System Info).',
+            'ip_address.ip'  => 'Enter a valid IP address, e.g. 192.168.1.201.',
+            'gateway_ip.ip'  => 'Enter a valid gateway IP address, e.g. 192.168.1.1.',
         ]);
     }
 
@@ -287,7 +298,7 @@ class DeviceController extends Controller
     {
         $device->name          = $request->name;
         $device->slug          = Str::slug($request->serial_no);
-        $device->serial_no     = $request->serial_no;
+        $device->serial_no     = trim($request->serial_no);
         $device->ip_address    = $request->ip_address;
         $device->device_port   = $request->device_port ?: 4370;
         $device->subnet_label  = $request->subnet_label;

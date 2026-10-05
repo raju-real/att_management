@@ -12,13 +12,14 @@
     $theme    = $theme ?? 'dark';
     $detailed = $detailed ?? false;
     $date     = $date ?? \Carbon\Carbon::today()->toDateString();
+    $perPage  = \App\Services\AttendanceReportService::boardPerPage();
     $tabs = [
-        'all'       => ['All', '#a5b4fc'],
-        'present'   => ['Present', '#60a5fa'],
-        'on_time'   => ['On Time', '#10b981'],
-        'late'      => ['Late In', '#ef4444'],
-        'early_out' => ['Early Out', '#f59e0b'],
-        'absent'    => ['Absent', '#64748b'],
+        'all'       => ['All', '#a5b4fc', 'Every teacher'],
+        'present'   => ['Present', '#60a5fa', 'Punched in at least once on this date'],
+        'on_time'   => ['On Time', '#10b981', 'First punch at or before the shift in-time'],
+        'late'      => ['Late In', '#ef4444', 'First punch after the shift in-time'],
+        'early_out' => ['Early Out', '#f59e0b', 'Last punch before the shift out-time'],
+        'absent'    => ['Absent', '#64748b', 'No punch on this date'],
     ];
 @endphp
 <div class="tb-board {{ $theme === 'light' ? 'tb-light' : '' }}"
@@ -27,7 +28,8 @@
      data-detailed="{{ $detailed ? 1 : 0 }}"
      data-keys="{{ $keys ?? 0 }}"
      data-refresh-ms="{{ ($refreshSeconds ?? 60) * 1000 }}"
-     data-card-min="{{ $detailed ? 190 : 150 }}">
+     data-card-min="{{ $detailed ? 190 : 150 }}"
+     data-per-page="{{ $perPage }}">
 
     <div class="tb-head">
         <div>
@@ -45,14 +47,21 @@
 
     <div class="tb-bar">
         <div class="tb-tabs" data-tb="tabs">
-            @foreach($tabs as $key => [$label, $color])
-                <div class="tb-tab {{ $key === 'all' ? 'active' : '' }}" data-filter="{{ $key }}">
+            @foreach($tabs as $key => [$label, $color, $hint])
+                <div class="tb-tab {{ $key === 'all' ? 'active' : '' }}" data-filter="{{ $key }}" title="{{ $hint }}" role="button" tabindex="0">
                     <span class="dot" style="background:{{ $color }}"></span>{{ $label }} <b data-tb-count="{{ $key }}">0</b>
                 </div>
             @endforeach
         </div>
         <div class="tb-controls">
-            <input type="text" class="tb-date-input" data-tb="date" value="{{ $date }}" readonly aria-label="Date">
+            <input type="text" class="tb-date-input" data-tb="date" value="{{ $date }}" readonly aria-label="Date"
+                   title="Pick a date to view its attendance">
+            <select class="tb-size-select" data-tb="per-page" aria-label="Teachers per slide"
+                    title="Teachers per slide (saved for your account)">
+                @foreach(\App\Services\AttendanceReportService::BOARD_PAGE_SIZES as $size)
+                    <option value="{{ $size }}" {{ $perPage === $size ? 'selected' : '' }}>{{ $size }} / slide</option>
+                @endforeach
+            </select>
             <button type="button" class="tb-btn" data-tb="prev" title="Previous"><i class="fas fa-chevron-left"></i></button>
             <button type="button" class="tb-btn" data-tb="play" title="Pause"><i class="fas fa-pause"></i></button>
             <button type="button" class="tb-btn" data-tb="next" title="Next"><i class="fas fa-chevron-right"></i></button>

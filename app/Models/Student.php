@@ -14,8 +14,14 @@ class Student extends Model
     public static function getStudentNo(): int
     {
         // Get max student_sl_no and increment
-       $last = self::withTrashed()->max('student_no') ?? 10000; // start from 10001
-        return $last + 1;
+        // CAST: student_no is a varchar, and a plain MAX() compares as text ('999' > '10001').
+        $last = (int) (self::withTrashed()->selectRaw('MAX(CAST(student_no AS UNSIGNED)) AS m')->value('m') ?: 10000);
+        $next = $last + 1;
+        // Never hand out a device PIN that a teacher already uses.
+        while (Teacher::withTrashed()->where('teacher_no', (string) $next)->exists()) {
+            $next++;
+        }
+        return $next;
     }
 
     public static function getStdNo(): string

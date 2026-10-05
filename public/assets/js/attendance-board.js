@@ -38,7 +38,7 @@
                       <span class="tb-no">#${esc(t.teacher_no)}</span>
                       <div class="tb-dept">${esc(t.department || t.designation || '')}&nbsp;</div>`;
         const cls = `tb-card ${t.status}${t.early_out ? ' early_out' : ''}`;
-        const style = `animation-delay:${(i * 0.045).toFixed(3)}s`;
+        const style = `animation-delay:${(Math.min(i, 24) * 0.04).toFixed(3)}s`;
 
         if (!detailed) {
             let time, tag;
@@ -92,12 +92,16 @@
             refreshMs: +root.dataset.refreshMs || 60000,
             cardMin: +root.dataset.cardMin || 150,
             keys: root.dataset.keys === '1',
+            sizes: [12, 24, 48, 96, 200],
         };
 
         const track = $('track'), viewport = $('viewport'), dotsBox = $('dots'), pageLbl = $('page');
         const progress = $('progress'), dateInput = $('date'), tabs = $('tabs'), loader = $('loader');
+        const sizeSelect = $('per-page');
 
         let all = [], filter = 'all', slides = 1, current = 0, playing = true;
+        let perPage = +root.dataset.perPage || 24;
+        let pendingPerPage = null; // set when the user changes it; saved with the next request
         let timer = null, rafId = null, progressStart = 0;
 
         // ── Clock ──
@@ -110,21 +114,15 @@
         };
         if (clock) { tick(); setInterval(tick, 1000); }
 
-        // ── How many cards fit per slide ──
+        // ── Slide layout: the user-selected cards per slide (perPage), laid
+        //    out in as many columns as fit the width ──
         function layout() {
             const small = window.innerWidth < 576;
             const w = viewport.clientWidth - (small ? 28 : 52);
             const minCard = small ? Math.min(opt.cardMin, 140) : opt.cardMin;
-            const cols = Math.max(2, Math.min(10, Math.floor((w + 14) / (minCard + 14))));
-            const cardH = measuredH || (opt.detailed ? 340 : 235);
-            let rows = small ? 3 : 2;
-            if (document.fullscreenElement === root) {
-                rows = Math.max(1, Math.floor((window.innerHeight - 230) / cardH));
-            } else if (opt.detailed && !small) {
-                // standalone page: fill the visible height, never fewer than 2 rows
-                rows = Math.max(2, Math.floor((window.innerHeight - viewport.getBoundingClientRect().top - 40) / cardH));
-            }
-            return { cols, rows, per: cols * rows };
+            const fit = Math.max(2, Math.min(10, Math.floor((w + 14) / (minCard + 14))));
+            const cols = Math.min(fit, perPage);
+            return { cols, rows: Math.ceil(perPage / cols), per: perPage };
         }
 
         function filtered() {
@@ -136,19 +134,7 @@
             }
         }
 
-        // Real rendered card height (+ grid gap), measured once cards exist,
-        // so "rows that fit" follows the actual design instead of a guess.
-        let measuredH = 0;
-        function measure() {
-            const c = track.querySelector('.tb-card');
-            if (!c) return false;
-            const h = c.offsetHeight + 14;
-            if (Math.abs(h - measuredH) < 4) return false;
-            measuredH = h;
-            return true;
-        }
-
-        function render(keepSlide, remeasured) {
+        function render(keepSlide) {
             const list = filtered();
             const { cols, per } = layout();
             slides = Math.max(1, Math.ceil(list.length / per));
@@ -163,9 +149,6 @@
                     html += `<div class="tb-slide" style="grid-template-columns:repeat(${cols},minmax(0,1fr))">${chunk.map((t, i) => card(t, i, opt.detailed)).join('')}</div>`;
                 }
                 track.innerHTML = html;
-                if (!remeasured && measure() && layout().per !== per) {
-                    return render(keepSlide, true);
-                }
             }
 
             dotsBox.innerHTML = slides > 1
@@ -231,6 +214,7 @@
             busy = true;
             if (!silent) loader.classList.add('show');
             const params = new URLSearchParams({ date: dateInput.value });
+            if (pendingPerPage) params.set('per_page', pendingPerPage);
             return fetch(opt.url + '?' + params, { cache: 'no-store', headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } })
                 .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
                 .then(data => {
@@ -242,8 +226,16 @@
                     $('live').style.display = dateInput.value === todayStr() ? '' : 'none';
                     setUpdated(true);
 
+                    pendingPerPage = null;
+                    let sizeChanged = false;
+                    if (data.per_page && +data.per_page !== perPage) {
+                        perPage = +data.per_page; // changed on another screen/device
+                        sizeSelect.value = String(perPage);
+                        sizeChanged = true;
+                    }
+
                     const sig = JSON.stringify(data.teachers || []);
-                    if (!silent || sig !== signature) {
+                    if (!silent || sizeChanged || sig !== signature) {
                         signature = sig;
                         all = data.teachers || [];
                         render(keepSlide);
@@ -289,6 +281,16 @@
         }
 
         dateInput.addEventListener('change', () => load(false));
+
+        // Cards per slide: re-render immediately, then save it for this user.
+        sizeSelect.addEventListener('change', () => {
+            const v = +sizeSelect.value;
+            if (!opt.sizes.includes(v)) return;
+            perPage = v;
+            pendingPerPage = v;
+            render(false);
+            load(true);
+        });
         if (window.flatpickr && !dateInput._flatpickr) {
             window.flatpickr(dateInput, { dateFormat: 'Y-m-d', maxDate: 'today', disableMobile: true });
         }
@@ -315,10 +317,10 @@
             else if (e.key === ' ') { e.preventDefault(); setPlaying(!playing); }
         });
 
-        let resizeT = null, lastPer = layout().per;
+        let resizeT = null, lastCols = layout().cols;
         window.addEventListener('resize', () => {
             clearTimeout(resizeT);
-            resizeT = setTimeout(() => { const p = layout().per; if (p !== lastPer) { lastPer = p; render(true); } }, 200);
+            resizeT = setTimeout(() => { const c = layout().cols; if (c !== lastCols) { lastCols = c; render(true); } }, 200);
         });
 
         // ── Auto refresh every refreshMs (default 60s), no page reload ──
