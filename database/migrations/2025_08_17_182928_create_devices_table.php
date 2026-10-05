@@ -26,6 +26,7 @@ return new class extends Migration {
             $table->timestamp('last_synced_at')->nullable();
             $table->timestamp('last_seen_at')->nullable();
             $table->integer('created_by')->nullable();
+            $table->boolean('use_push_mode')->default(true);
             $table->boolean('is_active')->default(true);
             $table->timestamps();
             $table->integer('updated_by')->nullable();

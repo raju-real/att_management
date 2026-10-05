@@ -45,6 +45,9 @@ class Device extends Model
      */
     public function getIsOnlineAttribute(): bool
     {
+        if (! $this->use_push_mode) {
+            return false; // online status is N/A for TCP devices
+        }
         return $this->last_seen_at && $this->last_seen_at->diffInMinutes(now()) <= 10;
     }
 
