@@ -71,7 +71,6 @@ Route::middleware('auth')->group(function () {
     // Dashboard
     Route::controller(DashboardController::class)->group(function () {
         Route::get('dashboard', 'dashboard')->name('dashboard');
-        Route::get('dashboard/teacher-status', 'teacherAttendanceStatus')->name('dashboard.teacher-status');
     });
     // Profile
     Route::controller(ProfileController::class)->group(function () {

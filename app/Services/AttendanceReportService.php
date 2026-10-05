@@ -33,6 +33,13 @@ class AttendanceReportService
      */
     public const MIN_OUT_GAP_MINUTES = 5;
 
+    /**
+     * Person key on attendance_logs. Some fetch paths store '' instead of NULL
+     * in the unused no-column, so blanks are treated as NULL — otherwise
+     * every teacher would collapse into one '' user.
+     */
+    public const USER_NO_SQL = "COALESCE(NULLIF(student_no, ''), NULLIF(teacher_no, ''))";
+
     public const STATUSES = [
         'late'         => 'Late In',
         'on_time'      => 'On Time / Early In',
@@ -87,10 +94,10 @@ class AttendanceReportService
         return DB::table('attendance_logs')
             ->selectRaw("
                 user_type,
-                COALESCE(student_no, teacher_no) AS user_no,
-                MAX(student_no) AS student_no,
-                MAX(teacher_no) AS teacher_no,
-                MAX(name)       AS log_name,
+                " . self::USER_NO_SQL . " AS user_no,
+                MAX(NULLIF(student_no, '')) AS student_no,
+                MAX(NULLIF(teacher_no, '')) AS teacher_no,
+                NULLIF(MAX(name), '') AS log_name,
                 DATE(punch_time) AS att_date,
                 MIN(punch_time) AS first_punch,
                 MAX(punch_time) AS last_punch,
@@ -98,13 +105,15 @@ class AttendanceReportService
             ")
             ->where('punch_time', '>=', $start)
             ->where('punch_time', '<', $end)
-            ->where(fn ($q) => $q->whereNotNull('teacher_no')->orWhereNotNull('student_no'))
+            ->whereRaw(self::USER_NO_SQL . ' IS NOT NULL')
             ->when($f['user_type'] ?? null, fn ($q, $v) => $q->where('user_type', $v))
             ->when($f['teacher_no'] ?? null, fn ($q, $v) => $q->where('teacher_no', $v))
             ->when($f['user_no'] ?? null, fn ($q, $v) => $q->where(
                 fn ($w) => $w->where('teacher_no', $v)->orWhere('student_no', $v)
             ))
-            ->groupBy('user_type', DB::raw('COALESCE(student_no, teacher_no)'), DB::raw('DATE(punch_time)'));
+            // Grouped by the select aliases: MariaDB's ONLY_FULL_GROUP_BY rejects
+            // the NULLIF() expression repeated here.
+            ->groupBy('user_type', 'user_no', 'att_date');
     }
 
     /**
@@ -322,8 +331,12 @@ class AttendanceReportService
     // ───────────────────────────── Dashboard board ─────────────────────────────
 
     /**
-     * Every teacher with today's (or $date's) status: late / on_time / absent.
-     * Sorted: arrivals by in-time first, then absentees.
+     * Every teacher with today's (or $date's) status: late / on_time / absent,
+     * plus the early_out flag. Sorted: arrivals by in-time first, then absentees.
+     *
+     * This is the ONE data source for every attendance board (dashboard
+     * board and the standalone /attendance-board page) — change the
+     * payload here and both pick it up.
      */
     public static function teacherBoard(string $date): array
     {
@@ -339,7 +352,9 @@ class AttendanceReportService
                 'd.name as department', 'sh.title as shift_title', 'sh.in_time as shift_in', 'sh.out_time as shift_out',
             ]);
 
-        $list = $teachers->map(function ($t) use ($rows) {
+        $fmt = fn ($time) => $time ? Carbon::parse($time)->format('h:i A') : null;
+
+        $list = $teachers->map(function ($t) use ($rows, $fmt) {
             $r = $rows->get((string) $t->teacher_no);
 
             $status = !$r ? 'absent' : ($r->is_late ? 'late' : 'on_time');
@@ -352,21 +367,27 @@ class AttendanceReportService
                 'department'   => $t->department,
                 'image'        => ($t->image && file_exists($t->image)) ? asset($t->image) : null,
                 'initial'      => strtoupper(mb_substr($t->name ?? 'T', 0, 1)),
-                'shift_in'     => $t->shift_in ? Carbon::parse($t->shift_in)->format('h:i A') : null,
+                'shift_title'  => $t->shift_title,
+                'shift_in'     => $fmt($t->shift_in),
+                'shift_out'    => $fmt($t->shift_out),
                 'status'       => $status,
-                'in_time'      => $r ? Carbon::parse($r->in_time)->format('h:i A') : null,
-                'out_time'     => ($r && $r->out_time) ? Carbon::parse($r->out_time)->format('h:i A') : null,
+                'in_time'      => $r ? $fmt($r->in_time) : null,
+                'out_time'     => $r ? $fmt($r->out_time) : null,
                 'late_by'      => $r && $r->is_late ? self::minutesToHm((int) $r->late_minutes) : null,
+                'early_out'    => (bool) ($r->is_early_out ?? false),
+                'early_out_by' => $r && $r->is_early_out ? self::minutesToHm((int) $r->early_out_minutes) : null,
+                'work_hours'   => $r && $r->out_time ? self::minutesToHm((int) $r->work_minutes) : null,
                 'sort_key'     => $r ? Carbon::parse($r->in_time)->format('His') : '999999',
             ];
         })->sortBy([['sort_key', 'asc'], ['name', 'asc']])->values();
 
         $summary = [
-            'total'   => $list->count(),
-            'present' => $list->where('status', '!=', 'absent')->count(),
-            'late'    => $list->where('status', 'late')->count(),
-            'on_time' => $list->where('status', 'on_time')->count(),
-            'absent'  => $list->where('status', 'absent')->count(),
+            'total'     => $list->count(),
+            'present'   => $list->where('status', '!=', 'absent')->count(),
+            'late'      => $list->where('status', 'late')->count(),
+            'on_time'   => $list->where('status', 'on_time')->count(),
+            'early_out' => $list->where('early_out', true)->count(),
+            'absent'    => $list->where('status', 'absent')->count(),
         ];
 
         return [
