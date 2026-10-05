@@ -59,6 +59,55 @@ class TeacherController extends Controller
             "{$result['total']} teacher(s) processed across {$result['deviceCount']} device(s).\n{$msg}"));
     }
 
+    // ───────────────────────────── Import (CSV / Excel) ─────────────────────────────
+
+    public function import()
+    {
+        $departments = Department::where('status', 'active')->with('shift:id,title,in_time,out_time')->orderBy('name')->get();
+        return view('teacher.import', compact('departments'));
+    }
+
+    public function importDemo()
+    {
+        $department = Department::orderBy('name')->value('name') ?? 'Science';
+
+        $content  = "\xEF\xBB\xBF" . "teacher_no,name,email,mobile,designation,department\n";
+        $content .= "101,Abdul Karim,karim@example.com,01711000001,Senior Teacher,{$department}\n";
+        $content .= "102,Nasrin Akter,,01711000002,Assistant Teacher,\n";
+
+        return response($content, 200, [
+            'Content-Type'        => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="teacher_import_demo.csv"',
+        ]);
+    }
+
+    public function upload(Request $request)
+    {
+        $this->validate($request, [
+            'file'          => 'required|file|mimes:xls,xlsx,csv,txt|max:5120',
+            'department_id' => ['nullable', Rule::exists('departments', 'id')->whereNull('deleted_at')],
+        ]);
+
+        $import = new \App\Imports\TeachersImport($request->department_id ? (int) $request->department_id : null);
+
+        try {
+            \Maatwebsite\Excel\Facades\Excel::import($import, $request->file('file'));
+        } catch (\Throwable $e) {
+            return redirect()->back()->withErrors(['file' => 'Error reading file: ' . $e->getMessage()]);
+        }
+
+        $summary = "{$import->created} teacher(s) created, {$import->updated} updated"
+            . (count($import->skipped) ? ', ' . count($import->skipped) . ' skipped' : '') . '.';
+
+        if (($import->created + $import->updated) > 0) {
+            $summary .= ' Use "Push to Device" to send new/updated teachers to the fingerprint devices.';
+        }
+
+        return redirect()->route('teachers.import')
+            ->with(successMessage(count($import->skipped) ? 'warning' : 'success', $summary))
+            ->with('import_skipped', array_slice($import->skipped, 0, 200));
+    }
+
     public function create()
     {
         $route       = route('teachers.store');

@@ -34,6 +34,9 @@
                {!! tooltip('Push all teachers to fingerprint devices') !!}>
                 <i class="fas fa-upload mr-1"></i> Push to Device
             </a>
+            <a href="{{ route('teachers.import') }}" class="btn btn-success text-white mr-2" {!! tooltip('Import teachers from CSV / Excel') !!}>
+                <i class="fas fa-file-import mr-1"></i> Import
+            </a>
             <a href="{{ route('teachers.create') }}" class="btn btn-primary-admin text-white" {!! tooltip('Add Teacher') !!}>
                 <i class="fas fa-plus mr-1"></i> Add Teacher
             </a>

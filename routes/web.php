@@ -101,6 +101,9 @@ Route::middleware('auth')->group(function () {
     Route::resource('students', StudentController::class);
     // Manage Teacher
     Route::get('teachers/push-to-device', [TeacherController::class, 'pushToDevice'])->name('teachers.push-to-device');
+    Route::get('teachers/import/demo', [TeacherController::class, 'importDemo'])->name('teachers.import.demo');
+    Route::get('teachers/import', [TeacherController::class, 'import'])->name('teachers.import');
+    Route::post('teachers/upload', [TeacherController::class, 'upload'])->name('teachers.upload');
     Route::resource('teachers', TeacherController::class);
     // Department & Shift (teacher timing config)
     Route::resource('departments', \App\Http\Controllers\DepartmentController::class)->except('show');
