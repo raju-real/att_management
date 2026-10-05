@@ -25,8 +25,6 @@ return new class extends Migration {
             $table->enum('status', ['pending', 'sent', 'done', 'failed'])->default('pending')->index();
             $table->timestamp('executed_at')->nullable();
             $table->timestamps();
-
-            $table->foreign('device_id')->references('id')->on('devices')->onDelete('cascade');
         });
     }
 

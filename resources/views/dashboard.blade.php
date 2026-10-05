@@ -74,65 +74,109 @@
     font-weight: 700; color: #4f46e5; margin-bottom: 16px;
 }
 
-/* ── Teacher Status Cards ── */
-.ts-grid { display: flex; flex-wrap: wrap; gap: 12px; }
-.teacher-status-card {
-    width: 130px; border-radius: 16px; padding: 16px 10px 12px;
-    text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,.07);
-    border: 1px solid rgba(200,200,220,.3); transition: all .25s ease;
-    position: relative; overflow: hidden; background: rgba(255,255,255,.9);
+/* ═══════════════════════════════════════════════
+   TEACHER STATUS BOARD (sliding)
+═══════════════════════════════════════════════ */
+.tb-board {
+    --tb-bg1: #0b1026; --tb-bg2: #1e1b4b; --tb-gold: #f5c76b;
+    --tb-green: #10b981; --tb-red: #ef4444; --tb-gray: #94a3b8;
+    position: relative; border-radius: 22px; overflow: hidden; color: #e2e8f0;
+    background: radial-gradient(1200px 400px at 10% -10%, rgba(99,102,241,.35), transparent 60%),
+                radial-gradient(900px 400px at 110% 120%, rgba(245,199,107,.18), transparent 60%),
+                linear-gradient(135deg, var(--tb-bg1), var(--tb-bg2));
+    box-shadow: 0 20px 60px rgba(15,23,42,.35);
+    margin-bottom: 28px;
 }
-.teacher-status-card::before {
-    content:''; position:absolute; top:0; left:0; right:0; height:4px; border-radius:16px 16px 0 0;
-}
-.teacher-status-card.absent::before  { background: linear-gradient(90deg,#ef4444,#f87171); }
-.teacher-status-card.late::before    { background: linear-gradient(90deg,#f59e0b,#fbbf24); }
-.teacher-status-card:hover { transform: translateY(-4px); box-shadow: 0 12px 30px rgba(0,0,0,.12); }
-.ts-avatar {
-    width: 62px; height: 62px; border-radius: 50%;
-    object-fit: cover; border: 3px solid #e5e7eb;
-    box-shadow: 0 3px 12px rgba(0,0,0,.12); margin-bottom: 8px;
-}
-.ts-avatar-placeholder {
-    width: 62px; height: 62px; border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 22px; font-weight: 700; color: #fff; margin: 0 auto 8px;
-    box-shadow: 0 3px 12px rgba(0,0,0,.15);
-}
-.absent  .ts-avatar-placeholder { background: linear-gradient(135deg,#ef4444,#dc2626); border: 3px solid #fca5a5; }
-.late    .ts-avatar-placeholder { background: linear-gradient(135deg,#f59e0b,#d97706); border: 3px solid #fcd34d; }
-.ts-name { font-size: 12px; font-weight: 600; color: #1e293b; line-height: 1.3; margin-bottom: 5px; }
-.ts-status-badge { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 20px; display: inline-block; }
-.absent  .ts-status-badge { background: #fee2e2; color: #dc2626; }
-.late    .ts-status-badge { background: #fef3c7; color: #d97706; }
-.ts-time { font-size: 10px; color: #6b7280; margin-top: 3px; }
-.ts-count-badge {
-    font-size: 11px; font-weight: 700; padding: 2px 8px;
-    border-radius: 20px; color: #fff; margin-left: 6px;
-}
-.ts-count-badge.absent  { background: linear-gradient(135deg,#ef4444,#dc2626); }
-.ts-count-badge.late    { background: linear-gradient(135deg,#f59e0b,#d97706); }
+.tb-board:fullscreen { border-radius: 0; display: flex; flex-direction: column; }
+.tb-board:fullscreen .tb-viewport { flex: 1; }
+.tb-head { padding: 22px 26px 12px; display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between; }
+.tb-title { font-size: 21px; font-weight: 700; letter-spacing: .3px; color: #fff; margin: 0; }
+.tb-title i { color: var(--tb-gold); }
+.tb-date { font-size: 13px; color: #a5b4fc; margin-top: 2px; }
+.tb-clock { font-size: 30px; font-weight: 700; font-variant-numeric: tabular-nums; color: #fff; letter-spacing: 1px; line-height: 1; }
+.tb-clock small { font-size: 13px; color: var(--tb-gold); margin-left: 4px; }
+.tb-live { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; color: #6ee7b7; text-transform: uppercase; letter-spacing: 1px; }
+.tb-live::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: #10b981; box-shadow: 0 0 0 0 rgba(16,185,129,.7); animation: tb-pulse 1.8s infinite; }
+@keyframes tb-pulse { 0% { box-shadow: 0 0 0 0 rgba(16,185,129,.6); } 70% { box-shadow: 0 0 0 9px rgba(16,185,129,0); } 100% { box-shadow: 0 0 0 0 rgba(16,185,129,0); } }
 
-/* ── Filter Bar ── */
-.ts-filter-bar {
-    background: rgba(255,255,255,.8); border-radius: 14px;
-    padding: 12px 18px; display: flex; align-items: center;
-    gap: 10px; flex-wrap: wrap; border: 1px solid rgba(200,200,220,.3);
-    margin-bottom: 20px; box-shadow: 0 2px 12px rgba(0,0,0,.05);
-}
-.ts-filter-bar label { font-size: 13px; font-weight: 600; color: #4b5563; margin: 0; white-space: nowrap; }
-.ts-filter-bar .form-control { max-width: 175px; border-radius: 10px; font-size: 13px; border: 1.5px solid #d1d5db; padding: 6px 12px; }
-.ts-filter-bar .btn { border-radius: 10px; padding: 6px 16px; font-size: 13px; font-weight: 600; }
+.tb-bar { padding: 0 26px 14px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+.tb-tabs { display: flex; flex-wrap: wrap; gap: 8px; }
+.tb-tab { cursor: pointer; user-select: none; border: 1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.06);
+    color: #cbd5e1; border-radius: 12px; padding: 7px 14px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; transition: all .2s; }
+.tb-tab b { font-size: 16px; color: #fff; font-variant-numeric: tabular-nums; }
+.tb-tab:hover { background: rgba(255,255,255,.12); }
+.tb-tab.active { background: #fff; color: #1e1b4b; border-color: #fff; }
+.tb-tab.active b { color: #1e1b4b; }
+.tb-tab .dot { width: 8px; height: 8px; border-radius: 50%; }
+.tb-controls { display: flex; gap: 6px; align-items: center; }
+.tb-btn { width: 36px; height: 36px; border-radius: 10px; border: 1px solid rgba(255,255,255,.15); background: rgba(255,255,255,.07);
+    color: #fff; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; transition: all .2s; }
+.tb-btn:hover { background: rgba(255,255,255,.18); }
+.tb-date-input { width: 130px; height: 36px; border-radius: 10px; border: 1px solid rgba(255,255,255,.15) !important;
+    background: rgba(255,255,255,.07) !important; color: #fff !important; font-size: 13px; padding: 0 10px; }
 
-/* ── Loader ── */
-.ts-loader-overlay { position:absolute; inset:0; background:rgba(255,255,255,.7); display:flex; align-items:center; justify-content:center; border-radius:16px; z-index:10; }
-.ts-spinner { width:32px; height:32px; border:4px solid #e5e7eb; border-top-color:#6366f1; border-radius:50%; animation:ts-spin .7s linear infinite; }
-@keyframes ts-spin { to { transform: rotate(360deg); } }
-#teacherStatusSection { position:relative; min-height:100px; }
-.ts-empty { text-align:center; padding:20px 0 8px; color:#9ca3af; font-size:13px; }
-.ts-empty i { font-size:30px; display:block; margin-bottom:8px; }
-.ts-divider { border:none; border-top:2px dashed #e5e7eb; margin:20px 0; }
-#statusDateLabel { font-weight:700; color:#6366f1; }
+.tb-viewport { position: relative; overflow: hidden; padding: 6px 0 18px; min-height: 260px; }
+.tb-track { display: flex; transition: transform .8s cubic-bezier(.65,.05,.25,1); will-change: transform; }
+.tb-slide { flex: 0 0 100%; padding: 0 26px; display: grid; gap: 14px; align-content: start; }
+
+.tb-card { position: relative; border-radius: 16px; padding: 14px 10px 12px; text-align: center;
+    background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.04));
+    border: 1px solid rgba(255,255,255,.10); backdrop-filter: blur(6px);
+    opacity: 0; transform: translateY(14px) scale(.98); transition: transform .25s, box-shadow .25s, border-color .25s; }
+.tb-slide.is-active .tb-card { animation: tb-in .55s cubic-bezier(.2,.7,.3,1) forwards; }
+@keyframes tb-in { to { opacity: 1; transform: none; } }
+.tb-card:hover { transform: translateY(-4px) !important; box-shadow: 0 14px 30px rgba(0,0,0,.35); border-color: rgba(255,255,255,.25); }
+.tb-card::after { content: ''; position: absolute; left: 16px; right: 16px; top: 0; height: 3px; border-radius: 0 0 4px 4px; }
+.tb-card.on_time::after { background: var(--tb-green); }
+.tb-card.late::after    { background: var(--tb-red); }
+.tb-card.absent::after  { background: #475569; }
+.tb-card.late { background: linear-gradient(180deg, rgba(239,68,68,.20), rgba(239,68,68,.06)); border-color: rgba(239,68,68,.35); }
+
+.tb-photo { width: 72px; height: 72px; border-radius: 50%; margin: 0 auto 9px; position: relative; padding: 3px;
+    background: conic-gradient(from 210deg, var(--ring1), var(--ring2), var(--ring1)); }
+.tb-card.on_time .tb-photo { --ring1: #10b981; --ring2: #6ee7b7; }
+.tb-card.late .tb-photo    { --ring1: #ef4444; --ring2: #fca5a5; }
+.tb-card.absent .tb-photo  { --ring1: #475569; --ring2: #94a3b8; }
+.tb-photo img, .tb-photo .ph { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 3px solid #0f172a; display: block; }
+.tb-photo .ph { display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: 700; color: #fff;
+    background: linear-gradient(135deg, #4f46e5, #7c3aed); }
+.tb-card.absent .tb-photo img { filter: grayscale(1); opacity: .65; }
+.tb-name { font-size: 13.5px; font-weight: 700; color: #fff; line-height: 1.25; min-height: 34px;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.tb-no { display: inline-block; margin-top: 4px; font-family: SFMono-Regular, Consolas, monospace; font-size: 11px;
+    color: var(--tb-gold); background: rgba(245,199,107,.12); border: 1px solid rgba(245,199,107,.3); padding: 0 8px; border-radius: 6px; }
+.tb-dept { font-size: 11px; color: #94a3b8; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tb-time { margin-top: 8px; font-size: 19px; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: .5px; line-height: 1.1; }
+.tb-card.on_time .tb-time { color: #34d399; }
+.tb-card.late .tb-time    { color: #f87171; }
+.tb-card.absent .tb-time  { color: #64748b; font-size: 14px; letter-spacing: 2px; text-transform: uppercase; }
+.tb-tag { display: inline-block; margin-top: 5px; font-size: 10.5px; font-weight: 700; padding: 2px 9px; border-radius: 20px; letter-spacing: .3px; }
+.tb-card.on_time .tb-tag { background: rgba(16,185,129,.16); color: #6ee7b7; }
+.tb-card.late .tb-tag    { background: #ef4444; color: #fff; }
+.tb-card.absent .tb-tag  { background: rgba(148,163,184,.15); color: #94a3b8; }
+
+.tb-foot { display: flex; align-items: center; justify-content: space-between; padding: 0 26px 18px; gap: 12px; }
+.tb-dots { display: flex; gap: 6px; flex-wrap: wrap; }
+.tb-dot { width: 8px; height: 8px; border-radius: 8px; background: rgba(255,255,255,.25); cursor: pointer; transition: all .3s; border: 0; padding: 0; }
+.tb-dot.active { width: 26px; background: var(--tb-gold); }
+.tb-page { font-size: 12px; color: #a5b4fc; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tb-progress { position: absolute; left: 0; bottom: 0; height: 3px; width: 0; background: linear-gradient(90deg, var(--tb-gold), #f59e0b); }
+.tb-empty { padding: 50px 20px; text-align: center; color: #94a3b8; }
+.tb-empty i { font-size: 40px; display: block; margin-bottom: 12px; color: var(--tb-gold); opacity: .8; }
+.tb-loader { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(11,16,38,.55); z-index: 5; }
+.tb-loader.show { display: flex; }
+.tb-spin { width: 36px; height: 36px; border-radius: 50%; border: 4px solid rgba(255,255,255,.15); border-top-color: var(--tb-gold); animation: tb-spin .8s linear infinite; }
+@keyframes tb-spin { to { transform: rotate(360deg); } }
+@media (max-width: 575px) {
+    .tb-head, .tb-bar, .tb-foot { padding-left: 14px; padding-right: 14px; }
+    .tb-slide { padding: 0 14px; gap: 10px; }
+    .tb-clock { font-size: 22px; }
+    .tb-photo { width: 60px; height: 60px; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .tb-track { transition: none; }
+    .tb-slide.is-active .tb-card { animation: none; opacity: 1; transform: none; }
+}
 
 /* ── Today Attendance Table ── */
 .att-table thead th {
@@ -154,6 +198,7 @@
 @endpush
 
 @section('content')
+
 
     {{-- ═══════════════════════════════════════════
          STAT CARDS ROW
@@ -202,76 +247,53 @@
 
     </div>
 
+
     {{-- ═══════════════════════════════════════════
-         TEACHER ATTENDANCE STATUS
+         TEACHER STATUS BOARD (auto-sliding)
     ═══════════════════════════════════════════ --}}
-    <div class="card admin-card mb-4">
-        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
-            <h5 class="card-title mb-0">
-                <i class="fas fa-chalkboard-teacher mr-2"></i>Teacher Attendance Status
-                <small class="text-muted ml-2" style="font-size:13px">— <span id="statusDateLabel">{{ \Carbon\Carbon::today()->format('d M, Y') }}</span></small>
-            </h5>
-        </div>
-        <div class="card-body">
-
-            <div class="ts-filter-bar">
-                <label><i class="fas fa-calendar-alt mr-1"></i> Date:</label>
-                <div class="input-clearable" style="position:relative">
-                    <input type="text" id="teacherStatusDate" class="form-control flat_datepicker"
-                           placeholder="{{ dateFormat(today()) }}"
-                           value="{{ \Carbon\Carbon::today()->toDateString() }}"
-                           autocomplete="off" readonly>
-                    <span class="clear-btn" onclick="resetTeacherStatusFilter()">
-                        <i class="fa fa-calendar"></i>
-                    </span>
-                </div>
-                <button type="button" class="btn btn-primary" onclick="loadTeacherStatus()">
-                    <i class="fas fa-search mr-1"></i> Filter
-                </button>
-                <button type="button" class="btn btn-secondary" onclick="resetTeacherStatusFilter()">
-                    <i class="fas fa-undo mr-1"></i> Today
-                </button>
+    <div class="tb-board" id="tbBoard">
+        <div class="tb-head">
+            <div>
+                <h4 class="tb-title"><i class="fas fa-crown mr-2"></i>Teacher Attendance Board</h4>
+                <div class="tb-date"><span id="tbDateLabel">{{ \Carbon\Carbon::today()->format('l, d M Y') }}</span>
+                    <span class="tb-live ml-2" id="tbLive">Live</span></div>
             </div>
-
-            <div id="teacherStatusSection">
-                <div class="ts-loader-overlay" id="tsLoader" style="display:none">
-                    <div class="ts-spinner"></div>
-                </div>
-
-                {{-- Absent --}}
-                <div class="d-flex align-items-center mb-3">
-                    <i class="fas fa-user-times" style="color:#ef4444;font-size:17px;margin-right:7px"></i>
-                    <span style="font-weight:700;color:#ef4444;font-size:14px">Absent Teachers</span>
-                    <span class="ts-count-badge absent" id="absentCount">0</span>
-                </div>
-                <div class="ts-grid" id="absentTeachersGrid">
-                    <div class="ts-empty" id="absentEmptyMsg">
-                        <i class="fas fa-check-circle" style="color:#22c55e"></i>
-                        All teachers are present today!
-                    </div>
-                </div>
-
-                <hr class="ts-divider">
-
-                {{-- Late --}}
-                <div class="d-flex align-items-center mb-3">
-                    <i class="fas fa-clock" style="color:#f59e0b;font-size:17px;margin-right:7px"></i>
-                    <span style="font-weight:700;color:#d97706;font-size:14px">Late Arrival Teachers</span>
-                    <span class="ts-count-badge late" id="lateCount">0</span>
-                </div>
-                <div class="ts-grid" id="lateTeachersGrid">
-                    <div class="ts-empty" id="lateEmptyMsg">
-                        <i class="fas fa-smile" style="color:#6366f1"></i>
-                        No late arrivals today!
-                    </div>
-                </div>
+            <div class="text-right">
+                <div class="tb-clock" id="tbClock">--:--<small>--</small></div>
             </div>
-
         </div>
+
+        <div class="tb-bar">
+            <div class="tb-tabs" id="tbTabs">
+                <div class="tb-tab active" data-filter="all"><span class="dot" style="background:#a5b4fc"></span>All <b id="tbCntAll">0</b></div>
+                <div class="tb-tab" data-filter="present"><span class="dot" style="background:#60a5fa"></span>Present <b id="tbCntPresent">0</b></div>
+                <div class="tb-tab" data-filter="on_time"><span class="dot" style="background:#10b981"></span>On Time <b id="tbCntOnTime">0</b></div>
+                <div class="tb-tab" data-filter="late"><span class="dot" style="background:#ef4444"></span>Late <b id="tbCntLate">0</b></div>
+                <div class="tb-tab" data-filter="absent"><span class="dot" style="background:#64748b"></span>Absent <b id="tbCntAbsent">0</b></div>
+            </div>
+            <div class="tb-controls">
+                <input type="text" id="tbDate" class="tb-date-input flat_datepicker" value="{{ \Carbon\Carbon::today()->toDateString() }}" readonly>
+                <button type="button" class="tb-btn" id="tbPrev" title="Previous"><i class="fas fa-chevron-left"></i></button>
+                <button type="button" class="tb-btn" id="tbPlay" title="Pause"><i class="fas fa-pause"></i></button>
+                <button type="button" class="tb-btn" id="tbNext" title="Next"><i class="fas fa-chevron-right"></i></button>
+                <button type="button" class="tb-btn" id="tbFull" title="Full screen"><i class="fas fa-expand"></i></button>
+            </div>
+        </div>
+
+        <div class="tb-viewport" id="tbViewport">
+            <div class="tb-loader show" id="tbLoader"><div class="tb-spin"></div></div>
+            <div class="tb-track" id="tbTrack"></div>
+        </div>
+
+        <div class="tb-foot">
+            <div class="tb-dots" id="tbDots"></div>
+            <div class="tb-page" id="tbPage"></div>
+        </div>
+        <div class="tb-progress" id="tbProgress"></div>
     </div>
 
     {{-- ═══════════════════════════════════════════
-         TODAY'S ATTENDANCE TABLE
+         TODAY'S ATTENDANCE (latest 10)
     ═══════════════════════════════════════════ --}}
     <div class="card admin-card">
         <div class="card-header d-flex justify-content-between align-items-center">
@@ -279,8 +301,8 @@
                 <i class="fas fa-list-alt mr-2"></i>Today's Attendance
                 <small class="text-muted ml-1" style="font-size:13px">{{ \Carbon\Carbon::today()->format('d M, Y') }}</small>
             </h5>
-            <a href="{{ route('attendance-summery') }}" class="btn btn-primary-admin btn-sm text-white">
-                View All Reports <i class="fas fa-arrow-right ml-1"></i>
+            <a href="{{ route('attendance.logs') }}" class="btn btn-primary-admin btn-sm text-white">
+                View All Logs <i class="fas fa-arrow-right ml-1"></i>
             </a>
         </div>
         <div class="card-body p-0">
@@ -292,6 +314,7 @@
                             <th>Type</th>
                             <th>ID</th>
                             <th>Name</th>
+                            <th>Department</th>
                             <th class="text-center">In Time</th>
                             <th class="text-center">Out Time</th>
                             <th class="text-center">Work Hours</th>
@@ -299,64 +322,54 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse($today_logs as $attendance)
+                        @php $hm = fn ($m) => \App\Services\AttendanceReportService::minutesToHm((int) $m); @endphp
+                        @forelse($today_logs as $row)
                             <tr>
-                                <td class="text-center text-muted">{{ $loop->index + 1 }}</td>
+                                <td class="text-center text-muted">{{ $loop->iteration }}</td>
                                 <td>
-                                    @php $type = strtolower($attendance['user_type'] ?? ''); @endphp
-                                    @if($type === 'student')
+                                    @if($row->user_type === 'student')
                                         <span class="att-badge-student"><i class="fas fa-user-graduate mr-1"></i>Student</span>
-                                    @elseif($type === 'teacher')
+                                    @elseif($row->user_type === 'teacher')
                                         <span class="att-badge-teacher"><i class="fas fa-chalkboard-teacher mr-1"></i>Teacher</span>
                                     @else
-                                        <span class="att-badge-other">{{ ucfirst($type ?: 'Unknown') }}</span>
+                                        <span class="att-badge-other">Unknown</span>
                                     @endif
                                 </td>
-                                <td><span class="att-id">{{ $attendance['user_no'] ?? '—' }}</span></td>
-                                <td class="fw-semibold">
-                                    {{ $attendance['name'] ?? '—' }}
-                                </td>
+                                <td><span class="att-id">{{ $row->user_no }}</span></td>
+                                <td class="fw-semibold">{{ $row->name }}</td>
+                                <td>{{ $row->department ?? '-' }}</td>
                                 <td class="text-center">
-                                    @if(!empty($attendance['in_time']))
-                                        <span class="{{ isLateIn($attendance['in_time'], $attendance['shift_in_time'] ?? null) ? 'att-late' : 'att-normal' }}">
-                                            <i class="fas fa-sign-in-alt mr-1" style="font-size:.8em"></i>
-                                            {{ timeFormat($attendance['in_time'], 'h:i a') }}
-                                        </span>
-                                        @if(isLateIn($attendance['in_time'], $attendance['shift_in_time'] ?? null))
-                                            <br><small class="text-danger" style="font-size:.72em">Late</small>
-                                        @endif
-                                    @else
-                                        <span class="text-muted">—</span>
+                                    <span class="{{ $row->is_late ? 'att-late' : 'att-normal' }}">
+                                        <i class="fas fa-sign-in-alt mr-1" style="font-size:.8em"></i>{{ timeFormat($row->in_time, 'h:i A') }}
+                                    </span>
+                                    @if($row->is_late)
+                                        <br><small class="text-danger" style="font-size:.72em">Late {{ $hm($row->late_minutes) }}</small>
                                     @endif
                                 </td>
                                 <td class="text-center">
-                                    @if(!empty($attendance['out_time']))
-                                        <span class="{{ isEarlyOut($attendance['out_time'], $attendance['shift_out_time'] ?? null) ? 'att-late' : 'att-normal' }}">
-                                            <i class="fas fa-sign-out-alt mr-1" style="font-size:.8em"></i>
-                                            {{ timeFormat($attendance['out_time'], 'h:i a') }}
+                                    @if($row->out_time)
+                                        <span class="{{ $row->is_early_out ? 'att-late' : 'att-normal' }}">
+                                            <i class="fas fa-sign-out-alt mr-1" style="font-size:.8em"></i>{{ timeFormat($row->out_time, 'h:i A') }}
                                         </span>
-                                        @if(isEarlyOut($attendance['out_time'], $attendance['shift_out_time'] ?? null))
+                                        @if($row->is_early_out)
                                             <br><small class="text-danger" style="font-size:.72em">Early Out</small>
                                         @endif
                                     @else
-                                        <span class="text-muted">—</span>
+                                        <span class="text-muted font-weight-bold">-</span>
                                     @endif
                                 </td>
                                 <td class="text-center">
-                                    @php $hrs = hourCount($attendance['out_time'] ?? null, $attendance['in_time'] ?? null); @endphp
-                                    @if($hrs)
-                                        <span style="font-weight:600;color:#059669">{{ $hrs }}</span>
+                                    @if($row->out_time)
+                                        <span style="font-weight:600;color:#059669">{{ $hm($row->work_minutes) }}</span>
                                     @else
-                                        <span class="text-muted">—</span>
+                                        <span class="text-muted font-weight-bold">-</span>
                                     @endif
                                 </td>
-                                <td class="text-center">
-                                    <span class="att-punch">{{ $attendance['total_punches'] ?? '—' }}</span>
-                                </td>
+                                <td class="text-center"><span class="att-punch">{{ $row->punches }}</span></td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="8" class="text-center py-5 text-muted">
+                                <td colspan="9" class="text-center py-5 text-muted">
                                     <i class="fas fa-inbox fa-3x d-block mb-3 text-muted" style="opacity:.35"></i>
                                     No attendance records for today yet.
                                     <br><small>Records appear automatically when students/teachers scan their fingerprint.</small>
@@ -366,9 +379,6 @@
                     </tbody>
                 </table>
             </div>
-            <div class="d-flex justify-content-center mt-3 pb-2">
-                {!! $today_logs->links('pagination::bootstrap-4') !!}
-            </div>
         </div>
     </div>
 
@@ -376,72 +386,208 @@
 
 @push('js')
 <script>
-const TEACHER_STATUS_URL = "{{ route('dashboard.teacher-status') }}";
+(function () {
+    const STATUS_URL   = "{{ route('dashboard.teacher-status') }}";
+    const SLIDE_MS     = 7000;   // time each slide stays on screen
+    const REFRESH_MS   = 60000;  // live data refresh (today only)
 
-function buildTeacherCard(teacher, type) {
-    const avatarHtml = teacher.image
-        ? `<img src="${teacher.image}" alt="${teacher.name}" class="ts-avatar">`
-        : `<div class="ts-avatar-placeholder">${teacher.initial}</div>`;
+    const el = id => document.getElementById(id);
+    const board = el('tbBoard'), track = el('tbTrack'), viewport = el('tbViewport');
+    const dotsBox = el('tbDots'), pageLbl = el('tbPage'), progress = el('tbProgress');
+    const dateInput = el('tbDate');
 
-    const badgeHtml = type === 'absent'
-        ? `<span class="ts-status-badge">Absent</span>`
-        : `<span class="ts-status-badge">Late</span><div class="ts-time"><i class="fas fa-clock mr-1"></i>${teacher.in_time}</div>`;
+    let all = [], filter = 'all', slides = 0, current = 0, playing = true;
+    let timer = null, refreshTimer = null, progressStart = 0, rafId = null;
 
-    return `<div class="teacher-status-card ${type}">
-                ${avatarHtml}
-                <div class="ts-name">${teacher.name}</div>
-                ${badgeHtml}
-            </div>`;
-}
+    const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const todayStr = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); };
 
-function loadTeacherStatus() {
-    const dateInput = document.getElementById('teacherStatusDate');
-    const date = dateInput ? dateInput.value : '';
-    document.getElementById('tsLoader').style.display = 'flex';
+    // ── Clock ──
+    function tick() {
+        const d = new Date();
+        let h = d.getHours(); const ap = h >= 12 ? 'PM' : 'AM'; h = (h % 12) || 12;
+        el('tbClock').innerHTML = String(h).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0') +
+            ':' + String(d.getSeconds()).padStart(2,'0') + '<small>' + ap + '</small>';
+    }
+    tick(); setInterval(tick, 1000);
 
-    fetch(TEACHER_STATUS_URL + '?' + new URLSearchParams({ date }), {
-        headers: { 'X-Requested-With': 'XMLHttpRequest' }
-    })
-    .then(r => r.json())
-    .then(data => {
-        document.getElementById('statusDateLabel').textContent = data.date;
+    // ── Layout: how many cards fit per slide ──
+    function layout() {
+        const w = viewport.clientWidth - (window.innerWidth < 576 ? 28 : 52);
+        const minCard = window.innerWidth < 576 ? 135 : 150;
+        const cols = Math.max(2, Math.min(10, Math.floor((w + 14) / (minCard + 14))));
+        let rows = window.innerWidth < 576 ? 3 : 2;
+        if (document.fullscreenElement === board) {
+            const h = window.innerHeight - 230;
+            rows = Math.max(2, Math.floor(h / 235));
+        }
+        return { cols, rows, per: cols * rows };
+    }
 
-        // Absent
-        document.getElementById('absentCount').textContent = data.absent_teachers.length;
-        const absentGrid = document.getElementById('absentTeachersGrid');
-        absentGrid.innerHTML = data.absent_teachers.length === 0
-            ? `<div class="ts-empty"><i class="fas fa-check-circle" style="color:#22c55e"></i>All teachers are present on this date!</div>`
-            : data.absent_teachers.map(t => buildTeacherCard(t, 'absent')).join('');
+    function filtered() {
+        if (filter === 'all') return all;
+        if (filter === 'present') return all.filter(t => t.status !== 'absent');
+        return all.filter(t => t.status === filter);
+    }
 
-        // Late
-        document.getElementById('lateCount').textContent = data.late_teachers.length;
-        const lateGrid = document.getElementById('lateTeachersGrid');
-        lateGrid.innerHTML = data.late_teachers.length === 0
-            ? `<div class="ts-empty"><i class="fas fa-smile" style="color:#6366f1"></i>No late arrivals on this date!</div>`
-            : data.late_teachers.map(t => buildTeacherCard(t, 'late')).join('');
-    })
-    .catch(err => console.error('Teacher status load failed:', err))
-    .finally(() => {
-        document.getElementById('tsLoader').style.display = 'none';
+    function card(t, i) {
+        const photo = t.image
+            ? `<img src="${esc(t.image)}" alt="" loading="lazy">`
+            : `<div class="ph">${esc(t.initial)}</div>`;
+        let time, tag;
+        if (t.status === 'absent') {
+            time = 'Absent'; tag = `<span class="tb-tag">${t.shift_in ? 'Shift ' + esc(t.shift_in) : 'No punch'}</span>`;
+        } else if (t.status === 'late') {
+            time = esc(t.in_time); tag = `<span class="tb-tag"><i class="fas fa-exclamation-circle mr-1"></i>Late ${esc(t.late_by)}</span>`;
+        } else {
+            time = esc(t.in_time); tag = `<span class="tb-tag"><i class="fas fa-check mr-1"></i>On Time</span>`;
+        }
+        return `<div class="tb-card ${t.status}" style="animation-delay:${(i * 0.045).toFixed(3)}s" title="${esc(t.name)}${t.out_time ? ' | Out ' + esc(t.out_time) : ''}">
+                    <div class="tb-photo">${photo}</div>
+                    <div class="tb-name">${esc(t.name)}</div>
+                    <span class="tb-no">#${esc(t.teacher_no)}</span>
+                    <div class="tb-dept">${esc(t.department || t.designation || '')}&nbsp;</div>
+                    <div class="tb-time">${time}</div>
+                    ${tag}
+                </div>`;
+    }
+
+    function render(keepSlide) {
+        const list = filtered();
+        const { cols, per } = layout();
+        slides = Math.max(1, Math.ceil(list.length / per));
+        if (!keepSlide || current >= slides) current = 0;
+
+        if (list.length === 0) {
+            const msg = { late: 'No late arrivals. Everyone is on time!', absent: 'No absentees. Full attendance!', on_time: 'Nobody has arrived on time yet.', present: 'No one has punched in yet.' }[filter] || 'No teachers found.';
+            track.innerHTML = `<div class="tb-slide is-active" style="grid-template-columns:1fr"><div class="tb-empty"><i class="fas fa-award"></i>${msg}</div></div>`;
+        } else {
+            let html = '';
+            for (let s = 0; s < slides; s++) {
+                const chunk = list.slice(s * per, (s + 1) * per);
+                html += `<div class="tb-slide" style="grid-template-columns:repeat(${cols},minmax(0,1fr))">${chunk.map(card).join('')}</div>`;
+            }
+            track.innerHTML = html;
+        }
+
+        dotsBox.innerHTML = slides > 1
+            ? Array.from({ length: slides }, (_, i) => `<button type="button" class="tb-dot" data-i="${i}" aria-label="Slide ${i + 1}"></button>`).join('')
+            : '';
+        go(current, true);
+    }
+
+    function go(i, instant) {
+        current = (i + slides) % slides;
+        if (instant) { track.style.transition = 'none'; }
+        track.style.transform = `translateX(-${current * 100}%)`;
+        if (instant) { void track.offsetWidth; track.style.transition = ''; }
+
+        track.querySelectorAll('.tb-slide').forEach((s, idx) => {
+            s.classList.remove('is-active');
+            if (idx === current) { void s.offsetWidth; s.classList.add('is-active'); }
+        });
+        dotsBox.querySelectorAll('.tb-dot').forEach((d, idx) => d.classList.toggle('active', idx === current));
+
+        const n = filtered().length, per = layout().per;
+        pageLbl.textContent = n ? `Showing ${current * per + 1}–${Math.min(n, (current + 1) * per)} of ${n}  ·  Slide ${current + 1}/${slides}` : '';
+        restartAuto();
+    }
+
+    // ── Autoplay with progress bar ──
+    function restartAuto() {
+        clearTimeout(timer); cancelAnimationFrame(rafId);
+        progress.style.width = '0';
+        if (!playing || slides < 2) return;
+        progressStart = performance.now();
+        const step = now => {
+            progress.style.width = Math.min(100, (now - progressStart) / SLIDE_MS * 100) + '%';
+            if (now - progressStart < SLIDE_MS) rafId = requestAnimationFrame(step);
+        };
+        rafId = requestAnimationFrame(step);
+        timer = setTimeout(() => go(current + 1), SLIDE_MS);
+    }
+
+    function setPlaying(p) {
+        playing = p;
+        el('tbPlay').innerHTML = p ? '<i class="fas fa-pause"></i>' : '<i class="fas fa-play"></i>';
+        el('tbPlay').title = p ? 'Pause' : 'Play';
+        restartAuto();
+    }
+
+    // ── Data ──
+    function load(keepSlide) {
+        el('tbLoader').classList.add('show');
+        return fetch(STATUS_URL + '?' + new URLSearchParams({ date: dateInput.value }), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(r => r.json())
+            .then(data => {
+                all = data.teachers || [];
+                const s = data.summary || {};
+                el('tbDateLabel').textContent = data.date;
+                el('tbCntAll').textContent = s.total ?? 0;
+                el('tbCntPresent').textContent = s.present ?? 0;
+                el('tbCntOnTime').textContent = s.on_time ?? 0;
+                el('tbCntLate').textContent = s.late ?? 0;
+                el('tbCntAbsent').textContent = s.absent ?? 0;
+                el('tbLive').style.display = dateInput.value === todayStr() ? '' : 'none';
+                render(keepSlide);
+            })
+            .catch(err => console.error('Teacher board load failed:', err))
+            .finally(() => el('tbLoader').classList.remove('show'));
+    }
+
+    function scheduleRefresh() {
+        clearInterval(refreshTimer);
+        refreshTimer = setInterval(() => {
+            if (dateInput.value === todayStr() && !document.hidden) load(true);
+        }, REFRESH_MS);
+    }
+
+    // ── Events ──
+    el('tbTabs').addEventListener('click', e => {
+        const tab = e.target.closest('.tb-tab'); if (!tab) return;
+        el('tbTabs').querySelectorAll('.tb-tab').forEach(t => t.classList.toggle('active', t === tab));
+        filter = tab.dataset.filter;
+        render(false);
     });
-}
+    el('tbPrev').addEventListener('click', () => go(current - 1));
+    el('tbNext').addEventListener('click', () => go(current + 1));
+    el('tbPlay').addEventListener('click', () => setPlaying(!playing));
+    dotsBox.addEventListener('click', e => { const d = e.target.closest('.tb-dot'); if (d) go(+d.dataset.i); });
+    el('tbFull').addEventListener('click', () => {
+        if (document.fullscreenElement) document.exitFullscreen();
+        else if (board.requestFullscreen) board.requestFullscreen();
+    });
+    document.addEventListener('fullscreenchange', () => {
+        el('tbFull').innerHTML = document.fullscreenElement ? '<i class="fas fa-compress"></i>' : '<i class="fas fa-expand"></i>';
+        setTimeout(() => render(false), 150);
+    });
+    dateInput.addEventListener('change', () => load(false));
 
-function resetTeacherStatusFilter() {
-    const today = new Date().toISOString().slice(0, 10);
-    const input = document.getElementById('teacherStatusDate');
-    if (input) {
-        input.value = today;
-        if (input._flatpickr) input._flatpickr.setDate(today, false);
-    }
-    loadTeacherStatus();
-}
+    // Pause while the pointer is over the cards
+    viewport.addEventListener('mouseenter', () => { if (playing) { clearTimeout(timer); cancelAnimationFrame(rafId); } });
+    viewport.addEventListener('mouseleave', () => restartAuto());
 
-document.addEventListener('DOMContentLoaded', function () {
-    loadTeacherStatus();
-    const dateInput = document.getElementById('teacherStatusDate');
-    if (dateInput) {
-        dateInput.addEventListener('change', loadTeacherStatus);
-    }
-});
+    // Swipe on touch screens
+    let touchX = null;
+    viewport.addEventListener('touchstart', e => { touchX = e.touches[0].clientX; }, { passive: true });
+    viewport.addEventListener('touchend', e => {
+        if (touchX === null) return;
+        const dx = e.changedTouches[0].clientX - touchX;
+        if (Math.abs(dx) > 40) go(current + (dx < 0 ? 1 : -1));
+        touchX = null;
+    });
+
+    let resizeT = null, lastPer = 0;
+    window.addEventListener('resize', () => {
+        clearTimeout(resizeT);
+        resizeT = setTimeout(() => { const p = layout().per; if (p !== lastPer) { lastPer = p; render(true); } }, 200);
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+        lastPer = layout().per;
+        load(false);
+        scheduleRefresh();
+    });
+})();
 </script>
 @endpush

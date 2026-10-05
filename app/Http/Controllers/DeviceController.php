@@ -76,9 +76,9 @@ class DeviceController extends Controller
         return redirect()->route('devices.index')->with(deleteMessage());
     }
 
-    public function show($id)
+    public function show($slug)
     {
-        $device = Device::findOrFail($id);
+        $device = Device::whereSlug($slug)->firstOrFail();
         return view('configuration.device_show', compact('device'));
     }
 
@@ -122,7 +122,7 @@ class DeviceController extends Controller
             'success'    => $result['success'],
             'message'    => $result['message'],
             'mode'       => $device->use_push_mode ? 'push' : 'tcp',
-            'last_seen'  => $device->last_seen_at?->diffForHumans(),
+            'last_seen'  => $device->last_seen_at->diffForHumans() ?? null,
             'is_online'  => $device->is_online ?? false,
         ]);
     }
@@ -286,7 +286,7 @@ class DeviceController extends Controller
     protected function fillDevice(Device $device, Request $request): void
     {
         $device->name          = $request->name;
-        $device->slug          = Str::slug($request->name);
+        $device->slug          = Str::slug($request->serial_no);
         $device->serial_no     = $request->serial_no;
         $device->ip_address    = $request->ip_address;
         $device->device_port   = $request->device_port ?: 4370;

@@ -4,14 +4,32 @@
 @section('content')
     <div class="d-flex justify-content-between align-items-center mb-2">
         <h3>Department Management</h3>
-        <a href="{{ route('departments.create') }}" class="btn btn-primary-admin text-white" {!! tooltip('Add Department') !!}>
-            <i class="fas fa-plus mr-2"></i> Add Department
-        </a>
+        <div>
+            <a href="{{ route('shifts.index') }}" class="btn btn-secondary mr-1" {!! tooltip('Shifts') !!}>
+                <i class="fas fa-business-time mr-1"></i> Shifts
+            </a>
+            <a href="{{ route('departments.create') }}" class="btn btn-primary-admin text-white" {!! tooltip('Add New Department') !!}>
+                <i class="fas fa-plus mr-2"></i> Add New
+            </a>
+        </div>
     </div>
 
     <div class="card admin-card">
-        <div class="card-header">
-            <h5 class="card-title"><i class="fas fa-building mr-2"></i>Department List</h5>
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
+            <h5 class="card-title mb-0"><i class="fas fa-building mr-2"></i>Department List</h5>
+            <form method="GET" action="{{ route('departments.index') }}" class="form-inline">
+                <select name="shift_id" class="form-control form-control-sm mr-1" onchange="this.form.submit()">
+                    <option value="">All Shifts</option>
+                    @foreach($shifts as $s)
+                        <option value="{{ $s->id }}" {{ (string) request('shift_id') === (string) $s->id ? 'selected' : '' }}>
+                            {{ $s->title }} ({{ timeFormat($s->in_time, 'h:i A') }} - {{ timeFormat($s->out_time, 'h:i A') }})
+                        </option>
+                    @endforeach
+                </select>
+                @if(request()->filled('shift_id'))
+                    <a href="{{ route('departments.index') }}" class="btn btn-sm btn-secondary"><i class="fas fa-undo"></i></a>
+                @endif
+            </form>
         </div>
         <div class="card-body">
             <div class="table-responsive">
@@ -20,6 +38,9 @@
                         <tr>
                             <th>#</th>
                             <th>Name</th>
+                            <th>Shift</th>
+                            <th class="text-center">In Time</th>
+                            <th class="text-center">Out Time</th>
                             <th class="text-center">Teachers</th>
                             <th>Status</th>
                             <th>Actions</th>
@@ -28,10 +49,23 @@
                     <tbody>
                         @forelse($departments as $department)
                             <tr>
-                                <td>{{ $loop->index + 1 }}</td>
+                                <td>{{ $departments->firstItem() + $loop->index }}</td>
                                 <td class="fw-semibold">{{ $department->name }}</td>
+                                <td>
+                                    @if($department->shift)
+                                        {{ $department->shift->title }}
+                                        @if($department->shift->status !== 'active')
+                                            <span class="badge badge-warning">inactive</span>
+                                        @endif
+                                    @else
+                                        <span class="text-danger small"><i class="fas fa-exclamation-triangle"></i> Not set</span>
+                                    @endif
+                                </td>
+                                <td class="text-center">{{ $department->shift ? timeFormat($department->shift->in_time, 'h:i A') : '-' }}</td>
+                                <td class="text-center">{{ $department->shift ? timeFormat($department->shift->out_time, 'h:i A') : '-' }}</td>
                                 <td class="text-center">
-                                    <span class="badge bg-secondary">{{ $department->teachers_count }}</span>
+                                    <a href="{{ route('teachers.index', ['department_id' => $department->id]) }}"
+                                       class="badge badge-secondary">{{ $department->teachers_count }}</a>
                                 </td>
                                 <td>{!! showStatus($department->status) !!}</td>
                                 <td class="text-nowrap">
@@ -54,7 +88,7 @@
                 </table>
             </div>
             <div class="d-flex justify-content-center mt-2">
-                {!! $departments->links('pagination::bootstrap-4') !!}
+                {!! $departments->appends(request()->all())->links('pagination::bootstrap-4') !!}
             </div>
         </div>
     </div>

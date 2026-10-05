@@ -13,11 +13,11 @@ class Department extends Model
 
     protected $table = 'departments';
 
-    protected $fillable = ['name', 'status'];
+    protected $fillable = ['name', 'shift_id', 'status'];
 
-    public function shifts()
+    public function shift()
     {
-        return $this->hasMany(Shift::class);
+        return $this->belongsTo(Shift::class);
     }
 
     public function teachers()

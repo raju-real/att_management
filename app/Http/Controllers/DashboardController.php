@@ -2,11 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\AttendanceLog;
 use App\Models\Device;
 use App\Models\Student;
 use App\Models\Teacher;
-use App\Services\AttendanceService;
+use App\Services\AttendanceReportService as Report;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -15,15 +14,21 @@ class DashboardController extends Controller
 {
     public function dashboard()
     {
+        $today = Carbon::today();
+
         $total_students = Student::count();
         $total_teachers = Teacher::count();
         $total_devices  = Device::active()->count();
-        $today_present  = AttendanceLog::whereDate('punch_time', today())
-            ->select(DB::raw("COALESCE(student_no, teacher_no) as user_no"))
+
+        // Index-friendly range on punch_time (no DATE() wrapper).
+        $today_present = DB::table('attendance_logs')
+            ->where('punch_time', '>=', $today->format('Y-m-d 00:00:00'))
+            ->where('punch_time', '<', $today->copy()->addDay()->format('Y-m-d 00:00:00'))
+            ->where(fn ($q) => $q->whereNotNull('teacher_no')->orWhereNotNull('student_no'))
             ->distinct()
-            ->get()
-            ->count();
-        $today_logs = AttendanceService::getDailyAttendance([], 50);
+            ->count(DB::raw('COALESCE(student_no, teacher_no)'));
+
+        $today_logs = Report::logs(['date' => $today->toDateString(), 'sort' => 'in_asc'], 10);
 
         return view('dashboard', compact(
             'total_students',
@@ -35,72 +40,18 @@ class DashboardController extends Controller
     }
 
     /**
-     * AJAX endpoint: returns absent & late teachers for a given date.
+     * AJAX: every teacher's attendance status for a date (default today),
+     * used by the dashboard sliding status board.
      * GET /dashboard/teacher-status?date=YYYY-MM-DD
      */
     public function teacherAttendanceStatus(Request $request)
     {
-        $date = $request->get('date', Carbon::today()->toDateString());
-
-        // Validate date format
         try {
-            $date = Carbon::parse($date)->toDateString();
-        } catch (\Throwable $e) {
+            $date = Carbon::parse($request->get('date', Carbon::today()->toDateString()))->toDateString();
+        } catch (\Throwable) {
             $date = Carbon::today()->toDateString();
         }
 
-        // All active teachers
-        $allTeachers = Teacher::with('shift')->get();
-
-        // Teachers who punched in on that date
-        $presentLogs = AttendanceLog::query()
-            ->selectRaw("
-                teacher_no,
-                MIN(punch_time) as in_time
-            ")
-            ->whereDate('punch_time', $date)
-            ->where('user_type', 'teacher')
-            ->whereNotNull('teacher_no')
-            ->groupBy('teacher_no')
-            ->get()
-            ->keyBy('teacher_no');
-
-        $absentTeachers = [];
-        $lateTeachers   = [];
-
-        foreach ($allTeachers as $teacher) {
-            $log = $presentLogs->get($teacher->teacher_no);
-
-            if (!$log) {
-                // Absent
-                $absentTeachers[] = [
-                    'id'    => $teacher->id,
-                    'name'  => $teacher->name,
-                    'image' => ($teacher->image && file_exists($teacher->image))
-                                    ? asset($teacher->image)
-                                    : null,
-                    'initial' => strtoupper(substr($teacher->name ?? 'T', 0, 1)),
-                ];
-            } else {
-                // Present — check if late (against this teacher's own shift, if assigned)
-                if (isLateIn($log->in_time, $teacher->shift->in_time ?? null)) {
-                    $lateTeachers[] = [
-                        'id'      => $teacher->id,
-                        'name'    => $teacher->name,
-                        'image'   => ($teacher->image && file_exists($teacher->image))
-                                        ? asset($teacher->image)
-                                        : null,
-                        'initial' => strtoupper(substr($teacher->name ?? 'T', 0, 1)),
-                        'in_time' => \Carbon\Carbon::parse($log->in_time)->format('h:i A'),
-                    ];
-                }
-            }
-        }
-
-        return response()->json([
-            'date'            => Carbon::parse($date)->format('d M, Y'),
-            'absent_teachers' => $absentTeachers,
-            'late_teachers'   => $lateTeachers,
-        ]);
+        return response()->json(Report::teacherBoard($date));
     }
 }

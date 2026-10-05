@@ -4,9 +4,14 @@
 @section('content')
     <div class="d-flex justify-content-between align-items-center mb-2">
         <h3>Shift Management</h3>
-        <a href="{{ route('shifts.create') }}" class="btn btn-primary-admin text-white" {!! tooltip('Add Shift') !!}>
-            <i class="fas fa-plus mr-2"></i> Add Shift
-        </a>
+        <div>
+            <a href="{{ route('departments.index') }}" class="btn btn-secondary mr-1" {!! tooltip('Departments') !!}>
+                <i class="fas fa-building mr-1"></i> Departments
+            </a>
+            <a href="{{ route('shifts.create') }}" class="btn btn-primary-admin text-white" {!! tooltip('Add New Shift') !!}>
+                <i class="fas fa-plus mr-2"></i> Add New
+            </a>
+        </div>
     </div>
 
     <div class="card admin-card">
@@ -20,9 +25,10 @@
                         <tr>
                             <th>#</th>
                             <th>Title</th>
-                            <th>Department</th>
                             <th class="text-center">In Time</th>
                             <th class="text-center">Out Time</th>
+                            <th class="text-center">Duration</th>
+                            <th class="text-center">Departments</th>
                             <th class="text-center">Teachers</th>
                             <th>Status</th>
                             <th>Actions</th>
@@ -30,14 +36,21 @@
                     </thead>
                     <tbody>
                         @forelse($shifts as $shift)
+                            @php
+                                $mins = \Carbon\Carbon::parse($shift->in_time)->diffInMinutes(\Carbon\Carbon::parse($shift->out_time));
+                            @endphp
                             <tr>
-                                <td>{{ $loop->index + 1 }}</td>
+                                <td>{{ $shifts->firstItem() + $loop->index }}</td>
                                 <td class="fw-semibold">{{ $shift->title }}</td>
-                                <td>{{ $shift->department->name ?? '—' }}</td>
-                                <td class="text-center">{{ timeFormat($shift->in_time, 'h:i A') }}</td>
-                                <td class="text-center">{{ timeFormat($shift->out_time, 'h:i A') }}</td>
+                                <td class="text-center"><span class="badge badge-light border">{{ timeFormat($shift->in_time, 'h:i A') }}</span></td>
+                                <td class="text-center"><span class="badge badge-light border">{{ timeFormat($shift->out_time, 'h:i A') }}</span></td>
+                                <td class="text-center">{{ intdiv($mins, 60) }}h {{ str_pad($mins % 60, 2, '0', STR_PAD_LEFT) }}m</td>
                                 <td class="text-center">
-                                    <span class="badge bg-secondary">{{ $shift->teachers_count }}</span>
+                                    <a href="{{ route('departments.index', ['shift_id' => $shift->id]) }}"
+                                       class="badge badge-info" {!! tooltip('View departments on this shift') !!}>{{ $shift->departments_count }}</a>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge badge-secondary">{{ $shift->teachers_count }}</span>
                                 </td>
                                 <td>{!! showStatus($shift->status) !!}</td>
                                 <td class="text-nowrap">

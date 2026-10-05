@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\AttendanceLog;
-use App\Models\Student;
+use App\Models\Department;
 use App\Models\Teacher;
 use App\Services\DeviceActivityService;
 use App\Services\DeviceSyncService;
@@ -23,7 +23,7 @@ class TeacherController extends Controller
 
     public function index(Request $request)
     {
-        $query = Teacher::with('department', 'shift');
+        $query = Teacher::with('department.shift');
 
         if ($request->filled('name')) {
             $query->where('name', 'like', '%' . $request->name . '%');
@@ -34,9 +34,13 @@ class TeacherController extends Controller
         if ($request->filled('designation')) {
             $query->where('designation', 'like', '%' . $request->designation . '%');
         }
+        if ($request->filled('department_id')) {
+            $query->where('department_id', $request->department_id);
+        }
 
-        $teachers = $query->latest('teacher_no')->paginate(25);
-        return view('teacher.teacher_list', compact('teachers'));
+        $teachers    = $query->latest('teacher_no')->paginate(25);
+        $departments = Department::orderBy('name')->get(['id', 'name']);
+        return view('teacher.teacher_list', compact('teachers', 'departments'));
     }
 
     /**
@@ -58,52 +62,24 @@ class TeacherController extends Controller
     public function create()
     {
         $route       = route('teachers.store');
-        $departments = \App\Models\Department::where('status', 'active')->orderBy('name')->get();
-        $shifts      = \App\Models\Shift::where('status', 'active')->get();
-        return view('teacher.teacher_add_edit', compact('route', 'departments', 'shifts'));
+        $departments = $this->departmentOptions();
+        return view('teacher.teacher_add_edit', compact('route', 'departments'));
     }
 
     public function store(Request $request)
     {
-        $this->validate($request, [
-            'name' => [
-                'required', 'string', 'max:50',
-                Rule::unique('teachers')->whereNull('deleted_at'),
-            ],
-            'teacher_no' => [
-                'required', 'string', 'max:50',
-                Rule::unique('teachers')->whereNull('deleted_at'),
-            ],
-            'email' => [
-                'nullable', 'email', 'string', 'max:50',
-                Rule::unique('teachers')->whereNull('deleted_at'),
-            ],
-            'mobile' => [
-                'nullable', 'string', 'max:50',
-                Rule::unique('teachers')->whereNull('deleted_at'),
-            ],
-            'designation'   => ['nullable', 'max:50'],
-            'department_id' => ['required', 'exists:departments,id'],
-            'shift_id'      => [
-                'required',
-                Rule::exists('shifts', 'id')->where('department_id', $request->department_id),
-            ],
-            'image' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:2048'],
-        ], [
-            'shift_id.exists' => 'Please select a shift that belongs to the chosen department.',
-        ]);
+        $this->validate($request, $this->rules($request), $this->messages());
 
         $teacher = new Teacher();
         // The device PIN — user-typed so it can match a PIN already enrolled
         // on a device (e.g. resolving an Unmatched Attendance / Pull Users
         // record) instead of always minting a brand new number.
-        $teacher->teacher_no  = trim($request->teacher_no);
-        $teacher->name        = $request->name;
-        $teacher->email       = $request->email;
-        $teacher->mobile      = $request->mobile;
-        $teacher->designation = $request->designation;
+        $teacher->teacher_no    = trim($request->teacher_no);
+        $teacher->name          = $request->name;
+        $teacher->email         = $request->email;
+        $teacher->mobile        = $request->mobile;
+        $teacher->designation   = $request->designation;
         $teacher->department_id = $request->department_id;
-        $teacher->shift_id      = $request->shift_id;
 
         if ($request->hasFile('image')) {
             $teacher->image = uploadImage($request->file('image'), 'teachers');
@@ -124,52 +100,24 @@ class TeacherController extends Controller
 
     public function edit($teacher_no)
     {
-        $teacher     = Teacher::whereTeacherNo($teacher_no)->first();
+        $teacher     = Teacher::whereTeacherNo($teacher_no)->firstOrFail();
         $route       = route('teachers.update', $teacher->id);
-        $departments = \App\Models\Department::where('status', 'active')->orderBy('name')->get();
-        $shifts      = \App\Models\Shift::where('status', 'active')->get();
-        return view('teacher.teacher_add_edit', compact('teacher', 'route', 'departments', 'shifts'));
+        $departments = $this->departmentOptions($teacher->department_id);
+        return view('teacher.teacher_add_edit', compact('teacher', 'route', 'departments'));
     }
 
     public function update(Request $request, $id)
     {
-        $this->validate($request, [
-            'name' => [
-                'required', 'string', 'max:50',
-                Rule::unique('teachers')->whereNull('deleted_at')->ignore($id),
-            ],
-            'teacher_no' => [
-                'required', 'string', 'max:50',
-                Rule::unique('teachers')->whereNull('deleted_at')->ignore($id),
-            ],
-            'email' => [
-                'nullable', 'email', 'string', 'max:50',
-                Rule::unique('teachers')->whereNull('deleted_at')->ignore($id),
-            ],
-            'mobile' => [
-                'nullable', 'string', 'max:50',
-                Rule::unique('teachers')->whereNull('deleted_at')->ignore($id),
-            ],
-            'designation'   => ['nullable', 'max:50'],
-            'department_id' => ['required', 'exists:departments,id'],
-            'shift_id'      => [
-                'required',
-                Rule::exists('shifts', 'id')->where('department_id', $request->department_id),
-            ],
-            'image' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:2048'],
-        ], [
-            'shift_id.exists' => 'Please select a shift that belongs to the chosen department.',
-        ]);
+        $this->validate($request, $this->rules($request, $id), $this->messages());
 
         $teacher                = Teacher::findOrFail($id);
-        $oldTeacherNo            = $teacher->teacher_no;
+        $oldTeacherNo           = $teacher->teacher_no;
         $teacher->teacher_no    = trim($request->teacher_no);
         $teacher->name          = $request->name;
         $teacher->email         = $request->email;
         $teacher->mobile        = $request->mobile;
         $teacher->designation   = $request->designation;
         $teacher->department_id = $request->department_id;
-        $teacher->shift_id      = $request->shift_id;
 
         if ($request->hasFile('image')) {
             if ($teacher->image !== null && file_exists($teacher->image)) {
@@ -215,6 +163,41 @@ class TeacherController extends Controller
 
         $teacher->delete();
         return redirect()->route('teachers.index')->with(deleteMessage());
+    }
+
+    protected function rules(Request $request, $ignoreId = null): array
+    {
+        $unique = fn () => Rule::unique('teachers')->whereNull('deleted_at')->ignore($ignoreId);
+
+        return [
+            'name'          => ['required', 'string', 'max:50', $unique()],
+            'teacher_no'    => ['required', 'string', 'max:50', $unique()],
+            'email'         => ['nullable', 'email', 'string', 'max:50', $unique()],
+            'mobile'        => ['nullable', 'string', 'max:50', $unique()],
+            'designation'   => ['nullable', 'max:50'],
+            'department_id' => ['required', Rule::exists('departments', 'id')->whereNull('deleted_at')],
+            'image'         => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:2048'],
+        ];
+    }
+
+    protected function messages(): array
+    {
+        return [
+            'department_id.required' => 'Please select a department (its shift sets the in/out time).',
+        ];
+    }
+
+    /**
+     * Active departments (with their shift for the timing hint), plus the
+     * teacher's current one on edit even if it has since been deactivated.
+     */
+    protected function departmentOptions(?int $currentId = null)
+    {
+        return Department::with('shift:id,title,in_time,out_time')
+            ->where(fn ($q) => $q->where('status', 'active')
+                ->when($currentId, fn ($q) => $q->orWhere('id', $currentId)))
+            ->orderBy('name')
+            ->get(['id', 'name', 'shift_id', 'status']);
     }
 
     /**

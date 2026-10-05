@@ -197,26 +197,16 @@
                                         <option value="">-- Select Department --</option>
                                         @foreach ($departments as $department)
                                             <option value="{{ $department->id }}"
-                                                {{ (old('department_id') ?? ($teacher->department_id ?? '')) == $department->id ? 'selected' : '' }}>
+                                                data-shift="{{ $department->shift ? $department->shift->title . ' • In ' . timeFormat($department->shift->in_time, 'h:i A') . ' • Out ' . timeFormat($department->shift->out_time, 'h:i A') : '' }}"
+                                                {{ (string) (old('department_id') ?? ($teacher->department_id ?? '')) === (string) $department->id ? 'selected' : '' }}>
                                                 {{ $department->name }}</option>
                                         @endforeach
                                     </select>
+                                    <small class="d-block mt-1" id="shiftTimesHint"></small>
                                     @if($departments->isEmpty())
-                                        <small class="text-danger">No active departments yet — <a href="{{ route('departments.create') }}">create one first</a>.</small>
+                                        <small class="text-danger">No active departments yet. <a href="{{ route('departments.create') }}">Create one first</a>.</small>
                                     @endif
                                     @error('department_id')
-                                        {!! displayError($message) !!}
-                                    @enderror
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label class="form-label">Shift {!! starSign() !!}</label>
-                                    <select name="shift_id" id="shiftSelect" class="form-control {{ hasError('shift_id') }}">
-                                        <option value="">-- Select Department First --</option>
-                                    </select>
-                                    <small class="text-muted" id="shiftTimesHint"></small>
-                                    @error('shift_id')
                                         {!! displayError($message) !!}
                                     @enderror
                                 </div>
@@ -235,64 +225,28 @@
 
 @push('js')
 <script>
-// ── Department -> Shift cascading select ──
+// ── Show the shift timing the chosen department follows ──
 (function () {
-    const ALL_SHIFTS = @json($shifts->values());
-    const preselectedShiftId = {{ (int) (old('shift_id') ?? ($teacher->shift_id ?? 0)) }};
-
-    const deptSelect  = document.getElementById('departmentSelect');
-    const shiftSelect = document.getElementById('shiftSelect');
-    const shiftHint   = document.getElementById('shiftTimesHint');
-
-    function formatTime12(t) {
-        if (!t) return '';
-        const [h, m] = t.split(':');
-        const hour = parseInt(h, 10);
-        const ampm = hour >= 12 ? 'PM' : 'AM';
-        const h12  = ((hour % 12) || 12);
-        return h12 + ':' + m + ' ' + ampm;
-    }
-
-    function populateShifts(departmentId, selectShiftId) {
-        shiftSelect.innerHTML = '';
-        const matching = ALL_SHIFTS.filter(s => String(s.department_id) === String(departmentId));
-
-        if (!departmentId) {
-            shiftSelect.innerHTML = '<option value="">-- Select Department First --</option>';
-            shiftHint.textContent = '';
-            return;
-        }
-        if (matching.length === 0) {
-            shiftSelect.innerHTML = '<option value="">-- No shifts for this department --</option>';
-            shiftHint.innerHTML = 'Add one on the <a href="{{ route('shifts.create') }}" target="_blank">Shift</a> page.';
-            return;
-        }
-
-        shiftSelect.innerHTML = '<option value="">-- Select Shift --</option>' +
-            matching.map(s => `<option value="${s.id}" data-in="${s.in_time}" data-out="${s.out_time}">${s.title}</option>`).join('');
-
-        if (selectShiftId) {
-            shiftSelect.value = String(selectShiftId);
-        }
-        updateHint();
-    }
+    const deptSelect = document.getElementById('departmentSelect');
+    const shiftHint  = document.getElementById('shiftTimesHint');
+    if (!deptSelect) return;
 
     function updateHint() {
-        const opt = shiftSelect.options[shiftSelect.selectedIndex];
-        if (opt && opt.dataset && opt.dataset.in) {
-            shiftHint.textContent = 'In: ' + formatTime12(opt.dataset.in) + '  •  Out: ' + formatTime12(opt.dataset.out);
-        } else {
+        const opt = deptSelect.options[deptSelect.selectedIndex];
+        if (!opt || !opt.value) {
+            shiftHint.className = 'd-block mt-1 text-muted';
             shiftHint.textContent = '';
+        } else if (opt.dataset.shift) {
+            shiftHint.className = 'd-block mt-1 text-info';
+            shiftHint.innerHTML = '<i class="fas fa-business-time mr-1"></i>' + opt.dataset.shift;
+        } else {
+            shiftHint.className = 'd-block mt-1 text-danger';
+            shiftHint.textContent = 'This department has no shift assigned, so late and early-out cannot be counted.';
         }
     }
 
-    deptSelect.addEventListener('change', function () {
-        populateShifts(this.value, null);
-    });
-    shiftSelect.addEventListener('change', updateHint);
-
-    // Initial load (edit mode, or validation-failed re-render)
-    populateShifts(deptSelect.value, preselectedShiftId || null);
+    deptSelect.addEventListener('change', updateHint);
+    updateHint();
 })();
 
 (function () {

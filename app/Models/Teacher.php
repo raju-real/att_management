@@ -16,9 +16,19 @@ class Teacher extends Model
         return $this->belongsTo(Department::class);
     }
 
-    public function shift()
+    /**
+     * Teachers no longer hold a shift directly — the shift comes from the
+     * department (teachers.department_id → departments.shift_id).
+     * Eager load with `department.shift`.
+     */
+    public function getShiftAttribute(): ?Shift
     {
-        return $this->belongsTo(Shift::class);
+        return $this->department?->shift;
+    }
+
+    public function getImageUrlAttribute(): ?string
+    {
+        return ($this->image && file_exists($this->image)) ? asset($this->image) : null;
     }
 
     public static function getTeacherSlNo(): string

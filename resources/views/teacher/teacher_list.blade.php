@@ -41,7 +41,7 @@
     </div>
 
     {{-- ── Search / Filter ── --}}
-    @php $filterOpen = request()->hasAny(['name','teacher_no','designation']); @endphp
+    @php $filterOpen = request()->hasAny(['name','teacher_no','designation','department_id']); @endphp
     <div class="accordion mb-3" id="teacherFilterAccordion">
         <div class="card">
             <div class="card-header p-0" id="filterHeading">
@@ -71,11 +71,22 @@
                                            value="{{ request('teacher_no') }}" placeholder="Device ID / No">
                                 </div>
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-2">
                                 <div class="form-group">
                                     <label class="form-label">Designation</label>
                                     <input type="search" name="designation" class="form-control"
                                            value="{{ request('designation') }}" placeholder="Designation">
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="form-group">
+                                    <label class="form-label">Department</label>
+                                    <select name="department_id" class="form-control">
+                                        <option value="">All</option>
+                                        @foreach($departments as $d)
+                                            <option value="{{ $d->id }}" {{ (string) request('department_id') === (string) $d->id ? 'selected' : '' }}>{{ $d->name }}</option>
+                                        @endforeach
+                                    </select>
                                 </div>
                             </div>
                             <div class="col-md-1 mt-2">
@@ -122,7 +133,7 @@
                     <tbody>
                         @forelse($teachers as $teacher)
                             <tr>
-                                <td>{{ $loop->index + 1 }}</td>
+                                <td>{{ $teachers->firstItem() + $loop->index }}</td>
                                 <td>
                                     @if($teacher->image && file_exists($teacher->image))
                                         <img src="{{ asset($teacher->image) }}" alt="{{ $teacher->name }}"
@@ -143,8 +154,8 @@
                                 <td>
                                     @if($teacher->department)
                                         {{ $teacher->department->name }}
-                                        @if($teacher->shift)
-                                            <br><small class="text-muted">{{ $teacher->shift->title }} ({{ timeFormat($teacher->shift->in_time, 'h:i A') }} - {{ timeFormat($teacher->shift->out_time, 'h:i A') }})</small>
+                                        @if($teacher->department->shift)
+                                            <br><small class="text-muted">{{ $teacher->department->shift->title }} ({{ timeFormat($teacher->department->shift->in_time, 'h:i A') }} - {{ timeFormat($teacher->department->shift->out_time, 'h:i A') }})</small>
                                         @endif
                                     @else
                                         <span class="text-danger small"><i class="fas fa-exclamation-triangle"></i> Not set</span>

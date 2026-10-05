@@ -124,7 +124,6 @@ class SyncZkAttendance extends Command
                     AttendanceLog::firstOrCreate(
                         [
                             'student_no' => $student->student_no,
-                            'student_id' => $student->student_id,
                             'name' => showStudentFullName($student->firstname, $student->middlename, $student->lastname) ?? null,
                             'device_id' => $device->id,
                             'punch_time' => $punchTime,

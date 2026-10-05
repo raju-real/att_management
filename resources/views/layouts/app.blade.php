@@ -94,38 +94,25 @@
                 <ul class="navbar-nav">
                     {{-- Manage Attendance --}}
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle {{ request()->routeIs(['attendance-summery', 'present-logs', 'month-wise-present-report', 'month-wise-user-summery', 'attendance.unmatched']) ? 'active' : '' }}"
+                        <a class="nav-link dropdown-toggle {{ request()->routeIs(['attendance.logs', 'attendance.monthly-summary', 'attendance.unmatched']) ? 'active' : '' }}"
                             href="#" id="attendanceDropdown" role="button" data-toggle="dropdown">
                             <i class="fas fa-clock mr-1"></i> Attendance
                         </a>
                         <div class="dropdown-menu dropdown-menu-right">
-                            <a class="dropdown-item {{ request()->routeIs('attendance-summery') ? 'active' : '' }}"
-                                href="{{ route('attendance-summery') }}">
+                            <a class="dropdown-item {{ request()->routeIs('attendance.logs') ? 'active' : '' }}"
+                                href="{{ route('attendance.logs') }}">
                                 <i class="fas fa-history mr-2"></i> Attendance Logs
                             </a>
-                            <a class="dropdown-item {{ request()->routeIs('present-logs') ? 'active' : '' }}"
-                                href="{{ route('present-logs') }}">
-                                <i class="fas fa-user-check mr-2"></i> Present Logs
-                            </a>
-                            <a class="dropdown-item {{ request()->routeIs('month-wise-present-report') ? 'active' : '' }}"
-                                href="{{ route('month-wise-present-report') }}">
-                                <i class="fas fa-gift mr-2"></i> Month Wise Present
-                            </a>
-                            <a class="dropdown-item {{ request()->routeIs('month-wise-user-summery') ? 'active' : '' }}"
-                                href="{{ route('month-wise-user-summery') }}">
-                                <i class="fas fa-list mr-2"></i>Month Wise User Summary
-                            </a>
-                            <div class="dropdown-divider"></div>
-                            <a class="dropdown-item {{ request()->routeIs('attendance.unmatched') ? 'active' : '' }}"
-                                href="{{ route('attendance.unmatched') }}">
-                                <i class="fas fa-question-circle mr-2"></i> Unmatched Attendance
+                            <a class="dropdown-item {{ request()->routeIs('attendance.monthly-summary') ? 'active' : '' }}"
+                                href="{{ route('attendance.monthly-summary') }}">
+                                <i class="fas fa-calendar-check mr-2"></i> Monthly Summary
                             </a>
                         </div>
                     </li>
 
                     {{-- Configuration --}}
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle {{ request()->routeIs(['students.*', 'teachers.*', 'devices.*']) ? 'active' : '' }}"
+                        <a class="nav-link dropdown-toggle {{ request()->routeIs(['students.*', 'teachers.*', 'devices.*', 'departments.*', 'shifts.*']) ? 'active' : '' }}"
                             href="#" id="configDropdown" role="button" data-toggle="dropdown">
                             <i class="fas fa-cogs mr-1"></i> Configuration
                         </a>
@@ -141,6 +128,15 @@
                             <a class="dropdown-item {{ request()->routeIs('devices.*') ? 'active' : '' }}"
                                 href="{{ route('devices.index') }}">
                                 <i class="fas fa-fingerprint mr-2"></i> Devices
+                            </a>
+                            <div class="dropdown-divider"></div>
+                            <a class="dropdown-item {{ request()->routeIs('shifts.*') ? 'active' : '' }}"
+                                href="{{ route('shifts.index') }}">
+                                <i class="fas fa-business-time mr-2"></i> Shifts
+                            </a>
+                            <a class="dropdown-item {{ request()->routeIs('departments.*') ? 'active' : '' }}"
+                                href="{{ route('departments.index') }}">
+                                <i class="fas fa-building mr-2"></i> Departments
                             </a>
                         </div>
                     </li>
@@ -171,7 +167,7 @@
                 <!-- User dropdown on right -->
                 <ul class="navbar-nav">
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle {{ request()->routeIs(['profile', 'site-settings', 'departments.*', 'shifts.*']) ? 'active' : '' }}"
+                        <a class="nav-link dropdown-toggle {{ request()->routeIs(['profile', 'site-settings']) ? 'active' : '' }}"
                             href="#" id="userDropdown" role="button" data-toggle="dropdown">
                             @if (authUser()->image && file_exists(authUser()->image))
                                 <img src="{{ asset(authUser()->image) }}" alt=""
@@ -189,15 +185,6 @@
                             <a class="dropdown-item {{ request()->routeIs('site-settings') ? 'active' : '' }}"
                                 href="{{ route('site-settings') }}">
                                 <i class="fas fa-sliders-h mr-2"></i> Site Settings
-                            </a>
-                            <div class="dropdown-divider"></div>
-                            <a class="dropdown-item {{ request()->routeIs('departments.*') ? 'active' : '' }}"
-                                href="{{ route('departments.index') }}">
-                                <i class="fas fa-building mr-2"></i> Department
-                            </a>
-                            <a class="dropdown-item {{ request()->routeIs('shifts.*') ? 'active' : '' }}"
-                                href="{{ route('shifts.index') }}">
-                                <i class="fas fa-business-time mr-2"></i> Shift
                             </a>
                             <div class="dropdown-divider"></div>
                             <a class="dropdown-item" href="{{ route('logout') }}">

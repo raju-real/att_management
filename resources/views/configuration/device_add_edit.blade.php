@@ -50,7 +50,7 @@
                                         <li>Server Port: <strong>{{ $curAppPort }}</strong></li>
                                         <li>Proxy Server: <strong>OFF</strong></li>
                                     </ul>
-                                    <a href="{{ route('devices.setup-guide') }}" target="_blank">Full Setup Guide with a live test button →</a>
+                                    {{-- <a href="{{ route('devices.setup-guide') }}" target="_blank">Full Setup Guide with a live test button →</a> --}}
                                 </div>
                             </div>
                         </div>
@@ -84,17 +84,17 @@
                         <div class="form-group">
                             <label class="form-label">
                                 Device's Own IP Address
-                                <small class="text-muted">(optional — diagnostics only)</small>
+                                {{-- <small class="text-muted">(optional — diagnostics only)</small> --}}
                             </label>
                             <input type="text" name="ip_address"
                                 value="{{ old('ip_address') ?? ($device->ip_address ?? '') }}"
                                 class="form-control {{ hasError('ip_address') }}" placeholder="e.g. 192.168.1.201">
-                            <small class="text-muted">
+                            {{-- <small class="text-muted">
                                 Copy this from the device's own screen (<span class="text-monospace">MENU → COMM → Ethernet</span>) —
                                 <strong>not</strong> an example from any guide, and not this server's own address.
                                 Not needed for normal operation; only used by the diagnostic Test/Pull-Users buttons
                                 on the same LAN.
-                            </small>
+                            </small> --}}
                             @error('ip_address')
                                 {!! displayError($message) !!}
                             @enderror
@@ -155,7 +155,7 @@
                 </div>
 
                 {{-- ═══ NETWORK / SUBNET INFO (optional, for multi-building deployments) ═══ --}}
-                <div class="row mb-3">
+                {{-- <div class="row mb-3">
                     <div class="col-12">
                         <div class="card border-secondary">
                             <div class="card-header py-2 d-flex align-items-center">
@@ -206,7 +206,7 @@
                             </div>
                         </div>
                     </div>
-                </div>
+                </div> --}}
 
                 <div class="text-right mt-2">
                     <x-submit-button />

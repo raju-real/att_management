@@ -105,18 +105,18 @@ Route::middleware('auth')->group(function () {
     // Department & Shift (teacher timing config)
     Route::resource('departments', \App\Http\Controllers\DepartmentController::class)->except('show');
     Route::resource('shifts', \App\Http\Controllers\ShiftController::class)->except('show');
-    Route::get('shifts-by-department/{department}', [\App\Http\Controllers\ShiftController::class, 'byDepartment'])->name('shifts.by-department');
     // Attendance manage
     Route::controller(AttendanceController::class)->group(function () {
         Route::post('attendance-sync-background', 'syncBackground')->name('attendance.sync.background');
-        Route::get('present-logs', 'presentLogs')->name('present-logs');
+        Route::get('attendance-logs', 'logs')->name('attendance.logs');
+        Route::get('attendance-monthly-summary', 'monthlySummary')->name('attendance.monthly-summary');
         Route::get('attendance-unmatched', 'unmatched')->name('attendance.unmatched');
-        Route::get('attendance-summery', 'attendanceSummery')->name('attendance-summery');
-        // Report
-        Route::get('month-wise-present-report', 'monthWisePresentReport')->name('month-wise-present-report');
-        Route::get('month-wise-user-summery', 'monthWiseUserSummery')->name('month-wise-user-summery');
-        Route::get('track-attendance-location', 'trackLocation')->name('track-attendance-location');
     });
+    // Legacy attendance/report URLs → new pages (names kept so old links still resolve)
+    Route::redirect('present-logs', '/attendance-logs')->name('present-logs');
+    Route::redirect('attendance-summery', '/attendance-logs')->name('attendance-summery');
+    Route::redirect('month-wise-present-report', '/attendance-logs')->name('month-wise-present-report');
+    Route::redirect('month-wise-user-summery', '/attendance-monthly-summary')->name('month-wise-user-summery');
     // Device Activity controller
     Route::controller(DeviceActivityController::class)->group(function () {
         Route::view('/commands/activities', 'configuration.device_activities')->name('commands.activities');

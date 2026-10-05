@@ -14,11 +14,12 @@
             <h5 class="card-title"><i class="fas fa-plus-circle mr-2"></i> Shift Information</h5>
         </div>
         <div class="card-body">
-            @if($departments->isEmpty())
-                <div class="alert alert-warning">
-                    You need at least one active <a href="{{ route('departments.create') }}">Department</a> before creating a shift.
-                </div>
-            @endif
+            <div class="alert alert-info py-2 small">
+                <i class="fas fa-info-circle mr-1"></i>
+                A shift sets the standard <strong>In Time</strong> and <strong>Out Time</strong>. You assign it to one or more
+                departments. A teacher in those departments counts as <span class="text-danger font-weight-bold">Late In</span>
+                after the in time and <span class="text-danger font-weight-bold">Early Out</span> before the out time.
+            </div>
             <form action="{{ $route }}" id="prevent-form" method="POST">
                 @csrf
                 @isset($shift)
@@ -26,23 +27,7 @@
                 @endisset
 
                 <div class="row">
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label class="form-label">Department {!! starSign() !!}</label>
-                            <select name="department_id" class="form-control {{ hasError('department_id') }}">
-                                <option value="">-- Select Department --</option>
-                                @foreach ($departments as $department)
-                                    <option value="{{ $department->id }}"
-                                        {{ (old('department_id') ?? ($shift->department_id ?? '')) == $department->id ? 'selected' : '' }}>
-                                        {{ $department->name }}</option>
-                                @endforeach
-                            </select>
-                            @error('department_id')
-                                {!! displayError($message) !!}
-                            @enderror
-                        </div>
-                    </div>
-                    <div class="col-md-6">
+                    <div class="col-md-3">
                         <div class="form-group">
                             <label class="form-label">Title {!! starSign() !!}</label>
                             <input type="text" name="title" value="{{ old('title') ?? ($shift->title ?? '') }}"
@@ -52,35 +37,35 @@
                             @enderror
                         </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <div class="form-group">
                             <label class="form-label">In Time {!! starSign() !!}</label>
                             <input type="text" name="in_time"
-                                value="{{ old('in_time') ?? ($shift->in_time ?? '') }}"
-                                class="form-control {{ hasError('in_time') }} flat_timepicker" placeholder="In Time">
+                                value="{{ old('in_time') ?? (isset($shift) ? timeFormat($shift->in_time, 'h:i:s A') : '') }}"
+                                class="form-control {{ hasError('in_time') }} flat_timepicker" placeholder="08:00 AM">
                             @error('in_time')
                                 {!! displayError($message) !!}
                             @enderror
                         </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <div class="form-group">
                             <label class="form-label">Out Time {!! starSign() !!}</label>
                             <input type="text" name="out_time"
-                                value="{{ old('out_time') ?? ($shift->out_time ?? '') }}"
-                                class="form-control {{ hasError('out_time') }} flat_timepicker" placeholder="Out Time">
+                                value="{{ old('out_time') ?? (isset($shift) ? timeFormat($shift->out_time, 'h:i:s A') : '') }}"
+                                class="form-control {{ hasError('out_time') }} flat_timepicker" placeholder="02:00 PM">
                             @error('out_time')
                                 {!! displayError($message) !!}
                             @enderror
                         </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <div class="form-group">
                             <label class="form-label">Status {!! starSign() !!}</label>
                             <select name="status" class="form-control {{ hasError('status') }}">
                                 @foreach (getStatus() as $status)
                                     <option value="{{ $status->value }}"
-                                        {{ old('status') === $status->value || (isset($shift) && $shift->status === $status->value && empty(old('status'))) ? 'selected' : '' }}>
+                                        {{ (old('status') ?? ($shift->status ?? 'active')) === $status->value ? 'selected' : '' }}>
                                         {{ $status->title }}</option>
                                 @endforeach
                             </select>

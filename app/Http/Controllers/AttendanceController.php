@@ -2,15 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use App\Exports\DateWisePresentExport;
-use App\Exports\MonthWisePresentExport;
-use App\Exports\UserWiseSummaryExport;
-use App\Services\AttendanceService;
+use App\Models\Department;
+use App\Models\Teacher;
+use App\Services\AttendanceReportService as Report;
 use App\Services\DeviceActivityService;
 use Carbon\Carbon;
-use Maatwebsite\Excel\Facades\Excel;
-use niklasravnsborg\LaravelPdf\Facades\Pdf;
-
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AttendanceController extends Controller
 {
@@ -18,7 +16,7 @@ class AttendanceController extends Controller
     {
     }
 
-    public function syncBackground(\Illuminate\Http\Request $request)
+    public function syncBackground(Request $request)
     {
         $request->validate([
             'device_id'      => 'nullable|exists:devices,id',
@@ -39,8 +37,6 @@ class AttendanceController extends Controller
         return back()->with(successMessage('success',
             "Attendance sync complete. {$result['total']} record(s) total.\n{$msg}"));
     }
-
-
 
     /**
      * PINs that punched attendance but couldn't be matched to a Student or
@@ -65,101 +61,146 @@ class AttendanceController extends Controller
         return view('attendance.unmatched', compact('rows'));
     }
 
-    public function presentLogs()
+    // ───────────────────────────── Attendance Logs ─────────────────────────────
+
+    public function logs(Request $request)
     {
-        $filter = [];
-        $filter['user_type'] = request()->get('user_type') ?? '';
-        $filter['user_no'] = request()->get('user_no') ?? '';
-        $filter['student_no'] = request()->get('student_no') ?? '';
-        $filter['student_id'] = request()->get('student_id') ?? '';
-        $filter['teacher_no'] = request()->get('teacher_no') ?? '';
-        $filter['from_date'] = request()->get('from_date') ?? Carbon::today()->toDateString();
-        $filter['to_date'] = request()->get('to_date');
-        //$report = $this->attendanceReport($filter);
-        $attendance_logs = AttendanceService::getDailyAttendance($filter);
-        $from_date = $filter['from_date'];
-        $to_date = $filter['to_date'];
-        return view('attendance.present_logs', compact('attendance_logs', 'from_date', 'to_date'));
-    }
+        $filters = $this->filters($request);
+        [$from_date, $to_date] = Report::resolveRange($filters);
 
-    public function attendanceSummery()
-    {
-        $filter = [];
-        $filter['user_type'] = request()->get('user_type') ?? '';
-        $filter['user_no'] = request()->get('user_no') ?? '';
-        $filter['student_no'] = request()->get('student_no') ?? '';
-        $filter['student_id'] = request()->get('student_id') ?? '';
-        $filter['teacher_no'] = request()->get('teacher_no') ?? '';
-        $filter['from_date'] = request()->get('from_date') ?? Carbon::today()->toDateString();
-        $filter['to_date'] = request()->get('to_date');
-        $filter['status'] = request()->get('status');
-        $attendance_logs = AttendanceService::attendanceSummery($filter);
-        $from_date = $filter['from_date'];
-        $to_date = $filter['to_date'];
-        return view('attendance.present_absent_logs', compact('attendance_logs', 'from_date', 'to_date'));
-    }
-
-    public function monthWisePresentReport()
-    {
-        $filter = [];
-        $filter['user_type'] = request()->get('user_type') ?? '';
-        $filter['student_id'] = request()->get('student_id') ?? '';
-        $filter['teacher_no'] = request()->get('teacher_no') ?? '';
-        $filter['from_date'] = request()->get('from_date') ?? Carbon::now()->startOfMonth()->toDateString();
-        $filter['to_date'] = request()->get('to_date') ?? Carbon::today()->toDateString();
-        $filter['data_type'] = request()->get('data_type') ?? 'all_days';
-
-        $from_date = $filter['from_date'];
-        $to_date = $filter['to_date'];
-
-        $display_type = request()->get('display_type') ?? 'show_data';
-
-        if ($display_type === 'show_data') {
-            $attendance_reports = AttendanceService::monthWisePresentReport($filter);
-            return view('reports.month_wise_present', compact('attendance_reports', 'from_date', 'to_date'));
-        } elseif ($display_type === 'download_as_xl') {
-            $bas_file_name = dateFormat($from_date, 'd_m_y') . '_to_' . dateFormat($to_date, 'd_m_y');
-            return Excel::download(
-                new MonthWisePresentExport($filter),
-                $bas_file_name . '_' . now()->format('Ymd_His') . '_attendance_report.xlsx'
-            );
-        } elseif ($display_type === 'download_as_pdf') {
-            $attendance_reports = AttendanceService::monthWisePresentReport($filter);
-            $bas_file_name = dateFormat($from_date, 'd_m_y') . '_to_' . dateFormat($to_date, 'd_m_y');
-            $report = PDF::loadView('pdf.month_wise_present_report', compact('attendance_reports', 'from_date', 'to_date'));
-            return $report->download($bas_file_name . '_' . now()->format('Ymd_His') . '_attendance report' . '.pdf');
+        if ($request->get('export') === 'csv') {
+            return $this->exportLogs($filters, $from_date, $to_date);
         }
+
+        $perPage = in_array((int) $request->per_page, [25, 50, 100, 200], true) ? (int) $request->per_page : 50;
+        $logs    = Report::logs($filters, $perPage);
+
+        return view('attendance.logs', array_merge($this->filterOptions(), compact('logs', 'from_date', 'to_date')));
     }
 
-    public function monthWiseUserSummery()
+    protected function exportLogs(array $filters, string $from, string $to): StreamedResponse
     {
-        $filter = [];
-        $filter['user_type'] = request()->get('user_type') ?? '';
-        $filter['student_no'] = request()->get('student_no') ?? '';
-        $filter['teacher_no'] = request()->get('teacher_no') ?? '';
-        $filter['from_date'] = request()->get('from_date') ?? Carbon::now()->startOfMonth()->toDateString();
-        $filter['to_date'] = request()->get('to_date') ??  Carbon::today()->toDateString();
-        $display_type = request()->get('display_type') ?? 'show_data';
+        $rows = Report::logsForExport($filters);
 
-        $from_date = $filter['from_date'];
-        $to_date = $filter['to_date'];
-        $in_time = siteSettings()->in_time;
-        $out_time = siteSettings()->out_time;
+        return $this->csv("attendance_logs_{$from}_to_{$to}.csv",
+            ['Date', 'User Type', 'ID', 'Name', 'Department', 'Shift In', 'Shift Out', 'In Time', 'Out Time', 'Late By', 'Early Out By', 'Working Hours', 'Punches'],
+            $rows,
+            fn ($r) => [
+                $r->att_date,
+                ucfirst((string) $r->user_type),
+                $r->user_no,
+                $r->name,
+                $r->department ?? '-',
+                $r->std_in ? Carbon::parse($r->std_in)->format('h:i A') : '-',
+                $r->std_out ? Carbon::parse($r->std_out)->format('h:i A') : '-',
+                Carbon::parse($r->in_time)->format('h:i A'),
+                $r->out_time ? Carbon::parse($r->out_time)->format('h:i A') : '-',
+                $r->is_late ? Report::minutesToHm((int) $r->late_minutes) : '-',
+                $r->is_early_out ? Report::minutesToHm((int) $r->early_out_minutes) : '-',
+                Report::minutesToHm((int) $r->work_minutes),
+                $r->punches,
+            ]
+        );
+    }
 
-        $attendance_reports = AttendanceService::monthWiseUserSummery($filter);
-        if ($display_type === 'show_data') {
-            return view('reports.month_wise_user_summery', compact('attendance_reports', 'from_date', 'to_date'));
-        } elseif ($display_type === 'download_as_xl') {
-            $bas_file_name = dateFormat($from_date, 'd_m_y') . '_to_' . dateFormat($to_date, 'd_m_y');
-            return Excel::download(
-                new UserWiseSummaryExport($attendance_reports, $from_date, $to_date, $in_time, $out_time),
-                $bas_file_name . 'month_user_wise_summary_' . now()->format('Ymd_His') . '.xlsx'
-            );
-        } elseif ($display_type === 'download_as_pdf') {
-            $attendance_reports = AttendanceService::monthWiseUserSummery($filter);
-            $bas_file_name = dateFormat($from_date, 'd_m_y') . '_to_' . dateFormat($to_date, 'd_m_y');
-            $report = PDF::loadView('pdf.month_wise_user_summery', compact('attendance_reports', 'from_date', 'to_date'));
-            return $report->download($bas_file_name . '_' . now()->format('Ymd_His') . '_attendance report' . '.pdf');
+    // ───────────────────────────── Monthly Summary ─────────────────────────────
+
+    public function monthlySummary(Request $request)
+    {
+        $filters = $this->filters($request);
+        if (empty($filters['month']) && empty($filters['from_date'])) {
+            $filters['month'] = Carbon::today()->format('Y-m');
         }
+        [$from_date, $to_date] = Report::resolveRange($filters, 'month');
+        $working_days = Report::workingDays($from_date, $to_date);
+
+        if ($request->get('export') === 'csv') {
+            return $this->exportSummary($filters, $from_date, $to_date, $working_days);
+        }
+
+        $perPage = in_array((int) $request->per_page, [25, 50, 100, 200], true) ? (int) $request->per_page : 50;
+        $summary = Report::monthlySummary($filters, $perPage);
+        $totals  = Report::userTypeTotals($filters);
+
+        return view('attendance.monthly_summary', array_merge(
+            $this->filterOptions(),
+            compact('summary', 'totals', 'from_date', 'to_date', 'working_days')
+        ));
+    }
+
+    protected function exportSummary(array $filters, string $from, string $to, int $workingDays): StreamedResponse
+    {
+        $rows = Report::monthlySummaryForExport($filters);
+
+        return $this->csv("attendance_summary_{$from}_to_{$to}.csv",
+            ['User Type', 'ID', 'Name', 'Department', 'Shift In', 'Shift Out', 'Working Days', 'Present Days', 'Absent Days',
+             'Early In (days)', 'Late In (days)', 'Total Late', 'Early Out (days)', 'Total Early Out', 'No Out Punch (days)',
+             'Earliest In', 'Average In', 'Total Working Hours'],
+            $rows,
+            fn ($r) => [
+                ucfirst((string) $r->user_type),
+                $r->user_no,
+                $r->name,
+                $r->department ?? '-',
+                $r->std_in ? Carbon::parse($r->std_in)->format('h:i A') : '-',
+                $r->std_out ? Carbon::parse($r->std_out)->format('h:i A') : '-',
+                $workingDays,
+                $r->present_days,
+                max(0, $workingDays - (int) $r->present_days),
+                (int) $r->early_in_days,
+                (int) $r->late_days,
+                Report::minutesToHm((int) $r->late_minutes),
+                (int) $r->early_out_days,
+                Report::minutesToHm((int) $r->early_out_minutes),
+                (int) $r->single_punch_days,
+                $r->earliest_in ? Carbon::parse($r->earliest_in)->format('h:i A') : '-',
+                $r->avg_in ? Carbon::parse($r->avg_in)->format('h:i A') : '-',
+                Report::minutesToHm((int) $r->work_minutes),
+            ]
+        );
+    }
+
+    // ───────────────────────────── Helpers ─────────────────────────────
+
+    protected function filters(Request $request): array
+    {
+        $userType = in_array($request->user_type, ['student', 'teacher'], true) ? $request->user_type : null;
+        $status   = array_key_exists((string) $request->status, Report::STATUSES) ? $request->status : null;
+
+        return array_filter([
+            'date'          => $request->date,
+            'month'         => $request->month,
+            'from_date'     => $request->from_date,
+            'to_date'       => $request->to_date,
+            'user_type'     => $userType,
+            'teacher_no'    => $request->teacher_no,
+            'user_no'       => $request->user_no ? trim($request->user_no) : null,
+            'department_id' => $request->department_id,
+            'search'        => $request->search,
+            'status'        => $status,
+            'sort'          => $request->sort,
+        ], fn ($v) => $v !== null && $v !== '');
+    }
+
+    protected function filterOptions(): array
+    {
+        return [
+            'teachers'    => Teacher::orderBy('name')->get(['teacher_no', 'name']),
+            'departments' => Department::orderBy('name')->get(['id', 'name']),
+            'statuses'    => Report::STATUSES,
+        ];
+    }
+
+    protected function csv(string $filename, array $header, iterable $rows, callable $map): StreamedResponse
+    {
+        return response()->streamDownload(function () use ($header, $rows, $map) {
+            $out = fopen('php://output', 'w');
+            fwrite($out, "\xEF\xBB\xBF"); // UTF-8 BOM so Excel shows names correctly
+            fputcsv($out, $header);
+            foreach ($rows as $row) {
+                fputcsv($out, $map($row));
+            }
+            fclose($out);
+        }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
     }
 }
