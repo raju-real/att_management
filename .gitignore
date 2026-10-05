@@ -1,7 +1,7 @@
 /node_modules
 /storage/*.key
 /vendor
-/public/assets/common/json
+/public/assets/common/json/*
 /config
 .env
 .env.backup
