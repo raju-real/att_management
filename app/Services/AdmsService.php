@@ -4,7 +4,6 @@ namespace App\Services;
 use App\Models\AttendanceLog;
 use App\Models\Device as ZktecoDevice;
 use App\Models\Teacher;
-use App\Models\ZktecoAttendance;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;

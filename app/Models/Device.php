@@ -69,11 +69,6 @@ class Device extends Model
         return $this->use_push_mode ? 'Push (HTTP)' : 'TCP/UDP';
     }
 
-    public function commands()
-    {
-        return $this->hasMany(DeviceCommand::class);
-    }
-
     public function employees()
     {
         return $this->belongsToMany(User::class, 'device_employee')

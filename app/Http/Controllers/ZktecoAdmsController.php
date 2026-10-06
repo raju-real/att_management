@@ -6,21 +6,17 @@ use Illuminate\Http\Request;
 
 class ZktecoAdmsController extends Controller
 {
-    public function __construct(
-        private AdmsService $adms
-    ) {
+    private $adms;
+
+    public function __construct(AdmsService $adms)
+    {
+        $this->adms = $adms;
     }
 
-    public function cdata(
-        Request $request
-    ) {
-
-        /*
-         * GET = handshake
-         */
-
+    public function cdata(Request $request)
+    {
+        // GET = handshake
         if ($request->isMethod('get')) {
-
             return response(
                 $this->adms->handshake($request),
                 200
@@ -29,32 +25,21 @@ class ZktecoAdmsController extends Controller
                 'text/plain'
             );
         }
-
-        /*
-         * POST = device data
-         */
-
-        $table = $request->query(
-            'table',
-            ''
-        );
+        // POST = device data
+        $table = $request->query('table','');
 
         return response(
             $this->adms->processData(
                 $request,
                 $table
-            ),
-            200
+            ), 200
         )->header(
             'Content-Type',
             'text/plain'
         );
     }
 
-    public function getRequest(
-        Request $request
-    ) {
-
+    public function getRequest(Request $request) {
         return response(
             $this->adms->getRequest($request),
             200
@@ -64,10 +49,7 @@ class ZktecoAdmsController extends Controller
         );
     }
 
-    public function deviceCommand(
-        Request $request
-    ) {
-
+    public function deviceCommand(Request $request) {
         return response(
             $this->adms->deviceCommand($request),
             200

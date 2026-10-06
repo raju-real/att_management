@@ -28,16 +28,7 @@ return new class extends Migration {
             $table->string('raw_data')->nullable();
             $table->enum('attendance_by', ['fingerprint', 'card', 'face', 'pin', 'manual'])->default('fingerprint');
             $table->timestamps();
-            // ✅ STUDENT attendance uniqueness
-            // $table->unique(['student_no', 'punch_time', 'device_serial'], 'uniq_student_attendance');
-            // // ✅ TEACHER attendance uniqueness
-            // $table->unique(['teacher_no', 'punch_time', 'device_serial'], 'uniq_teacher_attendance');
-            /*
-            |--------------------------------------------------------------------------
-            | INDEXES (PERFORMANCE)
-            |--------------------------------------------------------------------------
-            */
-
+            // index (performance)
             $table->index('user_type', 'idx_attendance_user_type');
             $table->index('student_no', 'idx_attendance_student_no');
             $table->index('teacher_no', 'idx_attendance_teacher_no');

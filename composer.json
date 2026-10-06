@@ -14,7 +14,6 @@
         "guzzlehttp/guzzle": "^7.2",
         "http-interop/http-factory-guzzle": "^1.2",
         "intervention/image": "^2.7",
-        "jmrashed/zkteco": "^1.2",
         "laravel/framework": "^9.0",
         "laravel/sanctum": "^2.14",
         "laravel/scout": "^10.14",

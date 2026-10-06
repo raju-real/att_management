@@ -12,55 +12,20 @@ use App\Http\Controllers\TeacherController;
 use App\Http\Controllers\ZktecoAdmsController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Session;
-
-/*
-|--------------------------------------------------------------------------
-| Admin Routes
-|--------------------------------------------------------------------------
-*/
 
 /*
 |--------------------------------------------------------------------------
 | iClock / ZkTeco ADMS Push Protocol (PUBLIC — no auth)
 |--------------------------------------------------------------------------
-| ZkTeco devices call these endpoints over HTTP. Configure on device:
-|   MENU → COMM → Cloud Server / ADMS
-|   Server Address: your-domain.com
-|   Server Port:    80  (or 443 for HTTPS)
-|--------------------------------------------------------------------------
 */
-// Route::controller(IClockController::class)->prefix('iclock')->group(function () {
-//     // Heartbeat + command delivery
-//     Route::get('getrequest',  'getRequest')->name('iclock.getrequest');
-//     // Attendance / user data pushed by device
-//     Route::any('cdata',      'capture')->name('iclock.cdata');
-//     // Alternate command endpoint (some firmware variants)
-//     Route::get('devicecmd',   'deviceCmd')->name('iclock.devicecmd');
-// });
-
 Route::controller(ZktecoAdmsController::class)->prefix('iclock')->group(function() {
     Route::match(['GET', 'POST'], 'cdata', 'cdata');
     Route::get('getrequest', 'getRequest');
     Route::post('devicecmd', 'deviceCommand');
 });
 
-// Route::match(
-//     ['GET', 'POST'],
-//     '/iclock/cdata',
-//     [ZktecoAdmsController::class, 'cdata']
-// );
-
-// Route::get('/iclock/getrequest',[ZktecoAdmsController::class, 'getRequest']
-// );
-
-// Route::post(
-//     '/iclock/devicecmd',
-//     [ZktecoAdmsController::class, 'deviceCommand']
-// );
 
 Route::view('/', 'auth.admin_login')->name('home');
-// 5 attempts per minute per email/IP (RateLimiter "admin-login" in RouteServiceProvider)
 Route::post('admin-login', AdminLogin::class)->middleware('throttle:admin-login')->name('admin-login');
 Route::view('permission-denied', 'permission_denied')->name('permission-denied');
 
