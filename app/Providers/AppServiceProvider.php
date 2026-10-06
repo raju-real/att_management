@@ -2,7 +2,6 @@
 
 namespace App\Providers;
 
-use App\Services\ZkTecoService;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -14,7 +13,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        $this->app->singleton(ZkTecoService::class, fn () => new ZkTecoService());
+        //
     }
 
     /**

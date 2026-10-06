@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\Device;
 use App\Services\DeviceActivityService;
-use App\Services\ZkTecoService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -13,12 +12,10 @@ use Illuminate\Validation\Rule;
 
 class DeviceController extends Controller
 {
-    protected ZkTecoService $zkService;
     protected DeviceActivityService $activity;
 
-    public function __construct(ZkTecoService $zkService, DeviceActivityService $activity)
+    public function __construct(DeviceActivityService $activity)
     {
-        $this->zkService = $zkService;
         $this->activity  = $activity;
     }
 
@@ -129,7 +126,7 @@ class DeviceController extends Controller
             'success'    => $result['success'],
             'message'    => $result['message'],
             'mode'       => $device->use_push_mode ? 'push' : 'tcp',
-            'last_seen'  => $device->last_seen_at->diffForHumans() ?? null,
+            'last_seen'  => $device->last_seen_at ? $device->last_seen_at->diffForHumans() : null,
             'is_online'  => $device->is_online ?? false,
         ]);
     }
@@ -196,59 +193,6 @@ class DeviceController extends Controller
             'unclassified'    => $result['unclassified'],
             'totalOnDevice'   => $result['totalOnDevice'],
         ]);
-    }
-
-    /**
-     * List users stored on device (TCP mode only — push mode doesn't have live user list).
-     */
-    public function getUsers(Request $request, $id)
-    {
-        $device = Device::findOrFail($id);
-
-        if ($device->use_push_mode) {
-            $paginatedUsers = new \Illuminate\Pagination\LengthAwarePaginator(
-                [], 0, 50, 1,
-                ['path' => url()->current(), 'query' => request()->query()]
-            );
-            return view('configuration.device_users', [
-                'device'         => $device,
-                'paginatedUsers' => $paginatedUsers,
-                'pushMode'       => true,
-            ]);
-        }
-
-        try {
-            $zk = $this->zkService->connect($device);
-            if (! $zk) {
-                return redirect()->route('devices.index')
-                    ->with(dangerMessage('danger', 'Device not connected or connection failed!'));
-            }
-            $usersArray = $this->zkService->getUsers($zk);
-            $this->zkService->disconnect($zk);
-        } catch (\Throwable $e) {
-            return redirect()->route('devices.index')
-                ->with(dangerMessage('danger', 'Connection Failed! Device not connected.'));
-        }
-
-        $users = collect($usersArray);
-        if ($request->userid) {
-            $users = $users->filter(fn($i) => str_contains(strtolower($i['userid'] ?? ''), strtolower($request->userid)));
-        }
-        if ($request->name) {
-            $users = $users->filter(fn($i) => str_contains(strtolower($i['name'] ?? ''), strtolower($request->name)));
-        }
-        if ($request->role !== null && $request->role !== '') {
-            $users = $users->filter(fn($i) => (string) ($i['role'] ?? '') === (string) $request->role);
-        }
-
-        $perPage        = 50;
-        $page           = \Illuminate\Pagination\Paginator::resolveCurrentPage() ?: 1;
-        $paginatedUsers = new \Illuminate\Pagination\LengthAwarePaginator(
-            $users->forPage($page, $perPage)->values(), $users->count(), $perPage, $page,
-            ['path' => url()->current(), 'query' => request()->query()]
-        );
-
-        return view('configuration.device_users', compact('device', 'paginatedUsers'));
     }
 
     /** Remove all users from device. */

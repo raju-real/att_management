@@ -1,0 +1,30 @@
+✅ What ZKTeco devices can & cannot do (REALITY)
+
+Using ZKTeco TCP/UDP protocol (port 4370) via packages like jmrashed/zkteco:
+
+❌ NOT supported by device firmware
+
+You CANNOT directly ask the device:
+
+❌ “Give attendance of specific date”
+
+❌ “Give attendance of date range”
+
+❌ “Give attendance of specific employee_id”
+
+❌ “Give users created between dates”
+
+The device does not support server-side filtering.
+
+✅ What IS supported
+
+The device can only do:
+
+Operation	Supported
+Get ALL users	✅
+Get ALL attendance logs	✅
+Set user	✅
+Delete user	❌ (not supported in jmrashed/zkteco)
+Clear all attendance	✅
+
+That’s it.
