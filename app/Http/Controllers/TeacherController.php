@@ -268,7 +268,6 @@ class TeacherController extends Controller
                     $log->update([
                         'teacher_no'    => $teacher->teacher_no,
                         'user_type'     => 'teacher',
-                        'name'          => $teacher->name,
                         'unmatched_pin' => null,
                     ]);
                 } catch (\Throwable) {
