@@ -15,7 +15,7 @@ return [
     |
     */
 
-    'default'     => 'local_dev',
+    'default'     => 'live',
 
     /*
     |--------------------------------------------------------------------------
@@ -71,7 +71,6 @@ return [
             'database'       => 'att_management',
             'username'       => 'root',
             'password'       => 'StrongPassword#2026',
-            
             'unix_socket'    => '',
             'charset'        => 'utf8mb4',
             'collation'      => 'utf8mb4_unicode_ci',
