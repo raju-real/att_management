@@ -201,7 +201,6 @@ class IClockController extends Controller
             'user_type'     => $resolved['user_type'],
             'student_no'    => $resolved['student_no'],
             'teacher_no'    => $resolved['teacher_no'],
-            'name'          => $resolved['name'],
             'device_id'     => $device?->id,
             'device_serial' => $deviceSerial,
             'punch_time'    => $punchTime->format('Y-m-d H:i:s'),
