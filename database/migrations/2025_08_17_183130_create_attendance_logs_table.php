@@ -17,6 +17,7 @@ return new class extends Migration {
             $table->enum('user_type', ['student', 'teacher'])->nullable();
             $table->string('student_no', 191)->nullable();
             $table->string('teacher_no', 191)->nullable();
+            $table->string('name', 191)->nullable();
             $table->integer('device_id')->nullable();
             $table->string('device_serial', 255)->nullable();
             $table->dateTime('punch_time')->nullable();

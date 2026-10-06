@@ -174,9 +174,11 @@ class AdmsService
             /*
              * Duplicate protection.
              */
+            $teacher  = Teacher::whereTeacherNo($pin)->first();
             $att_data = [
                 'user_type'       => 'teacher',
                 'teacher_no'      => $pin,
+                'name'            => $teacher->name ?? null,
                 'device_id'       => $device->id,
                 'device_serial'   => $device->serial_no ?? null,
                 'punch_time'      => $attendanceTime,

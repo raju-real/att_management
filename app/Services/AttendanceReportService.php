@@ -40,12 +40,6 @@ class AttendanceReportService
      */
     public const USER_NO_SQL = "COALESCE(NULLIF(student_no, ''), NULLIF(teacher_no, ''))";
 
-    /**
-     * Student full name from the joined `students s` row. attendance_logs
-     * has no name column — names always come from teachers / students.
-     */
-    public const STUDENT_NAME_SQL = "NULLIF(TRIM(CONCAT_WS(' ', NULLIF(s.firstname, ''), NULLIF(s.middlename, ''), NULLIF(s.lastname, ''))), '')";
-
     public const STATUSES = [
         'late'         => 'Late In',
         'on_time'      => 'On Time / Early In',
@@ -103,6 +97,7 @@ class AttendanceReportService
                 " . self::USER_NO_SQL . " AS user_no,
                 MAX(NULLIF(student_no, '')) AS student_no,
                 MAX(NULLIF(teacher_no, '')) AS teacher_no,
+                NULLIF(MAX(name), '') AS log_name,
                 DATE(punch_time) AS att_date,
                 MIN(punch_time) AS first_punch,
                 MAX(punch_time) AS last_punch,
@@ -138,13 +133,6 @@ class AttendanceReportService
         $q = DB::query()
             ->fromSub(self::dailyPunches($from, $to, $f), 'a')
             ->leftJoin('teachers as t', 't.teacher_no', '=', 'a.teacher_no')
-            // students.student_no is not unique, so join exactly ONE row per
-            // student_no (a live student before a deleted one) — a plain join
-            // would duplicate attendance rows.
-            ->leftJoin('students as s', 's.id', '=', DB::raw(
-                '(SELECT s2.id FROM students s2 WHERE s2.student_no = a.student_no
-                  ORDER BY s2.deleted_at IS NULL DESC, s2.id DESC LIMIT 1)'
-            ))
             ->leftJoin('departments as d', 'd.id', '=', 't.department_id')
             ->leftJoin('shifts as sh', 'sh.id', '=', 'd.shift_id')
             ->selectRaw("
@@ -152,7 +140,7 @@ class AttendanceReportService
                 a.user_no,
                 a.att_date,
                 a.punches,
-                COALESCE(NULLIF(t.name, ''), " . self::STUDENT_NAME_SQL . ", '(Unknown)') AS name,
+                COALESCE(t.name, a.log_name, '(Unknown)') AS name,
                 t.id          AS teacher_id,
                 t.image       AS image,
                 t.designation AS designation,
@@ -178,9 +166,7 @@ class AttendanceReportService
         }
         if (!empty($f['search'])) {
             $s = '%' . trim($f['search']) . '%';
-            $q->where(fn ($w) => $w->where('t.name', 'like', $s)
-                ->orWhereRaw(self::STUDENT_NAME_SQL . ' LIKE ?', [$s])
-                ->orWhere('a.user_no', 'like', $s));
+            $q->where(fn ($w) => $w->where('t.name', 'like', $s)->orWhere('a.log_name', 'like', $s)->orWhere('a.user_no', 'like', $s));
         }
 
         switch ($f['status'] ?? null) {

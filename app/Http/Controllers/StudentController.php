@@ -230,15 +230,18 @@ class StudentController extends Controller
      */
     protected function healUnmatchedAttendance(Student $student): void
     {
+        $name = showStudentFullName($student->firstname, $student->middlename, $student->lastname);
+
         AttendanceLog::where('unmatched_pin', $student->student_no)
             ->whereNull('teacher_no')
             ->whereNull('student_no')
             ->get()
-            ->each(function (AttendanceLog $log) use ($student) {
+            ->each(function (AttendanceLog $log) use ($student, $name) {
                 try {
                     $log->update([
                         'student_no'    => $student->student_no,
                         'user_type'     => 'student',
+                        'name'          => $name,
                         'unmatched_pin' => null,
                     ]);
                 } catch (\Throwable) {
