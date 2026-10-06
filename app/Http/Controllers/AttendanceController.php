@@ -5,12 +5,17 @@ namespace App\Http\Controllers;
 use App\Models\Department;
 use App\Models\Teacher;
 use App\Services\AttendanceReportService as Report;
+use App\Services\DeviceActivityService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AttendanceController extends Controller
 {
+    public function __construct(protected DeviceActivityService $activity)
+    {
+    }
+
     public function syncBackground(Request $request)
     {
         $request->validate([
