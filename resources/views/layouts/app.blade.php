@@ -112,7 +112,7 @@
 
                     {{-- Configuration --}}
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle {{ request()->routeIs(['students.*', 'teachers.*', 'devices.*', 'departments.*', 'shifts.*']) ? 'active' : '' }}"
+                        <a class="nav-link dropdown-toggle {{ request()->routeIs(['students.*', 'teachers.*', 'devices.*', 'devices-monitor', 'departments.*', 'shifts.*']) ? 'active' : '' }}"
                             href="#" id="configDropdown" role="button" data-toggle="dropdown">
                             <i class="fas fa-cogs mr-1"></i> Configuration
                         </a>
@@ -128,6 +128,10 @@
                             <a class="dropdown-item {{ request()->routeIs('devices.*') ? 'active' : '' }}"
                                 href="{{ route('devices.index') }}">
                                 <i class="fas fa-fingerprint mr-2"></i> Devices
+                            </a>
+                            <a class="dropdown-item {{ request()->routeIs('devices-monitor') ? 'active' : '' }}"
+                                href="{{ route('devices-monitor') }}">
+                                <i class="fas fa-satellite-dish mr-2"></i> Device Monitor
                             </a>
                             <div class="dropdown-divider"></div>
                             <a class="dropdown-item {{ request()->routeIs('shifts.*') ? 'active' : '' }}"

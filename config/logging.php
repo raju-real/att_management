@@ -67,6 +67,15 @@ return [
             'days' => 14,
         ],
 
+        // Every request a fingerprint device makes (ZktecoAdmsController):
+        // storage/logs/adms-YYYY-MM-DD.log — follow live with `tail -f`.
+        'adms' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/adms.log'),
+            'level' => 'info',
+            'days' => 30,
+        ],
+
         'slack' => [
             'driver' => 'slack',
             'url' => env('LOG_SLACK_WEBHOOK_URL'),

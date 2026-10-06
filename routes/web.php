@@ -43,6 +43,9 @@ Route::middleware('auth')->group(function () {
         Route::put('update-profile', 'updateProfile')->name('update-profile');
     });
     // Devices
+    // Live push monitor (device check-ins + incoming punches)
+    Route::get('devices-monitor', [\App\Http\Controllers\DeviceMonitorController::class, 'index'])->name('devices-monitor');
+    Route::get('devices-monitor/data', [\App\Http\Controllers\DeviceMonitorController::class, 'data'])->name('devices-monitor.data');
     Route::resource('devices', DeviceController::class);
     Route::controller(DeviceController::class)->group(function () {
         Route::delete('remove-users/{device_id}', 'removeUsers')->name('devices.remove-users');
