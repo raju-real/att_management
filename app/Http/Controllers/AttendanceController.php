@@ -27,15 +27,22 @@ class AttendanceController extends Controller
         $from = $request->sync_from_date ?? Carbon::today()->toDateString();
         $to   = $request->sync_to_date   ?? Carbon::today()->toDateString();
 
-        $result = $this->activity->pullAttendanceFromAllDevices($from, $to, $request->device_id);
+        // Push-mode devices are asked to re-upload the range; TCP devices are read live.
+        $result = app(\App\Services\AdmsCommandService::class)
+            ->pullAttendance($from, $to, $request->device_id ? (int) $request->device_id : null);
 
         if ($result['deviceCount'] === 0) {
             return back()->with(dangerMessage('danger', 'No active devices found.'));
         }
 
-        $msg = implode("\n", $result['messages']);
-        return back()->with(successMessage('success',
-            "Attendance sync complete. {$result['total']} record(s) total.\n{$msg}"));
+        $head = $result['pulled'] > 0
+            ? "Pulled {$result['pulled']} record(s) directly from TCP device(s)."
+            : 'Pull request processed.';
+        if ($result['requested'] > 0) {
+            $head .= " {$result['requested']} push-mode device(s) asked to re-send {$from} → {$to}; refresh the logs in about a minute.";
+        }
+
+        return back()->with(successMessage('success', $head . "\n" . implode("\n", $result['messages'])));
     }
 
     /**

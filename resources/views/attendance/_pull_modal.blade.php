@@ -32,7 +32,9 @@
                     </div>
                     <div class="alert alert-info py-2 small mb-0">
                         <i class="fas fa-info-circle mr-1"></i>
-                        <strong>Push Mode devices:</strong> shows the count of records already in the database.<br>
+                        <strong>Push Mode devices:</strong> the device is asked to re-send its punches for these dates.
+                        It uploads them on its next check-in (usually within a minute); refresh the logs afterwards.
+                        Punches already saved are never duplicated.<br>
                         <strong>TCP devices:</strong> connects live and pulls logs from device memory.
                     </div>
                 </div>
