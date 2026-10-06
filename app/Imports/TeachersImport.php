@@ -50,8 +50,8 @@ class TeachersImport implements ToCollection, WithHeadingRow
                 $this->skipped[] = "Row {$line}: teacher_no is empty.";
                 continue;
             }
-            if (!preg_match('/^[0-9]{1,9}$/', $teacherNo)) {
-                $this->skipped[] = "Row {$line}: teacher_no \"{$teacherNo}\" must be a number of 1 to 9 digits.";
+            if (!preg_match('/^[0-9]{1,20}$/', $teacherNo)) {
+                $this->skipped[] = "Row {$line}: teacher_no \"{$teacherNo}\" must be a number of 1 to 20 digits.";
                 continue;
             }
             $pinRule = new UniqueDevicePin('teacher');

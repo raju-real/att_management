@@ -60,7 +60,8 @@ class ZktecoAdmsController extends Controller
         if (in_array(strtoupper($table), DeviceUserService::UPLOAD_TABLES, true)) {
             $device = $this->device($request);
             if ($device) {
-                $extra['users_saved'] = $this->users->storeFromUpload($device, $request->getContent());
+                $extra['users_saved']      = $this->users->storeFromUpload($device, $request->getContent());
+                $extra['teachers_created'] = $this->users->lastTeachersCreated;
             }
         }
         $this->track($request, 'DATA ' . strtoupper($table), $extra);

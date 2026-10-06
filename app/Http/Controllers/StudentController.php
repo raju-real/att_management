@@ -113,7 +113,7 @@ class StudentController extends Controller
             'student_id' => ['required', 'string', 'max:191', Rule::unique('students', 'student_id')->whereNull('deleted_at')],
             // Device PIN: numeric, unique among students (incl. deleted — the PIN
             // may still be enrolled on a device) and not used by any teacher.
-            'student_no' => ['nullable', 'regex:/^[0-9]{1,9}$/', Rule::unique('students', 'student_no'), new UniqueDevicePin('student')],
+            'student_no' => ['nullable', 'regex:/^[0-9]{1,20}$/', Rule::unique('students', 'student_no'), new UniqueDevicePin('student')],
         ], $this->messages());
 
         $student = new Student();
@@ -219,7 +219,7 @@ class StudentController extends Controller
     {
         return [
             'student_id.unique' => 'Another student already has this Student ID.',
-            'student_no.regex'  => 'Device ID must be a number of 1 to 9 digits (fingerprint devices only accept numeric IDs).',
+            'student_no.regex'  => 'Device ID must be a number of 1 to 20 digits (fingerprint devices only accept numeric IDs).',
             'student_no.unique' => 'This device ID already belongs to another student (including deleted students).',
         ];
     }

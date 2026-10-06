@@ -210,7 +210,7 @@ class TeacherController extends Controller
 
         return [
             'name'          => ['required', 'string', 'max:100'],
-            'teacher_no'    => ['required', 'regex:/^[0-9]{1,9}$/', Rule::unique('teachers')->ignore($ignoreId), new UniqueDevicePin('teacher')],
+            'teacher_no'    => ['required', 'regex:/^[0-9]{1,20}$/', Rule::unique('teachers')->ignore($ignoreId), new UniqueDevicePin('teacher')],
             'email'         => ['nullable', 'email', 'max:100', $unique()],
             'mobile'        => ['nullable', 'regex:/^[0-9+\-\s]{6,20}$/', $unique()],
             'designation'   => ['nullable', 'string', 'max:100'],
@@ -223,7 +223,7 @@ class TeacherController extends Controller
     {
         return [
             'department_id.required' => 'Please select a department (its shift sets the in/out time).',
-            'teacher_no.regex'       => 'Device ID must be a number of 1 to 9 digits (fingerprint devices only accept numeric IDs).',
+            'teacher_no.regex'       => 'Device ID must be a number of 1 to 20 digits (fingerprint devices only accept numeric IDs).',
             'teacher_no.unique'      => 'This device ID already belongs to another teacher (including deleted teachers).',
             'mobile.regex'           => 'Enter a valid phone number (digits, +, - and spaces only).',
         ];

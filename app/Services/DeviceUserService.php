@@ -5,6 +5,8 @@ namespace App\Services;
 use App\Models\Device;
 use App\Models\DeviceCommand;
 use App\Models\DeviceUser;
+use App\Models\Student;
+use App\Models\Teacher;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -74,7 +76,8 @@ class DeviceUserService
         }
         $count = $this->store($device, $rows, true);
 
-        return ['success' => true, 'queued' => false, 'count' => $count, 'message' => "{$count} user(s) read from [{$device->name}]."];
+        return ['success' => true, 'queued' => false, 'count' => $count,
+            'message' => "{$count} user(s) read from [{$device->name}]; {$this->lastTeachersCreated} new teacher(s) created (existing teachers unchanged)."];
     }
 
     /**
@@ -83,6 +86,7 @@ class DeviceUserService
      */
     public function storeFromUpload(Device $device, string $body): int
     {
+        $this->lastTeachersCreated = 0;
         $rows = [];
         foreach (preg_split('/\r\n|\n|\r/', $body) as $line) {
             if ($row = self::parseUserLine($line)) {
@@ -164,10 +168,66 @@ class DeviceUserService
             DeviceUser::where('device_id', $device->id)->whereNotIn('pin', $pins ?: ['__none__'])->delete();
         }
 
+        $this->lastTeachersCreated = $this->createMissingTeachers($device, $pins);
+
         if ($saved) {
-            Log::channel('adms')->info('USERS SAVED', ['sn' => $device->serial_no, 'count' => $saved]);
+            Log::channel('adms')->info('USERS SAVED', [
+                'sn' => $device->serial_no, 'count' => $saved, 'teachers_created' => $this->lastTeachersCreated,
+            ]);
         }
 
         return $saved;
+    }
+
+    /** Teachers created by the most recent store() call. */
+    public int $lastTeachersCreated = 0;
+
+    /** New teachers get this department until an admin assigns one ("Not set" in the list). */
+    public const UNASSIGNED_DEPARTMENT = 0;
+
+    /**
+     * Create a teacher (teacher_no = PIN, name = device name) for every
+     * device user that is not a teacher yet. Existing teachers — including
+     * soft-deleted ones, teacher_no is unique in the DB — are never changed.
+     *
+     * Skipped: student-only devices, PINs used by a student (a PIN on both
+     * would make punches ambiguous) and non-numeric PINs.
+     */
+    protected function createMissingTeachers(Device $device, array $pins): int
+    {
+        if ($device->device_for === 'student' || ! $pins) {
+            return 0;
+        }
+
+        $pins = array_values(array_unique(array_filter($pins, fn ($p) => preg_match('/^[0-9]{1,20}$/', $p))));
+        if (! $pins) {
+            return 0;
+        }
+
+        $teacherNos = Teacher::withTrashed()->whereIn('teacher_no', $pins)->pluck('teacher_no')->map(fn ($v) => (string) $v)->all();
+        $studentNos = Student::withTrashed()->whereIn('student_no', $pins)->pluck('student_no')->map(fn ($v) => (string) $v)->all();
+        $new = array_diff($pins, $teacherNos, $studentNos);
+        if (! $new) {
+            return 0;
+        }
+
+        $names = DeviceUser::where('device_id', $device->id)->whereIn('pin', $new)->pluck('name', 'pin');
+
+        $created = 0;
+        foreach ($new as $pin) {
+            try {
+                $teacher = new Teacher();
+                $teacher->teacher_no    = $pin;
+                $teacher->name          = trim((string) ($names[$pin] ?? '')) ?: "Teacher {$pin}";
+                $teacher->department_id = self::UNASSIGNED_DEPARTMENT;
+                $teacher->save();
+                $created++;
+            } catch (\Throwable $e) {
+                // e.g. created at the same moment by another request — skip it
+                Log::channel('adms')->warning('TEACHER CREATE SKIPPED', ['sn' => $device->serial_no, 'pin' => $pin, 'error' => $e->getMessage()]);
+            }
+        }
+
+        return $created;
     }
 }
