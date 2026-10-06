@@ -195,6 +195,52 @@ class DeviceController extends Controller
         ]);
     }
 
+    // ─── Device Users (PIN + name enrolled on the device) ──────────────────────
+
+    /** List of users the device last reported, matched against teachers/students. */
+    public function getUsers(Request $request, $deviceId)
+    {
+        $device = Device::findOrFail($deviceId);
+
+        $users = \App\Models\DeviceUser::query()
+            ->from('device_users as du')
+            ->where('du.device_id', $device->id)
+            ->leftJoin('teachers as t', fn ($j) => $j->on('t.teacher_no', '=', 'du.pin')->whereNull('t.deleted_at'))
+            ->select('du.*', 't.id as teacher_id', 't.name as teacher_name')
+            ->selectRaw('(SELECT s.id FROM students s WHERE s.student_no = du.pin AND s.deleted_at IS NULL LIMIT 1) AS student_id')
+            ->when($request->filled('search'), function ($q) use ($request) {
+                $s = '%' . trim($request->search) . '%';
+                $q->where(fn ($w) => $w->where('du.pin', 'like', $s)->orWhere('du.name', 'like', $s));
+            })
+            ->when($request->status === 'registered', fn ($q) => $q->where(fn ($w) => $w->whereNotNull('t.id')
+                ->orWhereRaw('EXISTS (SELECT 1 FROM students s WHERE s.student_no = du.pin AND s.deleted_at IS NULL)')))
+            ->when($request->status === 'unregistered', fn ($q) => $q->whereNull('t.id')
+                ->whereRaw('NOT EXISTS (SELECT 1 FROM students s WHERE s.student_no = du.pin AND s.deleted_at IS NULL)'))
+            ->orderByRaw('CAST(du.pin AS UNSIGNED), du.pin')
+            ->paginate(100)
+            ->withQueryString();
+
+        $total       = \App\Models\DeviceUser::where('device_id', $device->id)->count();
+        $lastFetched = \App\Models\DeviceUser::where('device_id', $device->id)->max('received_at');
+        $waiting     = \App\Models\DeviceCommand::where('device_id', $device->id)
+            ->whereIn('status', ['pending', 'sent'])
+            ->where('command_text', \App\Services\DeviceUserService::USER_QUERY)
+            ->exists();
+
+        return view('configuration.device_users', compact('device', 'users', 'total', 'lastFetched', 'waiting'));
+    }
+
+    /** Ask the device for its user list (push: queued; TCP: read live). */
+    public function fetchUsers($deviceId)
+    {
+        $device = Device::findOrFail($deviceId);
+        $result = app(\App\Services\DeviceUserService::class)->fetch($device);
+
+        return redirect()->route('devices.users', $device->id)->with($result['success']
+            ? successMessage('success', $result['message'])
+            : dangerMessage('danger', $result['message']));
+    }
+
     /** Remove all users from device. */
     public function removeUsers($id): \Illuminate\Http\RedirectResponse
     {

@@ -5,6 +5,7 @@ use App\Models\AttendanceLog;
 use App\Models\Device;
 use App\Services\AdmsCommandService;
 use App\Services\AdmsService;
+use App\Services\DeviceUserService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
@@ -12,11 +13,13 @@ class ZktecoAdmsController extends Controller
 {
     private $adms;
     private $commands;
+    private $users;
 
-    public function __construct(AdmsService $adms, AdmsCommandService $commands)
+    public function __construct(AdmsService $adms, AdmsCommandService $commands, DeviceUserService $users)
     {
         $this->adms     = $adms;
         $this->commands = $commands;
+        $this->users    = $users;
     }
 
     public function cdata(Request $request)
@@ -50,6 +53,15 @@ class ZktecoAdmsController extends Controller
                 ->where('device_serial', (string) $request->query('SN'))
                 ->count();
             $extra = ['received' => count($lines), 'saved' => $saved, 'duplicates' => count($lines) - $saved];
+        }
+
+        // Enrolled-user upload (answer to "Fetch Users" / DATA QUERY USERINFO,
+        // or sent by the device on its own after enrolment changes).
+        if (in_array(strtoupper($table), DeviceUserService::UPLOAD_TABLES, true)) {
+            $device = $this->device($request);
+            if ($device) {
+                $extra['users_saved'] = $this->users->storeFromUpload($device, $request->getContent());
+            }
         }
         $this->track($request, 'DATA ' . strtoupper($table), $extra);
 

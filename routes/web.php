@@ -58,6 +58,7 @@ Route::middleware('auth')->group(function () {
         Route::post('devices/{device_id}/push-teachers', 'pushTeachers')->name('devices.push-teachers');
         Route::post('devices/{device_id}/pull-attendance', 'pullAttendance')->name('devices.pull-attendance');
         Route::post('devices/{device_id}/pull-users', 'pullUsers')->name('devices.pull-users');
+        Route::post('devices/{device_id}/fetch-users', 'fetchUsers')->name('devices.fetch-users');
     });
     // Manage Student
     Route::get('students/sync', [StudentController::class, 'sync'])->name('students.sync');

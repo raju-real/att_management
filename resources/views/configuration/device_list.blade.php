@@ -194,19 +194,18 @@
                                             </button>
                                         </form> --}}
 
-                                        {{-- Show Users / Pull Users (TCP only — push mode has no live list) --}}
-                                        {{-- @unless($device->use_push_mode)
-                                        <a href="{{ route('devices.users', $device->id) }}" class="device-action-btn" style="background:#6366f1;color:#fff">
-                                            <i class="fas fa-users"></i> View Device Users
+                                        {{-- Device users (PIN + name enrolled on the device). Works for push and TCP. --}}
+                                        <a href="{{ route('devices.users', $device->id) }}" class="device-action-btn" style="background:#6366f1;color:#fff"
+                                           {!! tooltip('Users (PIN + name) enrolled on this device') !!}>
+                                            <i class="fas fa-users"></i> Device Users
                                         </a>
-                                        <form action="{{ route('devices.pull-users', $device->id) }}" method="POST" class="d-inline">
+                                        <form action="{{ route('devices.fetch-users', $device->id) }}" method="POST" class="d-inline">
                                             @csrf
                                             <button type="submit" class="device-action-btn" style="background:#7c3aed;color:#fff"
-                                                onclick="return confirm('Pull all users already enrolled on [{{ $device->name }}] and create/update matching Student or Teacher records?')">
-                                                <i class="fas fa-file-import"></i> Pull Users (device → DB)
+                                                {!! tooltip($device->use_push_mode ? 'Ask the device to send its user list (arrives on its next check-in)' : 'Read the user list from the device now') !!}>
+                                                <i class="fas fa-user-friends"></i> Fetch Users
                                             </button>
                                         </form>
-                                        @endunless --}}
 
                                         {{-- Mode badge --}}
                                         <span class="ms-auto text-muted" style="font-size:.78em">
