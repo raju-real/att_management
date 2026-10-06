@@ -4,22 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Models\AttendanceLog;
 use App\Models\Student;
-use App\Services\DeviceActivityService;
-use App\Services\DeviceSyncService;
 use App\Rules\UniqueDevicePin;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
 class StudentController extends Controller
 {
-    protected DeviceSyncService $deviceSync;
-    protected DeviceActivityService $activity;
-
-    public function __construct(DeviceSyncService $deviceSync, DeviceActivityService $activity)
-    {
-        $this->deviceSync = $deviceSync;
-        $this->activity   = $activity;
-    }
 
     public function index(Request $request)
     {
@@ -59,8 +49,6 @@ class StudentController extends Controller
                 dangerMessage('danger', 'Cannot connect to student database: ' . $e->getMessage())
             );
         }
-
-        \App\Jobs\SyncStudentFromDbJob::dispatch();
 
         return redirect()->back()->with(successMessage('success', 'Student sync has been queued and is running in background.'));
     }

@@ -6,22 +6,11 @@ use App\Models\AttendanceLog;
 use App\Models\Department;
 use App\Models\Teacher;
 use App\Rules\UniqueDevicePin;
-use App\Services\DeviceActivityService;
-use App\Services\DeviceSyncService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
 class TeacherController extends Controller
 {
-    protected DeviceSyncService $deviceSync;
-    protected DeviceActivityService $activity;
-
-    public function __construct(DeviceSyncService $deviceSync, DeviceActivityService $activity)
-    {
-        $this->deviceSync = $deviceSync;
-        $this->activity   = $activity;
-    }
-
     public function index(Request $request)
     {
         $query = Teacher::with('department.shift');

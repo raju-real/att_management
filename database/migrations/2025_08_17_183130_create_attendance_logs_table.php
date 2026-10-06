@@ -19,7 +19,7 @@ return new class extends Migration {
             $table->string('teacher_no', 191)->nullable();
             $table->integer('device_id')->nullable();
             $table->string('device_serial', 255)->nullable();
-            $table->timestamp('punch_time')->nullable();
+            $table->dateTime('punch_time')->nullable();
             $table->string('pin')->nullable();
             $table->dateTime('attendance_time')->nullable();
             $table->unsignedTinyInteger('status')->default(0);
