@@ -29,11 +29,14 @@
     <div class="d-flex justify-content-between align-items-center mb-2">
         <h3>Teacher Management</h3>
         <div>
-            <a href="{{ route('teachers.push-to-device') }}" class="btn btn-warning text-white mr-2"
-               onclick="return confirm('Push ALL teachers to all active devices now?')"
-               {!! tooltip('Push all teachers to fingerprint devices') !!}>
-                <i class="fas fa-upload mr-1"></i> Push to Device
-            </a>
+            <button type="button" class="btn btn-info text-white mr-2" data-dp-action="push" data-dp-scope="selected" disabled
+               {!! tooltip('Push the ticked teachers to a device') !!}>
+                <i class="fas fa-upload mr-1"></i> Push Selected (<span class="dp-count">0</span>)
+            </button>
+            <button type="button" class="btn btn-warning text-white mr-2" data-dp-action="push" data-dp-scope="all"
+               {!! tooltip('Push all teachers to a device (only new users are added)') !!}>
+                <i class="fas fa-upload mr-1"></i> Push All
+            </button>
             <a href="{{ route('teachers.import') }}" class="btn btn-success text-white mr-2" {!! tooltip('Import teachers from CSV / Excel') !!}>
                 <i class="fas fa-file-import mr-1"></i> Import
             </a>
@@ -122,6 +125,7 @@
                 <table class="table table-hover table-striped">
                     <thead>
                         <tr>
+                            <th style="width:36px"><input type="checkbox" id="dpCheckAll" title="Select all on this page"></th>
                             <th style="width:50px">#</th>
                             <th style="width:60px">Photo</th>
                             <th>Device ID</th>
@@ -136,6 +140,7 @@
                     <tbody>
                         @forelse($teachers as $teacher)
                             <tr>
+                                <td><input type="checkbox" class="dp-check" value="{{ $teacher->id }}"></td>
                                 <td>{{ $teachers->firstItem() + $loop->index }}</td>
                                 <td>
                                     @if($teacher->image && file_exists($teacher->image))
@@ -169,6 +174,14 @@
                                        class="action-btn text-info" {!! tooltip('Edit Teacher') !!}>
                                        <i class="fas fa-edit"></i>
                                     </a>
+                                    <a href="javascript:void(0);" class="action-btn text-primary" {!! tooltip('Push to device') !!}
+                                       data-dp-action="push" data-dp-scope="one" data-dp-id="{{ $teacher->id }}" data-dp-name="{{ $teacher->name }} (#{{ $teacher->teacher_no }})">
+                                        <i class="fas fa-upload"></i>
+                                    </a>
+                                    <a href="javascript:void(0);" class="action-btn text-warning" {!! tooltip('Remove from device') !!}
+                                       data-dp-action="remove" data-dp-scope="one" data-dp-id="{{ $teacher->id }}" data-dp-name="{{ $teacher->name }} (#{{ $teacher->teacher_no }})">
+                                        <i class="fas fa-user-slash"></i>
+                                    </a>
                                     <a {!! tooltip('Delete Teacher') !!} class="action-btn text-danger delete-data"
                                        data-id="delete-teacher-{{ $teacher->id }}" href="javascript:void(0);">
                                         <i class="fas fa-trash-alt"></i>
@@ -190,6 +203,8 @@
             </div>
         </div>
     </div>
+
+    @include('partials.device_push_modal', ['group' => 'teacher'])
 @endsection
 
 @push('js')

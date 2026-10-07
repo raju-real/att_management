@@ -60,6 +60,25 @@ class DeviceCommand extends Model
     }
 
     /**
+     * Add/rename a user WITHOUT touching anything else on the device:
+     * no Password / Card / Group fields (so they are not reset) and
+     * Privilege only when we know the device's current value. Fingerprint
+     * templates live in a separate table and are never affected.
+     */
+    public static function userInfoCommand(string $pin, string $name, ?int $privilege = null, ?string $card = null): string
+    {
+        $name = trim(str_replace(["\t", "\r", "\n", '\\'], ' ', $name));
+        $cmd  = "DATA UPDATE USERINFO PIN={$pin}\tName={$name}";
+        if ($privilege !== null) {
+            $cmd .= "\tPri={$privilege}";
+        }
+        if ($card !== null && $card !== '') {
+            $cmd .= "\tCard={$card}";
+        }
+        return $cmd;
+    }
+
+    /**
      * Build a DELETE USER command string for the iClock protocol.
      */
     public static function deleteUserCommand(string $pin): string

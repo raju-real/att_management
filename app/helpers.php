@@ -478,6 +478,20 @@ if (!function_exists('activeDevices')) {
     }
 }
 
+if (!function_exists('activeDeviceSerials')) {
+    /**
+     * Serial numbers of active devices, from the "device_serial_number"
+     * cache maintained by App\Observers\DeviceObserver (rebuilt if missing).
+     *
+     * @return string[]
+     */
+    function activeDeviceSerials(): array
+    {
+        $cached = cache()->get(\App\Observers\DeviceObserver::CACHE_KEY);
+        return is_array($cached) ? $cached : \App\Observers\DeviceObserver::refresh();
+    }
+}
+
 if (!function_exists('showStudentFullName')) {
     function showStudentFullName($first_name, $middle_name, $last_name): string
     {

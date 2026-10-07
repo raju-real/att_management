@@ -47,6 +47,11 @@ Route::middleware('auth')->group(function () {
     Route::get('devices-monitor', [\App\Http\Controllers\DeviceMonitorController::class, 'index'])->name('devices-monitor');
     Route::get('devices-monitor/data', [\App\Http\Controllers\DeviceMonitorController::class, 'data'])->name('devices-monitor.data');
     Route::resource('devices', DeviceController::class);
+    // Push / remove teachers or students on devices (single, selected or all; one device or all active)
+    Route::post('device-push/{group}', [\App\Http\Controllers\DevicePushController::class, 'push'])
+        ->whereIn('group', ['teacher', 'student'])->name('device-push');
+    Route::post('device-remove/{group}', [\App\Http\Controllers\DevicePushController::class, 'remove'])
+        ->whereIn('group', ['teacher', 'student'])->name('device-remove');
     Route::controller(DeviceController::class)->group(function () {
         Route::delete('remove-users/{device_id}', 'removeUsers')->name('devices.remove-users');
         Route::get('test-connection/{device_id}', 'testConnection')->name('devices.test-connection');

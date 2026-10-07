@@ -95,7 +95,13 @@
                                            {!! tooltip('Open the Add Teacher form pre-filled with this PIN and name') !!}>Add as teacher</a>
                                     @endif
                                 </td>
-                                <td><small class="text-muted">{{ $u->received_at?->format('d M Y, h:i A') ?? '-' }}</small></td>
+                                <td>
+                                    @if($u->received_at)
+                                        <small class="text-muted">{{ $u->received_at->format('d M Y, h:i A') }}</small>
+                                    @else
+                                        <span class="badge badge-light border" {!! tooltip('Pushed from this system; waiting for the device to confirm') !!}>Pushed, awaiting device</span>
+                                    @endif
+                                </td>
                             </tr>
                         @empty
                             <tr>

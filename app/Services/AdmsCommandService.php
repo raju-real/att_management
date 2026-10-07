@@ -159,14 +159,40 @@ class AdmsCommandService
             if (empty($result['ID']) || ! ctype_digit((string) $result['ID'])) {
                 continue;
             }
-            $updated += DeviceCommand::where('id', (int) $result['ID'])
+            $ok      = ((int) ($result['Return'] ?? -1)) >= 0;
+            $changed = DeviceCommand::where('id', (int) $result['ID'])
                 ->where('device_id', $device->id)
                 ->update([
-                    'status'      => ((int) ($result['Return'] ?? -1)) >= 0 ? 'done' : 'failed',
+                    'status'      => $ok ? 'done' : 'failed',
                     'executed_at' => now(),
                 ]);
+            $updated += $changed;
+
+            if ($changed) {
+                $this->syncDeviceUser($device, (int) $result['ID'], $ok);
+            }
         }
 
         return $updated;
+    }
+
+    /**
+     * Keep device_users in step with a user-push result: confirmed → mark it
+     * received; rejected → drop the row if the device never confirmed that
+     * user (it was only expected there because we queued it).
+     */
+    protected function syncDeviceUser(Device $device, int $commandId, bool $ok): void
+    {
+        $text = (string) DeviceCommand::whereKey($commandId)->value('command_text');
+        if (! preg_match('/^DATA UPDATE USERINFO PIN=([^\t]+)/', $text, $m)) {
+            return;
+        }
+
+        $row = \App\Models\DeviceUser::where('device_id', $device->id)->where('pin', $m[1]);
+        if ($ok) {
+            $row->update(['received_at' => now()]);
+        } else {
+            $row->whereNull('received_at')->delete();
+        }
     }
 }

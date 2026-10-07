@@ -5,11 +5,21 @@ namespace App\Http\Controllers;
 use App\Models\AttendanceLog;
 use App\Models\Student;
 use App\Rules\UniqueDevicePin;
+use App\Services\DeviceActivityService;
+use App\Services\DeviceSyncService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
 class StudentController extends Controller
 {
+    protected DeviceSyncService $deviceSync;
+    protected DeviceActivityService $activity;
+
+    public function __construct(DeviceSyncService $deviceSync, DeviceActivityService $activity)
+    {
+        $this->deviceSync = $deviceSync;
+        $this->activity   = $activity;
+    }
 
     public function index(Request $request)
     {

@@ -10,9 +10,14 @@
             {{-- <a href="{{ route('students.sync') }}" class="btn btn-info text-white mr-2" {!! tooltip('Sync Student') !!}>
                 <i class="fas fa-sync mr-2"></i> Sync Student
             </a> --}}
-            <a href="{{ route('students.push-to-device') }}" class="btn btn-warning text-white mr-2" {!! tooltip('Push to Device') !!}>
-                <i class="fas fa-upload mr-2"></i> Push to Device
-            </a>
+            <button type="button" class="btn btn-info text-white mr-2" data-dp-action="push" data-dp-scope="selected" disabled
+                {!! tooltip('Push the ticked students to a device') !!}>
+                <i class="fas fa-upload mr-1"></i> Push Selected (<span class="dp-count">0</span>)
+            </button>
+            <button type="button" class="btn btn-warning text-white mr-2" data-dp-action="push" data-dp-scope="all"
+                {!! tooltip('Push all students to a device (only new users are added)') !!}>
+                <i class="fas fa-upload mr-1"></i> Push All
+            </button>
             <a href="{{ route('students.import') }}" class="btn btn-success text-white mr-2" {!! tooltip('Import Student') !!}>
                 <i class="fas fa-file-excel mr-2"></i> Import Student
             </a>
@@ -121,6 +126,7 @@
                 <table class="table table-hover table-striped">
                     <thead>
                         <tr>
+                            <th style="width:36px"><input type="checkbox" id="dpCheckAll" title="Select all on this page"></th>
                             <th>#</th>
                             <th>Device ID</th>
                             <th>Student ID</th>
@@ -136,7 +142,8 @@
                     <tbody>
                         @forelse($students as $student)
                             <tr>
-                                <td>{{ $loop->index + 1 }}</td>
+                                <td><input type="checkbox" class="dp-check" value="{{ $student->id }}"></td>
+                                <td>{{ $students->firstItem() + $loop->index }}</td>
                                 <td>{{ $student->student_no ?? '' }}</td>
                                 <td>{{ $student->student_id ?? '' }}</td>
                                 <td>{{ showStudentFullName($student->firstname, $student->middlename, $student->lastname) ?? '' }}
@@ -151,6 +158,15 @@
                                         class="action-btn text-info" {!! tooltip('Show Details of Student') !!}><i class="fas fa-eye"></i></a>
                                     <a href="{{ route('students.edit', $student->id) }}" class="action-btn text-primary"
                                         {!! tooltip('Edit Student') !!}><i class="fas fa-edit"></i></a>
+                                    @php $dpName = (showStudentFullName($student->firstname, $student->middlename, $student->lastname) ?: 'Student') . ' (#' . $student->student_no . ')'; @endphp
+                                    <a href="javascript:void(0);" class="action-btn text-primary" {!! tooltip('Push to device') !!}
+                                        data-dp-action="push" data-dp-scope="one" data-dp-id="{{ $student->id }}" data-dp-name="{{ $dpName }}">
+                                        <i class="fas fa-upload"></i>
+                                    </a>
+                                    <a href="javascript:void(0);" class="action-btn text-warning" {!! tooltip('Remove from device') !!}
+                                        data-dp-action="remove" data-dp-scope="one" data-dp-id="{{ $student->id }}" data-dp-name="{{ $dpName }}">
+                                        <i class="fas fa-user-slash"></i>
+                                    </a>
                                     <a {!! tooltip('Delete From List and Device') !!} class="action-btn text-danger delete-data"
                                         data-id="{{ 'delete-student-' . $student->id }}" href="javascript:void(0);">
                                         <i class="fas fa-trash-alt"></i>
@@ -175,6 +191,8 @@
             </div>
         </div>
     </div>
+
+    @include('partials.device_push_modal', ['group' => 'student'])
 @endsection
 
 @push('js')

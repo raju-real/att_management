@@ -27,6 +27,7 @@ class EventServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-        //
+        // Maintains the "device_serial_number" cache (active device serials).
+        \App\Models\Device::observe(\App\Observers\DeviceObserver::class);
     }
 }
