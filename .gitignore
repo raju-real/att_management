@@ -2,7 +2,6 @@
 /storage/*.key
 /vendor
 /public/assets/common/json/*
-/config/database.php
 .env
 .env.backup
 .phpunit.result.cache
