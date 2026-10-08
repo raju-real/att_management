@@ -89,25 +89,48 @@ class AttendanceController extends Controller
     {
         $rows = Report::logsForExport($filters);
 
+        // Same rows and rules as the Attendance Logs page. Date = work date
+        // (the day the shift started); "(+1)" = punch on the next day.
         return $this->csv("attendance_logs_{$from}_to_{$to}.csv",
-            ['Date', 'User Type', 'ID', 'Name', 'Department', 'Shift In', 'Shift Out', 'In Time', 'Out Time', 'Late By', 'Early Out By', 'Working Hours', 'Punches'],
+            ['Work Date', 'Day', 'User Type', 'ID', 'Name', 'Department', 'Shift', 'Shift In', 'Shift Out',
+             'Late After', 'Early Out Before', 'In Time', 'Out Time', 'Status', 'Late By', 'Early Out By',
+             'Working Hours', 'Punches', 'Outside Shift Punches'],
             $rows,
             fn ($r) => [
                 $r->att_date,
+                Carbon::parse($r->att_date)->format('l'),
                 ucfirst((string) $r->user_type),
                 $r->user_no,
                 $r->name,
                 $r->department ?? '-',
-                $r->std_in ? Carbon::parse($r->std_in)->format('h:i A') : '-',
-                $r->std_out ? Carbon::parse($r->std_out)->format('h:i A') : '-',
-                Carbon::parse($r->in_time)->format('h:i A'),
-                $r->out_time ? Carbon::parse($r->out_time)->format('h:i A') : '-',
+                $r->shift_title ?? ($r->std_in ? 'Default' : '-'),
+                Report::shiftClock($r->std_in),
+                Report::shiftClock($r->std_out, $r->std_in),
+                Report::shiftClock($r->late_count_time),
+                Report::shiftClock($r->early_out_count_time),
+                Report::clock($r->in_time, $r->att_date),
+                Report::clock($r->out_time, $r->att_date),
+                self::statusText($r),
                 $r->is_late ? Report::minutesToHm((int) $r->late_minutes) : '-',
                 $r->is_early_out ? Report::minutesToHm((int) $r->early_out_minutes) : '-',
-                Report::minutesToHm((int) $r->work_minutes),
+                $r->in_time && $r->out_time ? Report::minutesToHm((int) $r->work_minutes) : '-',
                 $r->punches,
+                (int) $r->outside_punches,
             ]
         );
+    }
+
+    /** Human status of one day row, shared by the CSV export. */
+    public static function statusText(object $r): string
+    {
+        $parts = [];
+        if ($r->missing_in)   $parts[] = 'Missing In';
+        if ($r->missing_out)  $parts[] = 'Missing Out';
+        if ($r->is_late)      $parts[] = 'Late In';
+        if ($r->is_early_out) $parts[] = 'Early Out';
+        if (!$parts && $r->in_time) $parts[] = $r->late_count_time ? 'On Time' : 'Present';
+        if ((int) $r->outside_punches > 0) $parts[] = 'Outside Shift Punch';
+        return implode(', ', $parts);
     }
 
     // ───────────────────────────── Monthly Summary ─────────────────────────────
@@ -140,17 +163,18 @@ class AttendanceController extends Controller
         $rows = Report::monthlySummaryForExport($filters);
 
         return $this->csv("attendance_summary_{$from}_to_{$to}.csv",
-            ['User Type', 'ID', 'Name', 'Department', 'Shift In', 'Shift Out', 'Working Days', 'Present Days', 'Absent Days',
-             'Early In (days)', 'Late In (days)', 'Total Late', 'Early Out (days)', 'Total Early Out', 'No Out Punch (days)',
-             'Earliest In', 'Average In', 'Total Working Hours'],
+            ['User Type', 'ID', 'Name', 'Department', 'Shift', 'Shift In', 'Shift Out', 'Working Days', 'Present Days', 'Absent Days',
+             'On Time (days)', 'Late In (days)', 'Total Late', 'Early Out (days)', 'Total Early Out', 'Missing In/Out (days)',
+             'Outside Shift Punches', 'Earliest In', 'Average In', 'Total Working Hours'],
             $rows,
             fn ($r) => [
                 ucfirst((string) $r->user_type),
                 $r->user_no,
                 $r->name,
                 $r->department ?? '-',
-                $r->std_in ? Carbon::parse($r->std_in)->format('h:i A') : '-',
-                $r->std_out ? Carbon::parse($r->std_out)->format('h:i A') : '-',
+                $r->shift_title ?? ($r->std_in ? 'Default' : '-'),
+                Report::shiftClock($r->std_in),
+                Report::shiftClock($r->std_out, $r->std_in),
                 $workingDays,
                 $r->present_days,
                 max(0, $workingDays - (int) $r->present_days),
@@ -160,6 +184,7 @@ class AttendanceController extends Controller
                 (int) $r->early_out_days,
                 Report::minutesToHm((int) $r->early_out_minutes),
                 (int) $r->single_punch_days,
+                (int) $r->outside_punches,
                 $r->earliest_in ? Carbon::parse($r->earliest_in)->format('h:i A') : '-',
                 $r->avg_in ? Carbon::parse($r->avg_in)->format('h:i A') : '-',
                 Report::minutesToHm((int) $r->work_minutes),
@@ -183,6 +208,7 @@ class AttendanceController extends Controller
             'teacher_no'    => $request->teacher_no,
             'user_no'       => $request->user_no ? trim($request->user_no) : null,
             'department_id' => $request->department_id,
+            'shift_id'      => $request->shift_id,
             'search'        => $request->search,
             'status'        => $status,
             'sort'          => $request->sort,
@@ -193,7 +219,8 @@ class AttendanceController extends Controller
     {
         return [
             'teachers'    => Teacher::orderBy('name')->get(['teacher_no', 'name']),
-            'departments' => Department::orderBy('name')->get(['id', 'name']),
+            'departments' => Department::orderBy('name')->get(['id', 'name', 'shift_id']),
+            'shifts'      => \App\Models\Shift::orderBy('in_time')->get(['id', 'title', 'in_time', 'out_time']),
             'statuses'    => Report::STATUSES,
         ];
     }

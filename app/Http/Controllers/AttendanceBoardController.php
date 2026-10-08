@@ -23,7 +23,13 @@ class AttendanceBoardController extends Controller
      */
     public function data(Request $request)
     {
-        $payload = Report::teacherBoard($this->date($request));
+        // Optional filters: department only, shift only, or both.
+        $filters = [
+            'department_id' => ctype_digit((string) $request->query('department_id')) ? (int) $request->query('department_id') : null,
+            'shift_id'      => ctype_digit((string) $request->query('shift_id')) ? (int) $request->query('shift_id') : null,
+        ];
+
+        $payload = Report::teacherBoard($this->date($request), $filters);
         $payload['per_page'] = Report::boardPerPage($request->query('per_page'));
 
         return response()->json($payload);

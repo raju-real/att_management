@@ -27,6 +27,8 @@
                             <th>Title</th>
                             <th class="text-center">In Time</th>
                             <th class="text-center">Out Time</th>
+                            <th class="text-center">Late after</th>
+                            <th class="text-center">Early out before</th>
                             <th class="text-center">Duration</th>
                             <th class="text-center">Departments</th>
                             <th class="text-center">Teachers</th>
@@ -37,13 +39,16 @@
                     <tbody>
                         @forelse($shifts as $shift)
                             @php
-                                $mins = \Carbon\Carbon::parse($shift->in_time)->diffInMinutes(\Carbon\Carbon::parse($shift->out_time));
+                                $mins = \App\Models\Shift::durationMinutes($shift->in_time, $shift->out_time);
                             @endphp
                             <tr>
                                 <td>{{ $shifts->firstItem() + $loop->index }}</td>
                                 <td class="fw-semibold">{{ $shift->title }}</td>
                                 <td class="text-center"><span class="badge badge-light border">{{ timeFormat($shift->in_time, 'h:i A') }}</span></td>
-                                <td class="text-center"><span class="badge badge-light border">{{ timeFormat($shift->out_time, 'h:i A') }}</span></td>
+                                <td class="text-center"><span class="badge badge-light border">{{ timeFormat($shift->out_time, 'h:i A') }}</span>
+                                    @if($shift->is_overnight)<span class="badge badge-dark ml-1" {!! tooltip('Night shift: out time is on the next day') !!}><i class="fas fa-moon"></i> +1</span>@endif</td>
+                                <td class="text-center">{{ timeFormat($shift->late_count_time ?: $shift->in_time, 'h:i A') }}</td>
+                                <td class="text-center">{{ timeFormat($shift->early_out_count_time ?: $shift->out_time, 'h:i A') }}</td>
                                 <td class="text-center">{{ intdiv($mins, 60) }}h {{ str_pad($mins % 60, 2, '0', STR_PAD_LEFT) }}m</td>
                                 <td class="text-center">
                                     <a href="{{ route('departments.index', ['shift_id' => $shift->id]) }}"

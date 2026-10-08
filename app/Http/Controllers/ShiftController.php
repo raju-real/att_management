@@ -67,25 +67,57 @@ class ShiftController extends Controller
                 'required', 'string', 'max:100',
                 Rule::unique('shifts')->whereNull('deleted_at')->ignore($ignoreId),
             ],
-            'in_time'  => 'required',
-            'out_time' => 'required',
-            'status'   => 'required|in:active,inactive',
+            'in_time'              => 'required',
+            'out_time'             => 'required',
+            'late_count_time'      => 'nullable',
+            'early_out_count_time' => 'nullable',
+            'punch_before_minutes' => 'nullable|integer|min:0|max:720',
+            'punch_after_minutes'  => 'nullable|integer|min:0|max:720',
+            'status'               => 'required|in:active,inactive',
+        ], [
+            'punch_before_minutes.max' => 'Punch window before in time can be at most 12 hours (720 minutes).',
+            'punch_after_minutes.max'  => 'Punch window after out time can be at most 12 hours (720 minutes).',
         ]);
 
         $in  = $this->normalizeTime($request->in_time, 'in_time');
         $out = $this->normalizeTime($request->out_time, 'out_time');
 
-        if ($out <= $in) {
-            throw ValidationException::withMessages([
-                'out_time' => 'Out time must be later than in time.',
-            ]);
+        // out <= in is allowed: it is a night shift ending the next day.
+        if ($out === $in) {
+            throw ValidationException::withMessages(['out_time' => 'Out time cannot be the same as in time.']);
+        }
+
+        $late  = $request->filled('late_count_time') ? $this->normalizeTime($request->late_count_time, 'late_count_time') : $in;
+        $early = $request->filled('early_out_count_time') ? $this->normalizeTime($request->early_out_count_time, 'early_out_count_time') : $out;
+        $before = $request->filled('punch_before_minutes') ? (int) $request->punch_before_minutes : Shift::DEFAULT_PUNCH_BEFORE_MINUTES;
+        $after  = $request->filled('punch_after_minutes') ? (int) $request->punch_after_minutes : Shift::DEFAULT_PUNCH_AFTER_MINUTES;
+
+        // All checks measured forward from in_time, so 00:10 counts as after 22:00.
+        $length = Shift::durationMinutes($in, $out) * 60;
+        $errors = [];
+        if (Shift::secondsAfter($in, $late) >= $length) {
+            $errors['late_count_time'] = 'Late count time must be between the in time and the out time.';
+        }
+        if (Shift::secondsAfter($in, $early) > $length || Shift::secondsAfter($in, $early) === 0) {
+            $errors['early_out_count_time'] = 'Early out count time must be after the in time and not later than the out time.';
+        }
+        if ($before + Shift::durationMinutes($in, $out) + $after > 1440) {
+            $errors['punch_after_minutes'] = 'Punch window (before + shift length + after) must fit in 24 hours, otherwise a punch could belong to two shift days.';
+        }
+        if ($errors) {
+            throw ValidationException::withMessages($errors);
         }
 
         return [
-            'title'    => trim($request->title),
-            'in_time'  => $in,
-            'out_time' => $out,
-            'status'   => $request->status,
+            'title'                => trim($request->title),
+            'in_time'              => $in,
+            'out_time'             => $out,
+            'late_count_time'      => $late,
+            'early_out_count_time' => $early,
+            'punch_before_minutes' => $before,
+            'punch_after_minutes'  => $after,
+            'is_overnight'         => $out < $in,
+            'status'               => $request->status,
         ];
     }
 

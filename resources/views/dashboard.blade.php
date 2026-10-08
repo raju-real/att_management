@@ -198,17 +198,22 @@
                                 <td class="fw-semibold">{{ $row->name }}</td>
                                 <td>{{ $row->department ?? '-' }}</td>
                                 <td class="text-center">
-                                    <span class="{{ $row->is_late ? 'att-late' : 'att-normal' }}">
-                                        <i class="fas fa-sign-in-alt mr-1" style="font-size:.8em"></i>{{ timeFormat($row->in_time, 'h:i A') }}
-                                    </span>
-                                    @if($row->is_late)
-                                        <br><small class="text-danger" style="font-size:.72em">Late {{ $hm($row->late_minutes) }}</small>
+                                    @if($row->in_time)
+                                        <span class="{{ $row->is_late ? 'att-late' : 'att-normal' }}">
+                                            <i class="fas fa-sign-in-alt mr-1" style="font-size:.8em"></i>{{ \App\Services\AttendanceReportService::clock($row->in_time, $row->att_date) }}
+                                        </span>
+                                        @if($row->is_late)
+                                            <br><small class="text-danger" style="font-size:.72em">Late {{ $hm($row->late_minutes) }}</small>
+                                        @endif
+                                    @else
+                                        <span class="text-muted font-weight-bold">-</span>
+                                        <br><small class="text-danger" style="font-size:.72em">Missing in</small>
                                     @endif
                                 </td>
                                 <td class="text-center">
                                     @if($row->out_time)
                                         <span class="{{ $row->is_early_out ? 'att-late' : 'att-normal' }}">
-                                            <i class="fas fa-sign-out-alt mr-1" style="font-size:.8em"></i>{{ timeFormat($row->out_time, 'h:i A') }}
+                                            <i class="fas fa-sign-out-alt mr-1" style="font-size:.8em"></i>{{ \App\Services\AttendanceReportService::clock($row->out_time, $row->att_date) }}
                                         </span>
                                         @if($row->is_early_out)
                                             <br><small class="text-danger" style="font-size:.72em">Early Out</small>
@@ -218,7 +223,7 @@
                                     @endif
                                 </td>
                                 <td class="text-center">
-                                    @if($row->out_time)
+                                    @if($row->in_time && $row->out_time)
                                         <span style="font-weight:600;color:#059669">{{ $hm($row->work_minutes) }}</span>
                                     @else
                                         <span class="text-muted font-weight-bold">-</span>

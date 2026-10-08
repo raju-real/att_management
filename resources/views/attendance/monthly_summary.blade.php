@@ -83,6 +83,19 @@
                 </div>
                 <div class="col-lg-2 col-md-4 col-6">
                     <div class="form-group">
+                        <label class="form-label">Shift</label>
+                        <select name="shift_id" class="form-control">
+                            <option value="">All Shifts</option>
+                            @foreach($shifts as $sh)
+                                <option value="{{ $sh->id }}" {{ (string) request('shift_id') === (string) $sh->id ? 'selected' : '' }}>
+                                    {{ $sh->title }} ({{ \App\Services\AttendanceReportService::shiftClock($sh->in_time) }} - {{ \App\Services\AttendanceReportService::shiftClock($sh->out_time, $sh->in_time) }})
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+                <div class="col-lg-2 col-md-4 col-6">
+                    <div class="form-group">
                         <label class="form-label">ID / Student No</label>
                         <input type="search" name="user_no" class="form-control" value="{{ request('user_no') }}" placeholder="101 / 10001">
                     </div>
@@ -169,11 +182,11 @@
                             <th>Department / Shift</th>
                             <th class="text-center">Present</th>
                             <th class="text-center">Absent</th>
-                            <th class="text-center" title="Days arrived on or before shift in-time">Early In</th>
+                            <th class="text-center" title="Days the first punch was at or before the late count time">On Time</th>
                             <th class="text-center" title="Days arrived after shift in-time">Late In</th>
                             <th class="text-center">Total Late</th>
                             <th class="text-center">Early Out</th>
-                            <th class="text-center" title="Days with only one punch">No Out</th>
+                            <th class="text-center" title="Days with a missing in or out punch">Missing Punch</th>
                             <th class="text-center">Earliest In</th>
                             <th class="text-center">Avg In</th>
                             <th class="text-center">Working Hours</th>
@@ -183,7 +196,8 @@
                         @forelse($summary as $row)
                             @php
                                 $absent  = max(0, $working_days - (int) $row->present_days);
-                                $avgLate = $row->std_in && $row->avg_in && $row->avg_in > $row->std_in;
+                                // offset from shift start, so it also works for night shifts (00:10 is late for 22:00)
+                                $avgLate = $row->std_in && $row->avg_in && ($off = \App\Models\Shift::secondsAfter($row->std_in, $row->avg_in)) > 0 && $off < 43200;
                             @endphp
                             <tr>
                                 <td class="text-center text-muted">{{ $summary->firstItem() + $loop->index }}</td>
@@ -205,7 +219,7 @@
                                 <td>
                                     {{ $row->department ?? '-' }}
                                     @if($row->std_in)
-                                        <span class="rpt-sub">{{ $row->shift_title ?? 'Default' }}: {{ timeFormat($row->std_in, 'h:i A') }} - {{ timeFormat($row->std_out, 'h:i A') }}</span>
+                                        <span class="rpt-sub">{{ $row->shift_title ?? 'Default' }}: {{ \App\Services\AttendanceReportService::shiftClock($row->std_in) }} - {{ \App\Services\AttendanceReportService::shiftClock($row->std_out, $row->std_in) }}</span>
                                     @endif
                                 </td>
                                 <td class="text-center"><span class="rpt-pill blue">{{ $row->present_days }}</span></td>
@@ -217,7 +231,8 @@
                                     <span class="rpt-pill {{ $row->early_out_days ? 'amber' : 'gray' }}">{{ (int) $row->early_out_days }}</span>
                                     @if($row->early_out_minutes)<span class="rpt-sub">{{ $hm($row->early_out_minutes) }}</span>@endif
                                 </td>
-                                <td class="text-center"><span class="rpt-pill gray">{{ (int) $row->single_punch_days }}</span></td>
+                                <td class="text-center"><span class="rpt-pill gray">{{ (int) $row->single_punch_days }}</span>
+                                    @if((int) $row->outside_punches > 0)<span class="rpt-sub bad" title="Punches outside the shift window">{{ $row->outside_punches }} outside</span>@endif</td>
                                 <td class="text-center text-nowrap rpt-time ok">{{ timeFormat($row->earliest_in, 'h:i A') }}</td>
                                 <td class="text-center text-nowrap rpt-time {{ $avgLate ? 'bad' : 'ok' }}">{{ timeFormat($row->avg_in, 'h:i A') }}</td>
                                 <td class="text-center text-nowrap">

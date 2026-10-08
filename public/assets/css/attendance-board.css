@@ -191,3 +191,10 @@
     color: var(--tb-ctrl-text); font-size: 13px; padding: 0 8px; cursor: pointer; }
 .tb-size-select option { color: #0f172a; background: #fff; }
 .tb-size-select:focus, .tb-date-input:focus { outline: 2px solid var(--tb-accent); outline-offset: 1px; }
+
+/* ── Upcoming (shift not started yet) ── */
+.tb-card.upcoming::after { background: #38bdf8; }
+.tb-card.upcoming .tb-photo { --ring1: #38bdf8; --ring2: #bae6fd; }
+.tb-card.upcoming .tb-time { color: #38bdf8; font-size: 14px; letter-spacing: 1px; text-transform: uppercase; }
+.tb-card.upcoming .tb-tag { background: rgba(56,189,248,.15); color: #0ea5e9; }
+.tb-controls select[data-tb="department"], .tb-controls select[data-tb="shift"] { max-width: 190px; }

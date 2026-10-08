@@ -50,7 +50,8 @@ class AttendanceReportService
         'late'         => 'Late In',
         'on_time'      => 'On Time / Early In',
         'early_out'    => 'Early Out',
-        'single_punch' => 'No Out Punch',
+        'single_punch' => 'Missing In / Out Punch',
+        'outside'      => 'Punch Outside Shift Window',
     ];
 
     // ───────────────────────────── Date range ─────────────────────────────
@@ -88,54 +89,118 @@ class AttendanceReportService
     }
 
     // ───────────────────────────── Core queries ─────────────────────────────
+    //
+    // Punches are grouped by WORK DATE (the day the shift started), not by
+    // calendar date, so a night shift 22:00 → 06:00 is one row:
+    //
+    //   day boundary = shift in_time − punch_before_minutes
+    //   work date    = DATE(punch_time − day boundary)
+    //
+    //   Night 22:00–06:00, 180 min before → boundary 19:00
+    //     8 Oct 21:55 → 8 Oct,   9 Oct 06:05 → 8 Oct (same shift)
+    //   Day   08:00–14:00, 180 min before → boundary 05:00
+    //     8 Oct 07:50 → 8 Oct
+    //
+    // Punches outside [in − before, out + after] are "outside shift" and are
+    // not used as in/out (unless the day has nothing else).
+    // People without a shift (students, teachers without department/shift)
+    // use the site default in/out time; with no default, calendar dates.
+
+    /** Default punch window when a shift (or the site default) has none. */
+    public const DEFAULT_BEFORE_MINUTES = 180;
+    public const DEFAULT_AFTER_MINUTES  = 360;
 
     /**
-     * One row per person per day, straight from attendance_logs.
+     * Stage 1 — one row per punch with the person's shift rules and the
+     * punch's work date.
      */
-    protected static function dailyPunches(string $from, string $to, array $f = []): Builder
+    protected static function punchQuery(string $from, string $to, array $f = []): Builder
     {
-        $start = Carbon::parse($from)->startOfDay()->format('Y-m-d H:i:s');
-        $end   = Carbon::parse($to)->addDay()->startOfDay()->format('Y-m-d H:i:s');
+        $stdIn   = self::standardExpr('sh.in_time', siteSettings()->in_time ?? null);
+        $stdOut  = self::standardExpr('sh.out_time', siteSettings()->out_time ?? null);
+        $lateT   = "COALESCE(sh.late_count_time, {$stdIn})";
+        $earlyT  = "COALESCE(sh.early_out_count_time, {$stdOut})";
+        $beforeS = '(COALESCE(sh.punch_before_minutes, ' . self::DEFAULT_BEFORE_MINUTES . ') * 60)';
+        $afterS  = '(COALESCE(sh.punch_after_minutes, ' . self::DEFAULT_AFTER_MINUTES . ') * 60)';
+        $durS    = "(CASE WHEN {$stdIn} IS NULL OR {$stdOut} IS NULL THEN NULL
+                     ELSE COALESCE(NULLIF(MOD(TIME_TO_SEC({$stdOut}) - TIME_TO_SEC({$stdIn}) + 86400, 86400), 0), 86400) END)";
+        $boundS  = "(CASE WHEN {$stdIn} IS NULL THEN 0 ELSE TIME_TO_SEC({$stdIn}) - {$beforeS} END)";
+        // Seconds since this punch's shift-day boundary (0 … 86399).
+        $offsetS = "MOD(TIME_TO_SEC(TIME(al.punch_time)) - {$boundS} + 172800, 86400)";
 
-        return DB::table('attendance_logs')
+        // Raw range wide enough for any boundary (−12 h … +24 h); the exact
+        // work-date range is applied in stage 2.
+        $start = Carbon::parse($from)->subDay()->startOfDay()->format('Y-m-d H:i:s');
+        $end   = Carbon::parse($to)->addDays(2)->startOfDay()->format('Y-m-d H:i:s');
+
+        return DB::table('attendance_logs as al')
+            ->leftJoin('teachers as t', 't.teacher_no', '=', DB::raw("NULLIF(al.teacher_no, '')"))
+            ->leftJoin('departments as d', 'd.id', '=', 't.department_id')
+            ->leftJoin('shifts as sh', 'sh.id', '=', 'd.shift_id')
             ->selectRaw("
-                user_type,
-                " . self::USER_NO_SQL . " AS user_no,
-                MAX(NULLIF(student_no, '')) AS student_no,
-                MAX(NULLIF(teacher_no, '')) AS teacher_no,
-                DATE(punch_time) AS att_date,
-                MIN(punch_time) AS first_punch,
-                MAX(punch_time) AS last_punch,
-                COUNT(*)        AS punches
+                al.user_type,
+                COALESCE(NULLIF(al.student_no, ''), NULLIF(al.teacher_no, '')) AS user_no,
+                NULLIF(al.student_no, '') AS student_no,
+                NULLIF(al.teacher_no, '') AS teacher_no,
+                al.punch_time,
+                {$stdIn}  AS std_in,
+                {$stdOut} AS std_out,
+                {$lateT}  AS late_t,
+                {$earlyT} AS early_t,
+                {$durS}   AS dur_s,
+                DATE(DATE_SUB(al.punch_time, INTERVAL {$boundS} SECOND)) AS work_date,
+                CASE WHEN {$durS} IS NULL THEN 1
+                     WHEN {$offsetS} <= {$beforeS} + {$durS} + {$afterS} THEN 1 ELSE 0 END AS in_win
             ")
-            ->where('punch_time', '>=', $start)
-            ->where('punch_time', '<', $end)
-            ->whereRaw(self::USER_NO_SQL . ' IS NOT NULL')
-            ->when($f['user_type'] ?? null, fn ($q, $v) => $q->where('user_type', $v))
-            ->when($f['teacher_no'] ?? null, fn ($q, $v) => $q->where('teacher_no', $v))
+            ->where('al.punch_time', '>=', $start)
+            ->where('al.punch_time', '<', $end)
+            ->whereRaw("COALESCE(NULLIF(al.student_no, ''), NULLIF(al.teacher_no, '')) IS NOT NULL")
+            ->when($f['user_type'] ?? null, fn ($q, $v) => $q->where('al.user_type', $v))
+            ->when($f['teacher_no'] ?? null, fn ($q, $v) => $q->where('al.teacher_no', $v))
             ->when($f['user_no'] ?? null, fn ($q, $v) => $q->where(
-                fn ($w) => $w->where('teacher_no', $v)->orWhere('student_no', $v)
-            ))
-            // Grouped by the select aliases: MariaDB's ONLY_FULL_GROUP_BY rejects
-            // the NULLIF() expression repeated here.
-            ->groupBy('user_type', 'user_no', 'att_date');
+                fn ($w) => $w->where('al.teacher_no', $v)->orWhere('al.student_no', $v)
+            ));
     }
 
     /**
-     * Per-day rows joined to teacher → department → shift, with all the
-     * late / early / working-time flags computed.
+     * Stage 2 — one row per person per WORK DATE: first/last punch inside
+     * the shift window (falls back to any punch if none was inside).
      */
-    public static function dailyQuery(string $from, string $to, array $f = []): Builder
+    protected static function dailyPunches(string $from, string $to, array $f = []): Builder
     {
-        $stdIn  = self::standardExpr('sh.in_time', siteSettings()->in_time ?? null);
-        $stdOut = self::standardExpr('sh.out_time', siteSettings()->out_time ?? null);
-        $gap    = (int) self::MIN_OUT_GAP_MINUTES;
+        return DB::query()
+            ->fromSub(self::punchQuery($from, $to, $f), 'p')
+            ->selectRaw("
+                p.user_type,
+                p.user_no,
+                MAX(p.student_no) AS student_no,
+                MAX(p.teacher_no) AS teacher_no,
+                p.work_date       AS att_date,
+                MAX(p.std_in)     AS std_in,
+                MAX(p.std_out)    AS std_out,
+                MAX(p.late_t)     AS late_t,
+                MAX(p.early_t)    AS early_t,
+                MAX(p.dur_s)      AS dur_s,
+                COALESCE(MIN(CASE WHEN p.in_win = 1 THEN p.punch_time END), MIN(p.punch_time)) AS first_p,
+                COALESCE(MAX(CASE WHEN p.in_win = 1 THEN p.punch_time END), MAX(p.punch_time)) AS last_p,
+                COUNT(*)      AS punches,
+                SUM(p.in_win) AS win_punches
+            ")
+            ->whereBetween('p.work_date', [Carbon::parse($from)->toDateString(), Carbon::parse($to)->toDateString()])
+            ->groupBy('p.user_type', 'p.user_no', 'p.work_date');
+    }
 
-        $hasOut  = "(a.punches > 1 AND TIMESTAMPDIFF(MINUTE, a.first_punch, a.last_punch) >= {$gap})";
-        $isLate  = "({$stdIn} IS NOT NULL AND TIME(a.first_punch) > {$stdIn})";
-        $isEarly = "({$hasOut} AND {$stdOut} IS NOT NULL AND TIME(a.last_punch) < {$stdOut})";
+    /**
+     * Stage 3 — names, department, shift and the scheduled times of that
+     * shift day as real datetimes (so they cross midnight correctly).
+     */
+    protected static function scheduledQuery(string $from, string $to, array $f = []): Builder
+    {
+        $gap = (int) self::MIN_OUT_GAP_MINUTES;
+        $sIn = 'CASE WHEN a.std_in IS NULL THEN NULL ELSE TIMESTAMP(a.att_date, a.std_in) END';
+        $fwd = fn (string $t) => "MOD(TIME_TO_SEC({$t}) - TIME_TO_SEC(a.std_in) + 86400, 86400)";
 
-        $q = DB::query()
+        return DB::query()
             ->fromSub(self::dailyPunches($from, $to, $f), 'a')
             ->leftJoin('teachers as t', 't.teacher_no', '=', 'a.teacher_no')
             // students.student_no is not unique, so join exactly ONE row per
@@ -148,39 +213,93 @@ class AttendanceReportService
             ->leftJoin('departments as d', 'd.id', '=', 't.department_id')
             ->leftJoin('shifts as sh', 'sh.id', '=', 'd.shift_id')
             ->selectRaw("
-                a.user_type,
-                a.user_no,
-                a.att_date,
-                a.punches,
+                a.*,
                 COALESCE(NULLIF(t.name, ''), " . self::STUDENT_NAME_SQL . ", '(Unknown)') AS name,
                 t.id          AS teacher_id,
                 t.image       AS image,
                 t.designation AS designation,
                 d.id          AS department_id,
                 d.name        AS department,
+                d.shift_id    AS shift_id,
                 sh.title      AS shift_title,
-                {$stdIn}      AS std_in,
-                {$stdOut}     AS std_out,
-                a.first_punch AS in_time,
-                CASE WHEN {$hasOut} THEN a.last_punch END AS out_time,
+                {$sIn}                                                     AS sched_in,
+                ({$sIn}) + INTERVAL a.dur_s SECOND                         AS sched_out,
+                ({$sIn}) + INTERVAL {$fwd('a.late_t')} SECOND               AS late_at,
+                ({$sIn}) + INTERVAL {$fwd('a.early_t')} SECOND              AS early_at,
+                (TIMESTAMPDIFF(MINUTE, a.first_p, a.last_p) >= {$gap})       AS has_two
+            ");
+    }
+
+    /**
+     * Stage 4 — the per-day attendance row every report uses (logs, monthly
+     * summary, dashboard, boards, CSV): in/out, late, early out, hours.
+     *
+     * Rules within one shift day:
+     *  - In  = first punch; Out = last punch if ≥ MIN_OUT_GAP_MINUTES later
+     *  - Only one punch: it is the OUT punch if nearer the scheduled out
+     *    time (in shows "-"), otherwise the IN punch (out shows "-")
+     *  - Late      = in  > late count time; minutes counted from the in time
+     *  - Early out = out < early-out count time; minutes counted to the out time
+     *  - Work time = out − in
+     */
+    public static function dailyQuery(string $from, string $to, array $f = []): Builder
+    {
+        $singleOut = "(NOT r.has_two AND r.sched_in IS NOT NULL
+                       AND ABS(TIMESTAMPDIFF(SECOND, r.first_p, r.sched_out)) < ABS(TIMESTAMPDIFF(SECOND, r.first_p, r.sched_in)))";
+        $in      = "(CASE WHEN {$singleOut} THEN NULL ELSE r.first_p END)";
+        $out     = "(CASE WHEN r.has_two THEN r.last_p WHEN {$singleOut} THEN r.first_p END)";
+        $isLate  = "({$in} IS NOT NULL AND r.late_at IS NOT NULL AND {$in} > r.late_at)";
+        $isEarly = "({$out} IS NOT NULL AND r.early_at IS NOT NULL AND {$out} < r.early_at)";
+        $onTime  = "({$in} IS NOT NULL AND r.late_at IS NOT NULL AND {$in} <= r.late_at)";
+
+        $q = DB::query()
+            ->fromSub(self::scheduledQuery($from, $to, $f), 'r')
+            ->selectRaw("
+                r.user_type,
+                r.user_no,
+                r.att_date,
+                r.punches,
+                r.punches - r.win_punches AS outside_punches,
+                (r.win_punches = 0)       AS outside_only,
+                r.name,
+                r.teacher_id,
+                r.image,
+                r.designation,
+                r.department_id,
+                r.department,
+                r.shift_id,
+                r.shift_title,
+                r.std_in,
+                r.std_out,
+                r.late_t   AS late_count_time,
+                r.early_t  AS early_out_count_time,
+                (r.std_in IS NOT NULL AND r.std_out <= r.std_in) AS is_overnight,
+                r.sched_in,
+                r.sched_out,
+                {$in}  AS in_time,
+                {$out} AS out_time,
+                ({$in}  IS NOT NULL AND DATE({$in})  > r.att_date) AS in_next_day,
+                ({$out} IS NOT NULL AND DATE({$out}) > r.att_date) AS out_next_day,
+                ({$in} IS NULL)                         AS missing_in,
+                ({$in} IS NOT NULL AND {$out} IS NULL)  AS missing_out,
                 CASE WHEN {$isLate} THEN 1 ELSE 0 END AS is_late,
-                CASE WHEN {$isLate}
-                     THEN CEIL(TIME_TO_SEC(TIMEDIFF(TIME(a.first_punch), {$stdIn})) / 60) ELSE 0 END AS late_minutes,
-                CASE WHEN {$stdIn} IS NOT NULL AND TIME(a.first_punch) <= {$stdIn} THEN 1 ELSE 0 END AS is_early_in,
+                CASE WHEN {$isLate} THEN CEIL(TIMESTAMPDIFF(SECOND, r.sched_in, {$in}) / 60) ELSE 0 END AS late_minutes,
+                CASE WHEN {$onTime} THEN 1 ELSE 0 END AS is_early_in,
                 CASE WHEN {$isEarly} THEN 1 ELSE 0 END AS is_early_out,
-                CASE WHEN {$isEarly}
-                     THEN CEIL(TIME_TO_SEC(TIMEDIFF({$stdOut}, TIME(a.last_punch))) / 60) ELSE 0 END AS early_out_minutes,
-                CASE WHEN {$hasOut} THEN TIMESTAMPDIFF(MINUTE, a.first_punch, a.last_punch) ELSE 0 END AS work_minutes
+                CASE WHEN {$isEarly} THEN GREATEST(CEIL(TIMESTAMPDIFF(SECOND, {$out}, r.sched_out) / 60), 0) ELSE 0 END AS early_out_minutes,
+                CASE WHEN {$in} IS NOT NULL AND {$out} IS NOT NULL THEN TIMESTAMPDIFF(MINUTE, {$in}, {$out}) ELSE 0 END AS work_minutes,
+                CASE WHEN {$in} IS NOT NULL AND r.sched_in IS NOT NULL THEN TIMESTAMPDIFF(SECOND, r.sched_in, {$in}) END AS arrival_offset
             ");
 
         if (!empty($f['department_id'])) {
-            $q->where('d.id', $f['department_id']);
+            $q->where('r.department_id', $f['department_id']);
+        }
+        if (!empty($f['shift_id'])) {
+            $q->where('r.shift_id', $f['shift_id']);
         }
         if (!empty($f['search'])) {
             $s = '%' . trim($f['search']) . '%';
-            $q->where(fn ($w) => $w->where('t.name', 'like', $s)
-                ->orWhereRaw(self::STUDENT_NAME_SQL . ' LIKE ?', [$s])
-                ->orWhere('a.user_no', 'like', $s));
+            $q->where(fn ($w) => $w->where('r.name', 'like', $s)->orWhere('r.user_no', 'like', $s));
         }
 
         switch ($f['status'] ?? null) {
@@ -188,13 +307,16 @@ class AttendanceReportService
                 $q->whereRaw($isLate);
                 break;
             case 'on_time':
-                $q->whereRaw("NOT {$isLate}")->whereRaw("{$stdIn} IS NOT NULL");
+                $q->whereRaw($onTime);
                 break;
             case 'early_out':
                 $q->whereRaw($isEarly);
                 break;
             case 'single_punch':
-                $q->whereRaw("NOT {$hasOut}");
+                $q->whereRaw("({$in} IS NULL OR {$out} IS NULL)");
+                break;
+            case 'outside':
+                $q->whereRaw('r.punches > r.win_punches');
                 break;
         }
 
@@ -226,11 +348,13 @@ class AttendanceReportService
     protected static function applyLogSort(Builder $q, string $sort): void
     {
         match ($sort) {
-            'date_asc'   => $q->orderBy('a.att_date')->orderBy('a.first_punch'),
-            'in_asc'     => $q->orderBy('a.att_date', 'desc')->orderByRaw('TIME(a.first_punch)'),
-            'late_desc'  => $q->orderByDesc('late_minutes')->orderBy('a.att_date', 'desc'),
-            'name'       => $q->orderBy('name')->orderBy('a.att_date', 'desc'),
-            default      => $q->orderBy('a.att_date', 'desc')->orderBy('a.first_punch'),
+            'date_asc'   => $q->orderBy('r.att_date')->orderBy('r.first_p'),
+            // earliest arrival relative to each person's own shift start
+            'in_asc'     => $q->orderBy('r.att_date', 'desc')
+                ->orderByRaw('COALESCE(TIMESTAMPDIFF(SECOND, r.sched_in, r.first_p), TIME_TO_SEC(TIME(r.first_p)))'),
+            'late_desc'  => $q->orderByDesc('late_minutes')->orderBy('r.att_date', 'desc'),
+            'name'       => $q->orderBy('r.name')->orderBy('r.att_date', 'desc'),
+            default      => $q->orderBy('r.att_date', 'desc')->orderBy('r.first_p'),
         };
     }
 
@@ -257,11 +381,12 @@ class AttendanceReportService
                 SUM(x.late_minutes)  AS late_minutes,
                 SUM(x.is_early_out)  AS early_out_days,
                 SUM(x.early_out_minutes) AS early_out_minutes,
-                SUM(CASE WHEN x.out_time IS NULL THEN 1 ELSE 0 END) AS single_punch_days,
+                SUM(CASE WHEN x.in_time IS NULL OR x.out_time IS NULL THEN 1 ELSE 0 END) AS single_punch_days,
+                SUM(x.outside_punches) AS outside_punches,
                 SUM(x.work_minutes)  AS work_minutes,
-                MIN(TIME(x.in_time)) AS earliest_in,
-                MAX(TIME(x.in_time)) AS latest_in,
-                SEC_TO_TIME(ROUND(AVG(TIME_TO_SEC(TIME(x.in_time))))) AS avg_in
+                " . self::arrivalClock('MIN(x.arrival_offset)', 'MIN(TIME(x.in_time))') . " AS earliest_in,
+                " . self::arrivalClock('MAX(x.arrival_offset)', 'MAX(TIME(x.in_time))') . " AS latest_in,
+                " . self::arrivalClock('ROUND(AVG(x.arrival_offset))', 'SEC_TO_TIME(ROUND(AVG(TIME_TO_SEC(TIME(x.in_time)))))') . " AS avg_in
             ")
             ->groupBy('x.user_type', 'x.user_no');
     }
@@ -352,26 +477,68 @@ class AttendanceReportService
      * board and the standalone /attendance-board page) — change the
      * payload here and both pick it up.
      */
-    public static function teacherBoard(string $date): array
+    public static function teacherBoard(string $date, array $filters = []): array
     {
-        $rows = self::dailyQuery($date, $date, ['user_type' => 'teacher'])
-            ->get()
-            ->keyBy('user_no');
+        $deptId  = !empty($filters['department_id']) ? (int) $filters['department_id'] : null;
+        $shiftId = !empty($filters['shift_id']) ? (int) $filters['shift_id'] : null;
+        $isToday = Carbon::parse($date)->isToday();
+        $now     = now();
 
         $teachers = Teacher::query()
             ->leftJoin('departments as d', 'd.id', '=', 'teachers.department_id')
             ->leftJoin('shifts as sh', 'sh.id', '=', 'd.shift_id')
+            ->when($deptId, fn ($q) => $q->where('teachers.department_id', $deptId))
+            ->when($shiftId, fn ($q) => $q->where('d.shift_id', $shiftId))
             ->get([
                 'teachers.id', 'teachers.name', 'teachers.teacher_no', 'teachers.image', 'teachers.designation',
                 'd.name as department', 'sh.title as shift_title', 'sh.in_time as shift_in', 'sh.out_time as shift_out',
+                'sh.punch_before_minutes as shift_before', 'sh.punch_after_minutes as shift_after',
             ]);
 
-        $fmt = fn ($time) => $time ? Carbon::parse($time)->format('h:i A') : null;
+        // Rows for the date and the day before: on "today", a night-shift
+        // teacher's current shift day may still be yesterday (e.g. at 02:00).
+        $from = $isToday ? Carbon::parse($date)->subDay()->toDateString() : $date;
+        $rows = self::dailyQuery($from, $date, array_filter([
+            'user_type' => 'teacher', 'department_id' => $deptId, 'shift_id' => $shiftId,
+        ]))->get()->keyBy(fn ($r) => $r->user_no . '|' . $r->att_date);
 
-        $list = $teachers->map(function ($t) use ($rows, $fmt) {
-            $r = $rows->get((string) $t->teacher_no);
+        $siteIn  = siteSettings()->in_time ?? null;
+        $siteOut = siteSettings()->out_time ?? null;
+        $fmt     = fn ($time) => $time ? Carbon::parse($time)->format('h:i A') : null;
 
-            $status = !$r ? 'absent' : ($r->is_late ? 'late' : 'on_time');
+        $list = $teachers->map(function ($t) use ($rows, $fmt, $date, $isToday, $now, $siteIn, $siteOut) {
+            $stdIn  = $t->shift_in ?: ($siteIn ? Carbon::parse($siteIn)->format('H:i:s') : null);
+            $stdOut = $t->shift_out ?: ($siteOut ? Carbon::parse($siteOut)->format('H:i:s') : null);
+            $before = (int) ($t->shift_before ?? self::DEFAULT_BEFORE_MINUTES);
+
+            // The shift day this teacher is in right now (or the chosen date):
+            // before today's shift window opens, yesterday's shift is still
+            // "current" while its own window (out + after) has not closed —
+            // e.g. a night shift at 02:00. After that, today's shift is shown
+            // (as upcoming until it starts).
+            $workDate = $date;
+            if ($isToday && $stdIn) {
+                $todayOpens = Carbon::parse($date . ' ' . $stdIn)->subMinutes($before);
+                if ($now->lt($todayOpens)) {
+                    $yesterday   = Carbon::parse($date)->subDay()->toDateString();
+                    $lengthMin   = $stdOut ? \App\Models\Shift::durationMinutes($stdIn, $stdOut) : 0;
+                    $after       = (int) ($t->shift_after ?? self::DEFAULT_AFTER_MINUTES);
+                    $yesterdayEnds = Carbon::parse($yesterday . ' ' . $stdIn)->addMinutes($lengthMin + $after);
+                    if ($now->lte($yesterdayEnds)) {
+                        $workDate = $yesterday;
+                    }
+                }
+            }
+            $r = $rows->get($t->teacher_no . '|' . $workDate);
+
+            if ($r) {
+                $status = $r->is_late ? 'late' : 'on_time';
+            } else {
+                $schedIn = $stdIn ? Carbon::parse($workDate . ' ' . $stdIn) : null;
+                $status  = ($isToday && $schedIn && $now->lt($schedIn)) ? 'upcoming' : 'absent';
+            }
+
+            $plus = fn ($dt) => $dt && Carbon::parse($dt)->toDateString() > $workDate ? ' +1' : '';
 
             return [
                 'id'           => $t->id,
@@ -382,26 +549,31 @@ class AttendanceReportService
                 'image'        => ($t->image && file_exists($t->image)) ? asset($t->image) : null,
                 'initial'      => strtoupper(mb_substr($t->name ?? 'T', 0, 1)),
                 'shift_title'  => $t->shift_title,
-                'shift_in'     => $fmt($t->shift_in),
-                'shift_out'    => $fmt($t->shift_out),
+                'shift_in'     => $fmt($stdIn),
+                'shift_out'    => $stdOut ? $fmt($stdOut) . ($stdIn && $stdOut <= $stdIn ? ' +1' : '') : null,
+                'work_date'    => $workDate,
                 'status'       => $status,
-                'in_time'      => $r ? $fmt($r->in_time) : null,
-                'out_time'     => $r ? $fmt($r->out_time) : null,
+                'in_time'      => $r && $r->in_time ? $fmt($r->in_time) . $plus($r->in_time) : null,
+                'out_time'     => $r && $r->out_time ? $fmt($r->out_time) . $plus($r->out_time) : null,
+                'missing_in'   => (bool) ($r->missing_in ?? false),
                 'late_by'      => $r && $r->is_late ? self::minutesToHm((int) $r->late_minutes) : null,
                 'early_out'    => (bool) ($r->is_early_out ?? false),
                 'early_out_by' => $r && $r->is_early_out ? self::minutesToHm((int) $r->early_out_minutes) : null,
-                'work_hours'   => $r && $r->out_time ? self::minutesToHm((int) $r->work_minutes) : null,
-                'sort_key'     => $r ? Carbon::parse($r->in_time)->format('His') : '999999',
+                'work_hours'   => $r && $r->in_time && $r->out_time ? self::minutesToHm((int) $r->work_minutes) : null,
+                // arrivals first in order of arrival, then upcoming, then absent
+                'sort_key'     => $r ? '0' . str_pad((string) ((int) ($r->arrival_offset ?? 0) + 86400), 6, '0', STR_PAD_LEFT)
+                                     : ($status === 'upcoming' ? '1' : '2'),
             ];
         })->sortBy([['sort_key', 'asc'], ['name', 'asc']])->values();
 
         $summary = [
             'total'     => $list->count(),
-            'present'   => $list->where('status', '!=', 'absent')->count(),
+            'present'   => $list->whereIn('status', ['late', 'on_time'])->count(),
             'late'      => $list->where('status', 'late')->count(),
             'on_time'   => $list->where('status', 'on_time')->count(),
             'early_out' => $list->where('early_out', true)->count(),
             'absent'    => $list->where('status', 'absent')->count(),
+            'upcoming'  => $list->where('status', 'upcoming')->count(),
         ];
 
         return [
@@ -434,6 +606,42 @@ class AttendanceReportService
     }
 
     // ───────────────────────────── Helpers ─────────────────────────────
+
+    /**
+     * Clock time from an arrival offset (seconds after the shift in time),
+     * so min/max/average work across midnight for night shifts. Falls back
+     * to plain clock times for people without a standard in time.
+     */
+    protected static function arrivalClock(string $offsetAgg, string $fallback): string
+    {
+        return "CASE WHEN MAX(x.std_in) IS NOT NULL AND {$offsetAgg} IS NOT NULL
+                     THEN SEC_TO_TIME(MOD(TIME_TO_SEC(MAX(x.std_in)) + {$offsetAgg} + 864000, 86400))
+                     ELSE {$fallback} END";
+    }
+
+    /**
+     * "06:05 AM (+1)" — a punch time as shown in every report (views, CSV).
+     * "(+1)" marks a time on the day after the shift's work date (night
+     * shifts). Empty → "-".
+     */
+    public static function clock($datetime, ?string $workDate = null, string $format = 'h:i A'): string
+    {
+        if (empty($datetime)) {
+            return '-';
+        }
+        $dt = Carbon::parse($datetime);
+        return $dt->format($format) . ($workDate && $dt->toDateString() > $workDate ? ' (+1)' : '');
+    }
+
+    /** Shift / standard time with "(+1)" when it ends the next day. */
+    public static function shiftClock($time, $inTime = null): string
+    {
+        if (empty($time)) {
+            return '-';
+        }
+        $label = Carbon::parse($time)->format('h:i A');
+        return $inTime && $time <= $inTime ? $label . ' (+1)' : $label;
+    }
 
     public static function minutesToHm(?int $minutes): string
     {

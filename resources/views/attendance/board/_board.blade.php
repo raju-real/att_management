@@ -20,6 +20,7 @@
         'late'      => ['Late In', '#ef4444', 'First punch after the shift in-time'],
         'early_out' => ['Early Out', '#f59e0b', 'Last punch before the shift out-time'],
         'absent'    => ['Absent', '#64748b', 'No punch on this date'],
+        'upcoming'  => ['Upcoming', '#38bdf8', 'Shift has not started yet (today only)'],
     ];
 @endphp
 <div class="tb-board {{ $theme === 'light' ? 'tb-light' : '' }}"
@@ -54,6 +55,22 @@
             @endforeach
         </div>
         <div class="tb-controls">
+            @php
+                $boardDepts  = \App\Models\Department::orderBy('name')->get(['id', 'name', 'shift_id']);
+                $boardShifts = \App\Models\Shift::orderBy('in_time')->get(['id', 'title', 'in_time', 'out_time']);
+            @endphp
+            <select class="tb-size-select" data-tb="department" aria-label="Department" title="Filter by department">
+                <option value="">All departments</option>
+                @foreach($boardDepts as $bd)
+                    <option value="{{ $bd->id }}" data-shift="{{ $bd->shift_id }}">{{ $bd->name }}</option>
+                @endforeach
+            </select>
+            <select class="tb-size-select" data-tb="shift" aria-label="Shift" title="Filter by shift (works with or without a department)">
+                <option value="">All shifts</option>
+                @foreach($boardShifts as $bs)
+                    <option value="{{ $bs->id }}">{{ $bs->title }} ({{ \App\Services\AttendanceReportService::shiftClock($bs->in_time) }} - {{ \App\Services\AttendanceReportService::shiftClock($bs->out_time, $bs->in_time) }})</option>
+                @endforeach
+            </select>
             <input type="text" class="tb-date-input" data-tb="date" value="{{ $date }}" readonly aria-label="Date"
                    title="Pick a date to view its attendance">
             <select class="tb-size-select" data-tb="per-page" aria-label="Teachers per slide"

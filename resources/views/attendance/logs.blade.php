@@ -86,6 +86,19 @@
                 </div>
                 <div class="col-lg-2 col-md-4 col-6">
                     <div class="form-group">
+                        <label class="form-label">Shift</label>
+                        <select name="shift_id" class="form-control">
+                            <option value="">All Shifts</option>
+                            @foreach($shifts as $sh)
+                                <option value="{{ $sh->id }}" {{ (string) request('shift_id') === (string) $sh->id ? 'selected' : '' }}>
+                                    {{ $sh->title }} ({{ \App\Services\AttendanceReportService::shiftClock($sh->in_time) }} - {{ \App\Services\AttendanceReportService::shiftClock($sh->out_time, $sh->in_time) }})
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+                <div class="col-lg-2 col-md-4 col-6">
+                    <div class="form-group">
                         <label class="form-label">ID / Student No</label>
                         <input type="search" name="user_no" class="form-control" value="{{ request('user_no') }}" placeholder="101 / 10001">
                     </div>
@@ -159,7 +172,7 @@
                     <thead>
                         <tr>
                             <th class="text-center">#</th>
-                            <th>Date</th>
+                            <th>Work Date <i class="fas fa-question-circle" {!! tooltip('The day the shift started. A night shift (e.g. 10 PM - 6 AM) is one row on its start date; (+1) marks a punch on the next day.') !!}></i></th>
                             <th>Name</th>
                             <th>ID</th>
                             <th>Department / Shift</th>
@@ -195,18 +208,26 @@
                                 <td>
                                     {{ $row->department ?? '-' }}
                                     @if($row->std_in)
-                                        <span class="rpt-sub">{{ $row->shift_title ?? 'Default' }}: {{ timeFormat($row->std_in, 'h:i A') }} - {{ timeFormat($row->std_out, 'h:i A') }}</span>
+                                        <span class="rpt-sub">
+                                            @if($row->is_overnight)<i class="fas fa-moon" title="Night shift"></i>@endif
+                                            {{ $row->shift_title ?? 'Default' }}: {{ \App\Services\AttendanceReportService::shiftClock($row->std_in) }} - {{ \App\Services\AttendanceReportService::shiftClock($row->std_out, $row->std_in) }}
+                                        </span>
                                     @endif
                                 </td>
                                 <td class="text-center text-nowrap">
-                                    <span class="rpt-time {{ $row->is_late ? 'bad' : 'ok' }}">{{ timeFormat($row->in_time, 'h:i A') }}</span>
-                                    @if($row->is_late)
-                                        <span class="rpt-sub bad">Late {{ $hm($row->late_minutes) }}</span>
+                                    @if($row->in_time)
+                                        <span class="rpt-time {{ $row->is_late ? 'bad' : 'ok' }}">{{ \App\Services\AttendanceReportService::clock($row->in_time, $row->att_date) }}</span>
+                                        @if($row->is_late)
+                                            <span class="rpt-sub bad">Late {{ $hm($row->late_minutes) }}</span>
+                                        @endif
+                                    @else
+                                        <span class="rpt-dash">-</span>
+                                        <span class="rpt-sub bad">Missing in</span>
                                     @endif
                                 </td>
                                 <td class="text-center text-nowrap">
                                     @if($row->out_time)
-                                        <span class="rpt-time {{ $row->is_early_out ? 'bad' : 'ok' }}">{{ timeFormat($row->out_time, 'h:i A') }}</span>
+                                        <span class="rpt-time {{ $row->is_early_out ? 'bad' : 'ok' }}">{{ \App\Services\AttendanceReportService::clock($row->out_time, $row->att_date) }}</span>
                                         @if($row->is_early_out)
                                             <span class="rpt-sub bad">Early {{ $hm($row->early_out_minutes) }}</span>
                                         @endif
@@ -215,13 +236,18 @@
                                     @endif
                                 </td>
                                 <td class="text-center">
-                                    @if($row->out_time)
+                                    @if($row->in_time && $row->out_time)
                                         <span class="font-weight-bold">{{ $hm($row->work_minutes) }}</span>
                                     @else
                                         <span class="rpt-dash">-</span>
                                     @endif
                                 </td>
-                                <td class="text-center"><span class="rpt-pill gray">{{ $row->punches }}</span></td>
+                                <td class="text-center">
+                                    <span class="rpt-pill gray">{{ $row->punches }}</span>
+                                    @if((int) $row->outside_punches > 0)
+                                        <span class="rpt-sub bad" {!! tooltip('Punches outside this shift\'s window are not used as in/out') !!}>{{ $row->outside_punches }} outside shift</span>
+                                    @endif
+                                </td>
                             </tr>
                         @empty
                             <tr>

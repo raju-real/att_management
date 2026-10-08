@@ -24,6 +24,7 @@
         late: 'No late arrivals. Everyone is on time!',
         early_out: 'Nobody left early.',
         absent: 'No absentees. Full attendance!',
+        upcoming: 'No shifts waiting to start.',
         on_time: 'Nobody has arrived on time yet.',
         present: 'No one has punched in yet.',
     };
@@ -45,6 +46,12 @@
             if (t.status === 'absent') {
                 time = 'Absent';
                 tag = `<span class="tb-tag">${t.shift_in ? 'Shift ' + esc(t.shift_in) : 'No punch'}</span>`;
+            } else if (t.status === 'upcoming') {
+                time = 'Upcoming';
+                tag = `<span class="tb-tag"><i class="far fa-clock mr-1"></i>Starts ${esc(t.shift_in)}</span>`;
+            } else if (t.missing_in) {
+                time = esc(t.out_time);
+                tag = `<span class="tb-tag"><i class="fas fa-exclamation-triangle mr-1"></i>Missing in (out only)</span>`;
             } else if (t.status === 'late') {
                 time = esc(t.in_time);
                 tag = `<span class="tb-tag"><i class="fas fa-exclamation-circle mr-1"></i>Late ${esc(t.late_by)}</span>`;
@@ -60,7 +67,7 @@
             ? `<div class="tb-shift"><i class="fas fa-business-time mr-1"></i>${esc(t.shift_title || 'Shift')}: ${esc(t.shift_in)} - ${esc(t.shift_out)}</div>`
             : `<div class="tb-shift">No shift assigned</div>`;
 
-        const inCls  = t.status === 'absent' ? 'none' : (t.status === 'late' ? 'bad' : 'ok');
+        const inCls  = !t.in_time ? 'none' : (t.status === 'late' ? 'bad' : 'ok');
         const outCls = !t.out_time ? 'none' : (t.early_out ? 'bad' : 'ok');
         const io = `<div class="tb-io">
                         <div><span class="lbl">In</span><span class="val ${inCls}">${t.in_time ? esc(t.in_time) : '-'}</span></div>
@@ -69,7 +76,9 @@
 
         const tags = [];
         if (t.status === 'absent') tags.push(`<span class="tb-tag">Absent</span>`);
-        if (t.status === 'on_time') tags.push(`<span class="tb-tag"><i class="fas fa-check mr-1"></i>On Time</span>`);
+        if (t.status === 'upcoming') tags.push(`<span class="tb-tag"><i class="far fa-clock mr-1"></i>Upcoming, starts ${esc(t.shift_in)}</span>`);
+        if (t.missing_in) tags.push(`<span class="tb-tag t-early"><i class="fas fa-exclamation-triangle mr-1"></i>Missing In</span>`);
+        else if (t.status === 'on_time') tags.push(`<span class="tb-tag"><i class="fas fa-check mr-1"></i>On Time</span>`);
         if (t.status === 'late') tags.push(`<span class="tb-tag"><i class="fas fa-exclamation-circle mr-1"></i>Late In ${esc(t.late_by)}</span>`);
         if (t.early_out) tags.push(`<span class="tb-tag t-early"><i class="fas fa-sign-out-alt mr-1"></i>Early Out ${esc(t.early_out_by)}</span>`);
 
@@ -98,6 +107,34 @@
         const track = $('track'), viewport = $('viewport'), dotsBox = $('dots'), pageLbl = $('page');
         const progress = $('progress'), dateInput = $('date'), tabs = $('tabs'), loader = $('loader');
         const sizeSelect = $('per-page');
+
+        // ── Department / shift filter (department only, shift only, or both).
+        //    Remembered in this browser so a lobby screen keeps its filter. ──
+        const deptSelect  = $('department');
+        const shiftSelect = $('shift');
+        const FILTER_KEY  = 'tb_filters';
+        const allShiftOptions = shiftSelect ? Array.from(shiftSelect.options).map(o => o.cloneNode(true)) : [];
+
+        function limitShiftsToDepartment() {
+            if (!deptSelect || !shiftSelect) return;
+            const opt = deptSelect.options[deptSelect.selectedIndex];
+            const deptShift = opt && opt.value ? opt.dataset.shift : '';
+            const keep = shiftSelect.value;
+            shiftSelect.innerHTML = '';
+            allShiftOptions.forEach(o => {
+                if (!o.value || !deptShift || o.value === deptShift) shiftSelect.appendChild(o.cloneNode(true));
+            });
+            shiftSelect.value = Array.from(shiftSelect.options).some(o => o.value === keep) ? keep : '';
+        }
+        function saveFilters() {
+            try { localStorage.setItem(FILTER_KEY, JSON.stringify({ d: deptSelect?.value || '', s: shiftSelect?.value || '' })); } catch (e) {}
+        }
+        try {
+            const saved = JSON.parse(localStorage.getItem(FILTER_KEY) || '{}');
+            if (deptSelect && saved.d && Array.from(deptSelect.options).some(o => o.value === saved.d)) deptSelect.value = saved.d;
+            limitShiftsToDepartment();
+            if (shiftSelect && saved.s && Array.from(shiftSelect.options).some(o => o.value === saved.s)) shiftSelect.value = saved.s;
+        } catch (e) { limitShiftsToDepartment(); }
 
         let all = [], filter = 'all', slides = 1, current = 0, playing = true;
         let perPage = +root.dataset.perPage || 24;
@@ -128,7 +165,7 @@
         function filtered() {
             switch (filter) {
                 case 'all': return all;
-                case 'present': return all.filter(t => t.status !== 'absent');
+                case 'present': return all.filter(t => t.status === 'late' || t.status === 'on_time');
                 case 'early_out': return all.filter(t => t.early_out);
                 default: return all.filter(t => t.status === filter);
             }
@@ -214,6 +251,8 @@
             busy = true;
             if (!silent) loader.classList.add('show');
             const params = new URLSearchParams({ date: dateInput.value });
+            if (deptSelect && deptSelect.value) params.set('department_id', deptSelect.value);
+            if (shiftSelect && shiftSelect.value) params.set('shift_id', shiftSelect.value);
             if (pendingPerPage) params.set('per_page', pendingPerPage);
             return fetch(opt.url + '?' + params, { cache: 'no-store', headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } })
                 .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
@@ -222,7 +261,7 @@
                     const s = data.summary || {};
                     $('date-label').textContent = data.date;
                     setCount('all', s.total);
-                    ['present', 'on_time', 'late', 'early_out', 'absent'].forEach(k => setCount(k, s[k]));
+                    ['present', 'on_time', 'late', 'early_out', 'absent', 'upcoming'].forEach(k => setCount(k, s[k]));
                     $('live').style.display = dateInput.value === todayStr() ? '' : 'none';
                     setUpdated(true);
 
@@ -281,6 +320,10 @@
         }
 
         dateInput.addEventListener('change', () => load(false));
+
+        // Filters: department narrows the shift list to that department's shift.
+        deptSelect?.addEventListener('change', () => { limitShiftsToDepartment(); saveFilters(); load(false); });
+        shiftSelect?.addEventListener('change', () => { saveFilters(); load(false); });
 
         // Cards per slide: re-render immediately, then save it for this user.
         sizeSelect.addEventListener('change', () => {
