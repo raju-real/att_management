@@ -192,6 +192,65 @@ class AttendanceController extends Controller
         );
     }
 
+    // ───────────────────────── Month & Day Wise Summary ─────────────────────────
+
+    /**
+     * Monthly teacher attendance sheet (per shift: In/Out per day + totals).
+     * ?export=pdf | xlsx downloads the same sheet.
+     */
+    public function monthSheet(Request $request)
+    {
+        $request->validate([
+            'month'         => ['nullable', 'integer', 'between:1,12'],
+            'year'          => ['nullable', 'integer', 'between:2000,' . (Carbon::today()->year + 1)],
+            'department_id' => ['nullable', 'integer'],
+            'shift_id'      => ['nullable', 'integer'],
+        ]);
+
+        $month = (int) ($request->month ?: Carbon::today()->month);
+        $year  = (int) ($request->year ?: Carbon::today()->year);
+
+        $sheet = \App\Services\MonthlySheetService::build($year, $month, [
+            'department_id' => $request->department_id,
+            'shift_id'      => $request->shift_id,
+        ]);
+
+        $file = 'teacher_attendance_' . $year . '_' . str_pad((string) $month, 2, '0', STR_PAD_LEFT);
+
+        if ($request->get('export') === 'xlsx') {
+            return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\MonthlySheetExport($sheet), $file . '.xlsx');
+        }
+
+        if ($request->get('export') === 'pdf') {
+            $tmp = storage_path('app/mpdf');
+            \Illuminate\Support\Facades\File::ensureDirectoryExists($tmp);
+
+            $pdf = \niklasravnsborg\LaravelPdf\Facades\Pdf::loadView('attendance.sheet.pdf', ['sheet' => $sheet], [], [
+                'format'        => 'A4-L',
+                'margin_left'   => 6,
+                'margin_right'  => 6,
+                'margin_top'    => 8,
+                'margin_bottom' => 8,
+                'tempDir'       => $tmp,
+                'title'         => "Monthly Teacher's Attendance Report",
+            ]);
+
+            // A normal Laravel response (the wrapper's download() echoes the
+            // file and sends headers itself, bypassing the response cycle).
+            return response($pdf->output(), 200, [
+                'Content-Type'        => 'application/pdf',
+                'Content-Disposition' => 'attachment; filename="' . $file . '.pdf"',
+            ]);
+        }
+
+        $filterOptions = $this->filterOptions();
+        return view('attendance.sheet.index', [
+            'sheet'       => $sheet,
+            'departments' => $filterOptions['departments'],
+            'shifts'      => $filterOptions['shifts'],
+        ]);
+    }
+
     // ───────────────────────────── Helpers ─────────────────────────────
 
     protected function filters(Request $request): array

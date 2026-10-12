@@ -38,7 +38,7 @@
             <h5 class="card-title"><i class="fas fa-sliders-h mr-2"></i> Site Information</h5>
         </div>
         <div class="card-body">
-            <form action="{{ route('update-site-settings') }}" id="prevent-form" method="POST">
+            <form action="{{ route('update-site-settings') }}" id="prevent-form" method="POST" enctype="multipart/form-data">
                 @csrf
                 @method('PUT')
                 <div class="row">
@@ -73,6 +73,28 @@
                                    class="form-control {{ hasError('mobile') }}"
                                    placeholder="01XXXXXXXXX">
                             @error('mobile')
+                            {!! displayError($message) !!}
+                            @enderror
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label">School Logo <small class="text-muted">(optional, printed on reports; JPG/PNG/WEBP, max 1 MB)</small></label>
+                            <div class="d-flex align-items-center" style="gap:12px">
+                                @php $siteLogo = siteSettings()->logo ?? null; @endphp
+                                @if($siteLogo && is_file(public_path($siteLogo)))
+                                    <img src="{{ asset($siteLogo) }}" alt="Logo" style="height:56px;max-width:120px;border:1px solid #e5e7eb;border-radius:8px;padding:3px;background:#fff">
+                                @endif
+                                <div>
+                                    <input type="file" name="logo" accept=".jpg,.jpeg,.png,.webp" class="form-control-file {{ hasError('logo') }}">
+                                    @if($siteLogo)
+                                        <label class="small text-danger mt-1 mb-0" style="cursor:pointer">
+                                            <input type="checkbox" name="remove_logo" value="1"> Remove current logo
+                                        </label>
+                                    @endif
+                                </div>
+                            </div>
+                            @error('logo')
                             {!! displayError($message) !!}
                             @enderror
                         </div>

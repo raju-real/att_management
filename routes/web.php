@@ -86,6 +86,7 @@ Route::middleware('auth')->group(function () {
         Route::post('attendance-sync-background', 'syncBackground')->name('attendance.sync.background');
         Route::get('attendance-logs', 'logs')->name('attendance.logs');
         Route::get('attendance-monthly-summary', 'monthlySummary')->name('attendance.monthly-summary');
+        Route::get('attendance-month-day-summary', 'monthSheet')->name('attendance.month-sheet');
         Route::get('attendance-unmatched', 'unmatched')->name('attendance.unmatched');
     });
     // Legacy attendance/report URLs → new pages (names kept so old links still resolve)

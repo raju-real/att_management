@@ -94,7 +94,7 @@
                 <ul class="navbar-nav">
                     {{-- Manage Attendance --}}
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle {{ request()->routeIs(['attendance.logs', 'attendance.monthly-summary', 'attendance.unmatched']) ? 'active' : '' }}"
+                        <a class="nav-link dropdown-toggle {{ request()->routeIs(['attendance.logs', 'attendance.monthly-summary', 'attendance.month-sheet', 'attendance.unmatched']) ? 'active' : '' }}"
                             href="#" id="attendanceDropdown" role="button" data-toggle="dropdown">
                             <i class="fas fa-clock mr-1"></i> Attendance
                         </a>
@@ -106,6 +106,10 @@
                             <a class="dropdown-item {{ request()->routeIs('attendance.monthly-summary') ? 'active' : '' }}"
                                 href="{{ route('attendance.monthly-summary') }}">
                                 <i class="fas fa-calendar-check mr-2"></i> Monthly Summary
+                            </a>
+                            <a class="dropdown-item {{ request()->routeIs('attendance.month-sheet') ? 'active' : '' }}"
+                                href="{{ route('attendance.month-sheet') }}">
+                                <i class="fas fa-table mr-2"></i> Month &amp; Day Wise Summary
                             </a>
                         </div>
                     </li>

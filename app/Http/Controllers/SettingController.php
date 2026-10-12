@@ -28,7 +28,10 @@ class SettingController extends Controller
             'weekly_holidays.*'      => ['string', Rule::in(weekDays())],
             'office_holidays_list'   => 'nullable|array|max:366',
             'office_holidays_list.*' => 'date_format:Y-m-d',
+            'logo'                   => 'nullable|image|mimes:jpg,jpeg,png,webp|max:1024',
+            'remove_logo'            => 'nullable|boolean',
         ], [
+            'logo.max'                        => 'The logo may not be larger than 1 MB.',
             'mobile.regex'                    => 'Enter a valid phone number (digits, +, -, spaces).',
             'out_time.after'                  => 'Default out time must be later than the default in time.',
             'weekly_holidays.max'             => 'At least one day of the week must be a working day.',
@@ -39,8 +42,18 @@ class SettingController extends Controller
         $holidays = $validated['office_holidays_list'] ?? [];
         sort($holidays);
 
+        // School logo (printed on reports). Kept unless replaced or removed.
+        $logo = siteSettings()->logo ?? null;
+        if ($request->hasFile('logo') || $request->boolean('remove_logo')) {
+            if ($logo && is_file(public_path($logo))) {
+                @unlink(public_path($logo));
+            }
+            $logo = $request->hasFile('logo') ? uploadImage($request->file('logo'), 'site') : null;
+        }
+
         try {
             writeJsonSettings('site_setting.json', 'site_settings', [
+                'logo'            => $logo,
                 'site_name'       => trim($validated['site_name']),
                 'email'           => $validated['email'] ?? null,
                 'mobile'          => $validated['mobile'] ?? null,
