@@ -222,22 +222,7 @@ class AttendanceController extends Controller
         }
 
         if ($request->get('export') === 'pdf') {
-            $tmp = storage_path('app/mpdf');
-            \Illuminate\Support\Facades\File::ensureDirectoryExists($tmp);
-
-            $pdf = \niklasravnsborg\LaravelPdf\Facades\Pdf::loadView('attendance.sheet.pdf', ['sheet' => $sheet], [], [
-                'format'        => 'A4-L',
-                'margin_left'   => 6,
-                'margin_right'  => 6,
-                'margin_top'    => 8,
-                'margin_bottom' => 8,
-                'tempDir'       => $tmp,
-                'title'         => "Monthly Teacher's Attendance Report",
-            ]);
-
-            // A normal Laravel response (the wrapper's download() echoes the
-            // file and sends headers itself, bypassing the response cycle).
-            return response($pdf->output(), 200, [
+            return response($this->monthSheetPdf($sheet), 200, [
                 'Content-Type'        => 'application/pdf',
                 'Content-Disposition' => 'attachment; filename="' . $file . '.pdf"',
             ]);
@@ -249,6 +234,72 @@ class AttendanceController extends Controller
             'departments' => $filterOptions['departments'],
             'shifts'      => $filterOptions['shifts'],
         ]);
+    }
+
+    /** Teachers per PDF page (A4 landscape): the first page of a shift also carries the school header. */
+    protected const PDF_FIRST_PAGE = 24; // measured 26 fit under the header on A4-L; 2 spare for long names
+    protected const PDF_PER_PAGE   = 28; // measured 30 fit on a full page; 2 spare for long names
+
+    /**
+     * Build the month sheet PDF with niklasravnsborg/laravel-pdf (mPDF),
+     * writing the HTML in small chunks — one big WriteHTML() call fails with
+     * "HTML code size is larger than pcre.backtrack_limit" for large schools.
+     * Each shift starts on a new page; every chunk repeats the column header.
+     */
+    protected function monthSheetPdf(array $sheet): string
+    {
+        @ini_set('pcre.backtrack_limit', '10000000'); // safety margin; chunks stay far below it
+        @set_time_limit(300);
+
+        $tmp = storage_path('app/mpdf');
+        \Illuminate\Support\Facades\File::ensureDirectoryExists($tmp);
+
+        $mpdf = null;
+        \niklasravnsborg\LaravelPdf\Facades\Pdf::loadHTML('', [
+            'format'        => 'A4-L',
+            'margin_left'   => 6,
+            'margin_right'  => 6,
+            'margin_top'    => 8,
+            'margin_bottom' => 8,
+            'tempDir'       => $tmp,
+            // gives us the mPDF instance so we can call WriteHTML() per chunk
+            'instanceConfigurator' => function ($instance) use (&$mpdf) {
+                $mpdf = $instance;
+                // Every cell has the same 1px border: the fast table renderer is
+                // enough, and packing table data keeps memory low for big schools.
+                $instance->simpleTables  = true;
+                $instance->packTableData = true;
+            },
+        ]);
+
+        $part = fn (string $name, array $data = []) => view('attendance.sheet.pdf_parts', $data + ['part' => $name, 'sheet' => $sheet])->render();
+
+        $mpdf->SetTitle("Monthly Teacher's Attendance Report - {$sheet['month_name']} {$sheet['year']}");
+        $mpdf->WriteHTML($part('css'), \Mpdf\HTMLParserMode::HEADER_CSS);
+
+        if (!$sheet['sections']) {
+            $mpdf->WriteHTML('<p>No teachers found for the selected filters.</p>', \Mpdf\HTMLParserMode::HTML_BODY);
+        }
+
+        foreach ($sheet['sections'] as $i => $section) {
+            if ($i > 0) {
+                $mpdf->AddPage();
+            }
+            $mpdf->WriteHTML($part('header', ['section' => $section]), \Mpdf\HTMLParserMode::HTML_BODY);
+
+            // One chunk = one page, so pages never spill a few rows onto a new page.
+            $first  = array_slice($section['teachers'], 0, self::PDF_FIRST_PAGE);
+            $chunks = array_merge([$first], array_chunk(array_slice($section['teachers'], self::PDF_FIRST_PAGE), self::PDF_PER_PAGE));
+            foreach ($chunks as $c => $teachers) {
+                if ($c > 0) {
+                    $mpdf->AddPage();
+                }
+                $mpdf->WriteHTML($part('table', ['section' => $section, 'teachers' => $teachers]), \Mpdf\HTMLParserMode::HTML_BODY);
+            }
+            $mpdf->WriteHTML($part('legend'), \Mpdf\HTMLParserMode::HTML_BODY);
+        }
+
+        return $mpdf->Output('', \Mpdf\Output\Destination::STRING_RETURN);
     }
 
     // ───────────────────────────── Helpers ─────────────────────────────
