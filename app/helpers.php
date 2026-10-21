@@ -387,6 +387,40 @@ if (!function_exists('writeJsonSettings')) {
     }
 }
 
+if (!function_exists('schoolInfo')) {
+    /**
+     * School letterhead data for every report (page, PDF, Excel), all from
+     * Site Settings — change it there and every report follows.
+     *
+     * @return object{name:string, address:?string, eiin:?string, phone:?string, email:?string,
+     *                website:?string, logo_path:?string, logo_url:?string, contact_line:string}
+     */
+    function schoolInfo(): object
+    {
+        $s    = siteSettings();
+        $logo = !empty($s->logo) && is_file(public_path($s->logo)) ? $s->logo : null;
+
+        $contact = array_filter([
+            !empty($s->eiin) ? 'EIIN: ' . $s->eiin : null,
+            !empty($s->mobile) ? 'Phone: ' . $s->mobile : null,
+            !empty($s->email) ? 'Email: ' . $s->email : null,
+            !empty($s->website) ? $s->website : null,
+        ]);
+
+        return (object) [
+            'name'         => !empty($s->site_name) ? $s->site_name : config('app.name', 'School'),
+            'address'      => $s->address ?? null,
+            'eiin'         => $s->eiin ?? null,
+            'phone'        => $s->mobile ?? null,
+            'email'        => $s->email ?? null,
+            'website'      => $s->website ?? null,
+            'logo_path'    => $logo ? public_path($logo) : null, // for PDF / Excel
+            'logo_url'     => $logo ? asset($logo) : null,       // for web pages
+            'contact_line' => implode('  |  ', $contact),
+        ];
+    }
+}
+
 if (!function_exists('siteSettings')) {
     function siteSettings()
     {

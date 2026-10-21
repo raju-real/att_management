@@ -29,6 +29,9 @@ class SettingController extends Controller
             'office_holidays_list'   => 'nullable|array|max:366',
             'office_holidays_list.*' => 'date_format:Y-m-d',
             'logo'                   => 'nullable|image|mimes:jpg,jpeg,png,webp|max:1024',
+            'address'                => 'nullable|string|max:255',
+            'eiin'                   => 'nullable|string|max:30',
+            'website'                => 'nullable|string|max:100',
             'remove_logo'            => 'nullable|boolean',
         ], [
             'logo.max'                        => 'The logo may not be larger than 1 MB.',
@@ -57,6 +60,10 @@ class SettingController extends Controller
                 'site_name'       => trim($validated['site_name']),
                 'email'           => $validated['email'] ?? null,
                 'mobile'          => $validated['mobile'] ?? null,
+                // Printed on report letterheads (schoolInfo()).
+                'address'         => isset($validated['address']) ? trim($validated['address']) : null,
+                'eiin'            => isset($validated['eiin']) ? trim($validated['eiin']) : null,
+                'website'         => isset($validated['website']) ? trim($validated['website']) : null,
                 // Stored as H:i:s; the fallback standard for students and for
                 // teachers whose department has no shift.
                 'in_time'         => !empty($validated['in_time']) ? $validated['in_time'] . ':00' : null,

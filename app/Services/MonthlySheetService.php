@@ -20,17 +20,36 @@ class MonthlySheetService
     /** Weekday labels as on the printed sheet. */
     public const DAY_ABBR = ['Su', 'M', 'Tu', 'W', 'Th', 'Fr', 'Sa'];
 
-    /**
-     * @return array{
-     *   year:int, month:int, month_name:string, range_label:string, start:string, end:string,
-     *   days: array<int, array{day:int, date:string, abbr:string, holiday:bool, future:bool}>,
-     *   working_days:int, sections: array<int, array>
-     * }
-     */
+    /** Longest date range one sheet may cover (every day is a column). */
+    public const MAX_DAYS = 62;
+
+    /** Whole calendar month (kept for callers that think in months). */
     public static function build(int $year, int $month, array $filters = []): array
     {
-        $start = Carbon::create($year, $month, 1)->startOfDay();
-        $end   = $start->copy()->endOfMonth()->startOfDay();
+        $start = Carbon::create($year, $month, 1);
+        return self::buildRange($start->toDateString(), $start->copy()->endOfMonth()->toDateString(), $filters);
+    }
+
+    /**
+     * Sheet for any date range (max MAX_DAYS days).
+     *
+     * @return array{
+     *   from:string, to:string, period_label:string, day_count:int, is_full_month:bool,
+     *   year:int, month:int, month_name:string, range_label:string, start:string, end:string,
+     *   days: array<string, array{day:int, date:string, abbr:string, month_mark:?string, holiday:bool, future:bool}>,
+     *   working_days:int, filter_label:?string, sections: array<int, array>
+     * }
+     */
+    public static function buildRange(string $from, string $to, array $filters = []): array
+    {
+        $start = Carbon::parse($from)->startOfDay();
+        $end   = Carbon::parse($to)->startOfDay();
+        if ($end->lt($start)) {
+            [$start, $end] = [$end, $start];
+        }
+        if ($start->diffInDays($end) + 1 > self::MAX_DAYS) {
+            $end = $start->copy()->addDays(self::MAX_DAYS - 1);
+        }
         $today = Carbon::today();
 
         $weekly = collect(weeklyHolidays())->map(fn ($d) => strtolower($d));
@@ -38,12 +57,15 @@ class MonthlySheetService
 
         $days = [];
         for ($d = $start->copy(); $d->lte($end); $d->addDay()) {
-            $days[$d->day] = [
-                'day'     => $d->day,
-                'date'    => $d->toDateString(),
-                'abbr'    => self::DAY_ABBR[$d->dayOfWeek],
-                'holiday' => $weekly->contains(strtolower($d->format('l'))) || $office->contains($d->toDateString()),
-                'future'  => $d->gt($today),
+            $days[$d->toDateString()] = [
+                'day'        => $d->day,
+                'date'       => $d->toDateString(),
+                'abbr'       => self::DAY_ABBR[$d->dayOfWeek],
+                // month name over the first column and every 1st, so a range
+                // across months stays readable
+                'month_mark' => ($d->equalTo($start) || $d->day === 1) ? $d->format('M') : null,
+                'holiday'    => $weekly->contains(strtolower($d->format('l'))) || $office->contains($d->toDateString()),
+                'future'     => $d->gt($today),
             ];
         }
         $workingDays = collect($days)->filter(fn ($d) => !$d['holiday'] && !$d['future'])->count();
@@ -51,7 +73,7 @@ class MonthlySheetService
         $deptId  = !empty($filters['department_id']) ? (int) $filters['department_id'] : null;
         $shiftId = !empty($filters['shift_id']) ? (int) $filters['shift_id'] : null;
 
-        // Every teacher in scope (also those without any punch this month).
+        // Every teacher in scope (also those without any punch in the range).
         $teachers = Teacher::query()
             ->leftJoin('departments as d', 'd.id', '=', 'teachers.department_id')
             ->leftJoin('shifts as sh', 'sh.id', '=', 'd.shift_id')
@@ -85,16 +107,27 @@ class MonthlySheetService
             $sections[] = $section;
         }
 
+        $fullMonth = $start->day === 1 && $end->equalTo($start->copy()->endOfMonth()->startOfDay());
+        $deptName  = $deptId ? \App\Models\Department::whereKey($deptId)->value('name') : null;
+
         return [
-            'year'         => $year,
-            'month'        => $month,
-            'month_name'   => $start->format('F'),
-            'range_label'  => $start->format('F y') . ' (' . $start->format('d/m/y') . ' – ' . $end->format('d/m/y') . ')',
-            'start'        => $start->toDateString(),
-            'end'          => $end->toDateString(),
-            'days'         => $days,
-            'working_days' => $workingDays,
-            'sections'     => $sections,
+            'from'          => $start->toDateString(),
+            'to'            => $end->toDateString(),
+            'period_label'  => $start->format('d M Y') . ' – ' . $end->format('d M Y'),
+            'day_count'     => count($days),
+            'is_full_month' => $fullMonth,
+            'year'          => $start->year,
+            'month'         => $start->month,
+            'month_name'    => $start->format('F'),
+            'range_label'   => $fullMonth
+                ? $start->format('F y') . ' (' . $start->format('d/m/y') . ' – ' . $end->format('d/m/y') . ')'
+                : $start->format('d/m/y') . ' – ' . $end->format('d/m/y'),
+            'start'         => $start->toDateString(),
+            'end'           => $end->toDateString(),
+            'days'          => $days,
+            'working_days'  => $workingDays,
+            'filter_label'  => $deptName ? 'Department: ' . $deptName : null,
+            'sections'      => $sections,
         ];
     }
 

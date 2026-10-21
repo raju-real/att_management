@@ -9,11 +9,6 @@
 --}}
 @php
     $mode    = $mode ?? 'web';
-    $logo    = siteSettings()->logo ?? null;
-    $logoSrc = null;
-    if ($logo && $mode !== 'xlsx' && is_file(public_path($logo))) {
-        $logoSrc = $mode === 'pdf' ? public_path($logo) : asset($logo);
-    }
     $b   = 'border:1px solid #000;';
     $th  = $b . 'padding:2px 3px;font-weight:bold;text-align:center;vertical-align:middle;';
     $td  = $b . 'padding:1px 2px;text-align:center;vertical-align:middle;';
@@ -23,30 +18,8 @@
     $dayW = $mode === 'pdf' ? 'width:6.1mm;' : ($mode === 'web' ? 'min-width:46px;' : '');
 @endphp
 
-{{-- ── Report header (as on the printed sheet) ── --}}
-<table style="width:100%;border-collapse:collapse;margin-bottom:6px;{{ $mode === 'pdf' ? 'font-size:9pt;' : '' }}">
-    <tr>
-        <td style="width:30%;vertical-align:bottom;">
-            @if($logoSrc)
-                <img src="{{ $logoSrc }}" alt="" style="height:{{ $mode === 'pdf' ? '48px' : '60px' }};max-width:120px;">
-            @endif
-        </td>
-        <td style="width:40%;text-align:center;vertical-align:bottom;">
-            <div style="font-size:{{ $mode === 'pdf' ? '15pt' : '20px' }};font-weight:bold;">{{ siteSettings()->site_name ?? 'School Name' }}</div>
-        </td>
-        <td style="width:30%;"></td>
-    </tr>
-    <tr>
-        <td colspan="2" style="padding-top:4px;">
-            Monthly Teacher's Attendance Report<br>
-            <b>{{ $section['title'] }}</b>@if($section['timing']) <span style="color:#555;">({{ $section['timing'] }})</span>@endif
-        </td>
-        <td style="text-align:right;padding-top:4px;">
-            Month: {{ $sheet['month_name'] }} &nbsp;&nbsp; Year : {{ $sheet['year'] }}<br>
-            {{ $sheet['range_label'] }}
-        </td>
-    </tr>
-</table>
+{{-- ── Letterhead + report info (all from Site Settings / filters) ── --}}
+@include('attendance.sheet._letterhead', ['sheet' => $sheet, 'section' => $section, 'mode' => $mode])
 
 {{-- ── Attendance grid ── --}}
 <table class="ms-table" style="width:100%;border-collapse:collapse;{{ $fs }}">
@@ -57,7 +30,7 @@
             <th style="{{ $th }}text-align:left;{{ $mode === 'pdf' ? 'width:30mm;' : 'min-width:150px;' }}">Teacher's Name</th>
             <th style="{{ $th }}">Time<br>Table</th>
             @foreach($sheet['days'] as $day)
-                <th style="{{ $th }}{{ $dayW }}{{ $day['holiday'] ? $hol : '' }}">{{ $day['day'] }}<br>{{ $day['abbr'] }}</th>
+                <th style="{{ $th }}{{ $dayW }}{{ $day['holiday'] ? $hol : '' }}">@if($day['month_mark'])<span style="font-size:85%;color:#4338ca;">{{ $day['month_mark'] }}</span><br>@endif{{ $day['day'] }}<br>{{ $day['abbr'] }}</th>
             @endforeach
             <th style="{{ $th }}">Total<br>Present</th>
             <th style="{{ $th }}">Total<br>Absent</th>
@@ -116,3 +89,5 @@
     &nbsp;·&nbsp; - = Missing punch &nbsp;·&nbsp; + = Next day (night shift) &nbsp;·&nbsp; Working days: {{ $sheet['working_days'] }}
     &nbsp;·&nbsp; Over Time = worked after shift out time (h:mm)
 </div>
+
+@include('attendance.sheet._signatures', ['mode' => $mode])

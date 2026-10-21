@@ -1,53 +1,72 @@
 {{--
-    PDF pieces of the Month & Day Wise Summary, written to mPDF in small
+    PDF pieces of the Teacher's Attendance Report, written to mPDF in small
     chunks (see AttendanceController::monthSheetPdf). Short CSS classes
     instead of inline styles keep each chunk well under pcre.backtrack_limit.
+    School details come from Site Settings (schoolInfo()).
 
-    @param string $part     'css' | 'header' | 'table' | 'legend'
-    @param array  $sheet    MonthlySheetService::build()
+    @param string $part     'css' | 'header' | 'table' | 'legend' | 'signatures' | 'footer'
+    @param array  $sheet    MonthlySheetService::buildRange()
     @param array  $section  current shift section          (header/table)
     @param array  $teachers slice of $section['teachers']  (table)
 --}}
 @if($part === 'css')
     body { font-family: sans-serif; font-size: 8pt; color: #000; }
     table { border-collapse: collapse; }
-    .hd { width: 100%; margin-bottom: 5px; font-size: 9pt; }
-    .sn { font-size: 15pt; font-weight: bold; text-align: center; }
+    .lh { width: 100%; }
+    .lh td { padding: 1px 4px; }
+    .sn { font-size: 16pt; font-weight: bold; text-align: center; }
+    .ad { font-size: 8.5pt; text-align: center; color: #333; }
+    .ct { font-size: 7.5pt; text-align: center; color: #555; }
+    .rt { width: 100%; border-top: 1.5px solid #1e1b4b; margin-bottom: 4px; }
+    .rt td { padding: 1px 4px; font-size: 8pt; }
+    .ti { font-size: 11pt; font-weight: bold; text-align: center; padding-top: 4px; }
+    .st { text-align: center; color: #555; font-size: 7.5pt; padding-bottom: 3px; }
     .g { width: 100%; font-size: 6.5pt; }
     .g th, .g td { border: 1px solid #000; padding: 1px 2px; text-align: center; vertical-align: middle; }
     .g th { font-weight: bold; }
     .g .l { text-align: left; }
     .g .w { width: 30mm; }
     .g .d { width: 6.1mm; }
+    .g .mm { color: #4338ca; font-size: 5.5pt; }
     .g .h { background-color: #e5e7eb; color: #6b7280; }
     .g .r { color: #dc2626; font-weight: bold; }
     .g .b { font-weight: bold; }
     .g .tt { white-space: nowrap; width: 11mm; }
     .lg { font-size: 7pt; color: #555; margin-top: 4px; }
+    .sg { width: 100%; margin-top: 30px; }
+    .sg td { text-align: center; font-size: 8pt; }
+    .sg .ln { width: 24%; border-top: 1px solid #000; padding-top: 2px; }
+    .sg .gp { width: 14%; }
+    .g .c-sl { width: 6mm; } .g .c-id { width: 11mm; } .g .c-tot { width: 13mm; } .g .c-pc { width: 17mm; }
+    .ft { width: 100%; font-size: 7pt; color: #666; border-top: 0.5px solid #999; }
 @elseif($part === 'header')
-    @php
-        $logo = siteSettings()->logo ?? null;
-        $logoPath = $logo && is_file(public_path($logo)) ? public_path($logo) : null;
-    @endphp
-    <table class="hd">
+    @php $school = schoolInfo(); @endphp
+    <table class="lh">
         <tr>
-            <td style="width:30%;vertical-align:bottom;">@if($logoPath)<img src="{{ $logoPath }}" style="height:48px;">@endif</td>
-            <td style="width:40%;vertical-align:bottom;" class="sn">{{ siteSettings()->site_name ?? 'School Name' }}</td>
-            <td style="width:30%;"></td>
+            <td style="width:18%;" rowspan="3">@if($school->logo_path)<img src="{{ $school->logo_path }}" style="height:52px;">@endif</td>
+            <td style="width:64%;" class="sn">{{ $school->name }}</td>
+            <td style="width:18%;" rowspan="3"></td>
         </tr>
+        <tr><td class="ad">{{ $school->address }}</td></tr>
+        <tr><td class="ct">{{ $school->contact_line }}</td></tr>
+    </table>
+    <table class="rt">
+        <tr><td colspan="4" class="ti">Teacher's Attendance Report</td></tr>
+        <tr><td colspan="4" class="st">Date wise In / Out Time Summary</td></tr>
         <tr>
-            <td colspan="2">Monthly Teacher's Attendance Report<br>
-                <b>{{ $section['title'] }}</b>@if($section['timing']) <span style="color:#555;">({{ $section['timing'] }})</span>@endif</td>
-            <td style="text-align:right;">Month: {{ $sheet['month_name'] }} &nbsp;&nbsp; Year : {{ $sheet['year'] }}<br>{{ $sheet['range_label'] }}</td>
+            <td><b>Shift:</b> {{ $section['title'] }}@if($section['timing']) ({{ $section['timing'] }})@endif</td>
+            <td>@if($sheet['filter_label'])<b>{{ \Illuminate\Support\Str::before($sheet['filter_label'], ':') }}:</b>{{ \Illuminate\Support\Str::after($sheet['filter_label'], ':') }}@endif</td>
+            <td style="text-align:right;">@if($sheet['is_full_month'])<b>Month:</b> {{ $sheet['month_name'] }} {{ $sheet['year'] }} &nbsp;&nbsp;@endif<b>Period:</b> {{ $sheet['period_label'] }} ({{ $sheet['day_count'] }} days)</td>
+            <td style="text-align:right;width:16%;"><b>Working days:</b> {{ $sheet['working_days'] }}</td>
         </tr>
     </table>
 @elseif($part === 'table')
     <table class="g">
         <thead>
             <tr>
-                <th>SL<br>No</th><th>ID<br>No</th><th class="l w">Teacher's Name</th><th>Time<br>Table</th>
-                @foreach($sheet['days'] as $day)<th class="d{{ $day['holiday'] ? ' h' : '' }}">{{ $day['day'] }}<br>{{ $day['abbr'] }}</th>@endforeach
-                <th>Total<br>Present</th><th>Total<br>Absent</th><th>Total<br>Late</th><th>Over<br>Time</th><th>Attendance<br>Percentage %</th>
+                <th class="c-sl">SL<br>No</th><th class="c-id">ID<br>No</th><th class="l w">Teacher's Name</th><th class="tt">Time<br>Table</th>
+                @foreach($sheet['days'] as $day)<th class="{{ $sheet['day_count'] >= 28 ? 'd' : '' }}{{ $day['holiday'] ? ' h' : '' }}">@if($day['month_mark'])<span class="mm">{{ $day['month_mark'] }}</span><br>@endif{{ $day['day'] }}<br>{{ $day['abbr'] }}</th>@endforeach
+                <th class="c-tot">Total<br>Present</th><th class="c-tot">Total<br>Absent</th><th class="c-tot">Total<br>Late</th><th class="c-tot">Over<br>Time</th><th class="c-pc">Attendance<br>Percentage %</th>
             </tr>
         </thead>
         <tbody>
@@ -72,4 +91,20 @@
     <div class="lg">A = Absent &nbsp;·&nbsp; H = Holiday &nbsp;·&nbsp; <span style="color:#dc2626;font-weight:bold;">Red</span> = Late in / Early out
         &nbsp;·&nbsp; - = Missing punch &nbsp;·&nbsp; + = Next day (night shift) &nbsp;·&nbsp; Working days: {{ $sheet['working_days'] }}
         &nbsp;·&nbsp; Over Time = worked after shift out time (h:mm)</div>
+@elseif($part === 'signatures')
+    <table class="sg">
+        <tr>
+            <td class="ln">Prepared By</td><td class="gp"></td>
+            <td class="ln">Checked By</td><td class="gp"></td>
+            <td class="ln">Head Teacher / Principal</td>
+        </tr>
+    </table>
+@elseif($part === 'footer')
+    <table class="ft">
+        <tr>
+            <td style="width:40%;">{{ schoolInfo()->name }} &nbsp;·&nbsp; Teacher's Attendance Report &nbsp;·&nbsp; {{ $sheet['period_label'] }}</td>
+            <td style="width:35%;text-align:center;">Generated {{ now()->format('d M Y, h:i A') }}@if(auth()->user()) by {{ auth()->user()->name }}@endif</td>
+            <td style="width:25%;text-align:right;">Page {PAGENO} of {nbpg}</td>
+        </tr>
+    </table>
 @endif

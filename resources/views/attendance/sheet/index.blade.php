@@ -6,6 +6,9 @@
         .ms-wrap { overflow-x: auto; background: #fff; border-radius: 12px; padding: 16px; border: 1px solid #e5e7eb; }
         .ms-wrap .ms-table td, .ms-wrap .ms-table th { white-space: nowrap; }
         .ms-section + .ms-section { margin-top: 28px; padding-top: 20px; border-top: 2px dashed #e5e7eb; }
+        .ms-chip { font-size: 12px; font-weight: 600; padding: 4px 12px; border-radius: 20px; border: 1px solid #c7d2fe;
+            color: #4338ca; background: #eef2ff; text-decoration: none !important; }
+        .ms-chip:hover, .ms-chip.active { background: #4f46e5; color: #fff; border-color: #4f46e5; }
         @media print {
             .navbar, .footer, .no-print, .background-animation { display: none !important; }
             .ms-wrap { border: none; padding: 0; overflow: visible; }
@@ -16,19 +19,26 @@
 @endpush
 
 @php
-    $years = range(\Carbon\Carbon::today()->year + 1, \Carbon\Carbon::today()->year - 5);
-    $query = request()->only(['month', 'year', 'department_id', 'shift_id']);
+    $today   = \Illuminate\Support\Carbon::today();
+    $keep    = request()->only(['department_id', 'shift_id']);
+    $current = ['from_date' => $sheet['from'], 'to_date' => $sheet['to']];
+    $presets = [
+        'This Month'   => [$today->copy()->startOfMonth(), $today->copy()->endOfMonth()],
+        'Last Month'   => [$today->copy()->subMonthNoOverflow()->startOfMonth(), $today->copy()->subMonthNoOverflow()->endOfMonth()],
+        'Last 7 Days'  => [$today->copy()->subDays(6), $today->copy()],
+        'Last 30 Days' => [$today->copy()->subDays(29), $today->copy()],
+    ];
 @endphp
 
 @section('content')
     <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap no-print">
         <h3 class="mb-2">Month &amp; Day Wise Summary</h3>
         <div class="mb-2 d-flex" style="gap:6px">
-            <a href="{{ route('attendance.month-sheet', array_merge($query, ['month' => $sheet['month'], 'year' => $sheet['year'], 'export' => 'pdf'])) }}"
-               class="btn btn-danger" {!! tooltip('Download as PDF (A4 landscape, one page per shift)') !!}>
+            <a href="{{ route('attendance.month-sheet', array_merge($keep, $current, ['export' => 'pdf'])) }}"
+               class="btn btn-danger" {!! tooltip($sheet['day_count'] > 31 ? 'Download as PDF (A3 landscape for ranges over 31 days)' : 'Download as PDF (A4 landscape, one page per shift)') !!}>
                 <i class="fas fa-file-pdf mr-1"></i> PDF
             </a>
-            <a href="{{ route('attendance.month-sheet', array_merge($query, ['month' => $sheet['month'], 'year' => $sheet['year'], 'export' => 'xlsx'])) }}"
+            <a href="{{ route('attendance.month-sheet', array_merge($keep, $current, ['export' => 'xlsx'])) }}"
                class="btn btn-success" {!! tooltip('Download as Excel (.xlsx)') !!}>
                 <i class="fas fa-file-excel mr-1"></i> Excel
             </a>
@@ -36,26 +46,29 @@
         </div>
     </div>
 
-    <div class="rpt-filter p-3 mb-3 no-print" style="background:#fff;border-radius:14px;border:1px solid #e5e7eb;">
+    <div class="p-3 mb-3 no-print" style="background:#fff;border-radius:14px;border:1px solid #e5e7eb;">
+        <div class="d-flex flex-wrap mb-3" style="gap:6px">
+            @foreach($presets as $label => [$pf, $pt])
+                <a href="{{ route('attendance.month-sheet', array_merge($keep, ['from_date' => $pf->toDateString(), 'to_date' => $pt->toDateString()])) }}"
+                   class="ms-chip {{ $sheet['from'] === $pf->toDateString() && $sheet['to'] === $pt->toDateString() ? 'active' : '' }}">{{ $label }}</a>
+            @endforeach
+        </div>
         <form method="GET" action="{{ route('attendance.month-sheet') }}" class="row align-items-end">
             <div class="col-lg-2 col-md-3 col-6">
                 <div class="form-group mb-2">
-                    <label class="form-label">Month</label>
-                    <select name="month" class="form-control">
-                        @foreach(range(1, 12) as $m)
-                            <option value="{{ $m }}" {{ $sheet['month'] === $m ? 'selected' : '' }}>{{ \Carbon\Carbon::create(null, $m, 1)->format('F') }}</option>
-                        @endforeach
-                    </select>
+                    <label class="form-label">From Date</label>
+                    <input type="text" name="from_date" class="form-control flat_datepicker {{ hasError('from_date') }}"
+                           value="{{ old('from_date', $sheet['from']) }}" autocomplete="off">
+                    @error('from_date') {!! displayError($message) !!} @enderror
                 </div>
             </div>
             <div class="col-lg-2 col-md-3 col-6">
                 <div class="form-group mb-2">
-                    <label class="form-label">Year</label>
-                    <select name="year" class="form-control">
-                        @foreach($years as $y)
-                            <option value="{{ $y }}" {{ $sheet['year'] === $y ? 'selected' : '' }}>{{ $y }}</option>
-                        @endforeach
-                    </select>
+                    <label class="form-label">To Date
+                        <i class="fas fa-question-circle text-muted" {!! tooltip('Up to ' . \App\Services\MonthlySheetService::MAX_DAYS . ' days; each day is one column') !!}></i></label>
+                    <input type="text" name="to_date" class="form-control flat_datepicker {{ hasError('to_date') }}"
+                           value="{{ old('to_date', $sheet['to']) }}" autocomplete="off">
+                    @error('to_date') {!! displayError($message) !!} @enderror
                 </div>
             </div>
             <div class="col-lg-3 col-md-3 col-6">
@@ -85,7 +98,7 @@
             <div class="col-lg-2 col-md-12 col-12">
                 <div class="form-group mb-2 d-flex" style="gap:6px">
                     <button class="btn btn-primary flex-fill"><i class="fas fa-search mr-1"></i> Show</button>
-                    <a href="{{ route('attendance.month-sheet') }}" class="btn btn-secondary" {!! tooltip('Current month') !!}><i class="fas fa-undo"></i></a>
+                    <a href="{{ route('attendance.month-sheet') }}" class="btn btn-secondary" {!! tooltip('Running month') !!}><i class="fas fa-undo"></i></a>
                 </div>
             </div>
         </form>

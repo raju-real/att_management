@@ -79,6 +79,36 @@
                     </div>
                     <div class="col-md-6">
                         <div class="form-group">
+                            <label class="form-label">Address <small class="text-muted">(optional, printed under the school name on reports)</small></label>
+                            <input type="text" name="address" maxlength="255" value="{{ old('address') ?? siteSettings()->address ?? '' }}"
+                                   class="form-control {{ hasError('address') }}" placeholder="e.g. 12 College Road, Dhaka-1205">
+                            @error('address')
+                            {!! displayError($message) !!}
+                            @enderror
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label class="form-label">EIIN <small class="text-muted">(optional)</small></label>
+                            <input type="text" name="eiin" maxlength="30" value="{{ old('eiin') ?? siteSettings()->eiin ?? '' }}"
+                                   class="form-control {{ hasError('eiin') }}" placeholder="e.g. 108264">
+                            @error('eiin')
+                            {!! displayError($message) !!}
+                            @enderror
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label class="form-label">Website <small class="text-muted">(optional)</small></label>
+                            <input type="text" name="website" maxlength="100" value="{{ old('website') ?? siteSettings()->website ?? '' }}"
+                                   class="form-control {{ hasError('website') }}" placeholder="www.school.edu.bd">
+                            @error('website')
+                            {!! displayError($message) !!}
+                            @enderror
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
                             <label class="form-label">School Logo <small class="text-muted">(optional, printed on reports; JPG/PNG/WEBP, max 1 MB)</small></label>
                             <div class="d-flex align-items-center" style="gap:12px">
                                 @php $siteLogo = siteSettings()->logo ?? null; @endphp
