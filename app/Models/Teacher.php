@@ -8,8 +8,44 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Teacher extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, SoftDeletes, \App\Traits\BelongsToInstitute;
     protected $table = "teachers";
+
+    // Teacher/Staff profile (repeatable tables stored as JSON rows)
+    protected $casts = [
+        'date_of_birth'   => 'date',
+        'joining_date'    => 'date',
+        'education'       => 'array', // [{exam, institute, year, gpa}]
+        'class_teacher'   => 'array', // [{class, subject, section, group, shift}]
+        'subject_teacher' => 'array', // [{class, subject, section, group, shift}]
+    ];
+
+    public const GENDERS      = ['Male', 'Female', 'Other'];
+    public const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+    public const RELIGIONS    = ['Islam', 'Hinduism', 'Buddhism', 'Christianity', 'Other'];
+
+    /** Columns of the repeatable profile tables (key => heading). */
+    public const EDUCATION_COLUMNS = ['exam' => 'Exam Name', 'institute' => 'Institute Name', 'year' => 'Passing Year', 'gpa' => 'G.P.A'];
+    public const CLASS_COLUMNS     = ['class' => 'Class', 'subject' => 'Subject', 'section' => 'Section', 'group' => 'Group', 'shift' => 'Shift'];
+
+    /**
+     * Keep only the known columns of each submitted row and drop rows that
+     * are completely empty (the form always posts one blank row).
+     */
+    public static function cleanRows($rows, array $columns): ?array
+    {
+        $out = [];
+        foreach ((array) $rows as $row) {
+            $clean = [];
+            foreach (array_keys($columns) as $key) {
+                $clean[$key] = trim((string) ($row[$key] ?? ''));
+            }
+            if (implode('', $clean) !== '') {
+                $out[] = $clean;
+            }
+        }
+        return $out ?: null;
+    }
 
     public function department()
     {

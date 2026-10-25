@@ -28,6 +28,9 @@
     <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap">
         <h3 class="mb-2">Device Monitor</h3>
         <div class="mb-2 d-flex align-items-center" style="gap:8px">
+            <form method="GET" action="{{ route('devices-monitor') }}" style="min-width:240px">
+                @include('partials.institute_select', ['autoSubmit' => true, 'class' => 'form-control form-control-sm'])
+            </form>
             <small class="text-muted">Server time: <b id="dmServerTime">-</b> &middot; refreshes every 10s</small>
             <button class="btn btn-sm btn-secondary" id="dmToggle" {!! tooltip('Pause / resume auto refresh') !!}><i class="fas fa-pause"></i></button>
             <button class="btn btn-sm btn-primary" id="dmRefresh" {!! tooltip('Refresh now') !!}><i class="fas fa-sync-alt"></i></button>
@@ -88,7 +91,7 @@
 @push('js')
 <script>
 (function () {
-    const URL_DATA = "{{ route('devices-monitor.data') }}";
+    const URL_DATA = "{!! route('devices-monitor.data', array_filter(['institute_id' => selectedInstituteId()])) !!}";
     const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     let timer = null, paused = false, lastTopId = null;
 
@@ -127,7 +130,7 @@
             ? data.feed.map(r => `<tr class="${lastTopId !== null && r.id > lastTopId ? 'dm-new' : ''}">
                     <td class="text-muted">${r.id}</td>
                     <td>${r.name ? esc(r.name) : '<span class="text-danger">Not registered</span>'}
-                        <small class="text-muted ml-1">${esc(r.user_type || '')}</small></td>
+                        <small class="text-muted ml-1">${esc(r.user_type === 'teacher' ? 'teacher/staff' : (r.user_type || ''))}</small></td>
                     <td><span class="dm-id">${esc(r.user_no || '-')}</span></td>
                     <td>${esc(r.device)}</td>
                     <td>${esc(r.punch_time)}</td>

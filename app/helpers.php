@@ -112,9 +112,9 @@ if (!function_exists('getDeviceFor')) {
     function getDeviceFor(): array
     {
         return [
-            (object)['value' => 'student_teacher', 'title' => 'Student and Teacher'],
+            (object)['value' => 'student_teacher', 'title' => 'Student and Teacher/Staff'],
             (object)['value' => 'student', 'title' => 'Student'],
-            (object)['value' => 'teacher', 'title' => 'Teacher']
+            (object)['value' => 'teacher', 'title' => 'Teacher/Staff']
         ];
     }
 }
@@ -387,36 +387,94 @@ if (!function_exists('writeJsonSettings')) {
     }
 }
 
+if (!function_exists('isSuperAdmin')) {
+    /** Logged-in user is the super admin (sees and manages every institute). */
+    function isSuperAdmin(): bool
+    {
+        $u = Auth::user();
+        return $u !== null && ($u->role ?? 'admin') === 'admin';
+    }
+}
+
+if (!function_exists('authInstituteId')) {
+    /**
+     * The logged-in INSTITUTE's id (users.id), or null for the super admin /
+     * guests. Used by InstituteScope to isolate each institute's data.
+     */
+    function authInstituteId(): ?int
+    {
+        $u = Auth::user();
+        return ($u !== null && ($u->role ?? null) === 'institute') ? (int) $u->id : null;
+    }
+}
+
+if (!function_exists('selectedInstituteId')) {
+    /**
+     * Institute a page/report works on: an institute user is always locked
+     * to itself; the super admin picks one from the dropdown (null = all).
+     */
+    function selectedInstituteId(): ?int
+    {
+        if (($own = authInstituteId()) !== null) {
+            return $own;
+        }
+        $req = request('institute_id');
+        return ctype_digit((string) $req) && (int) $req > 0 ? (int) $req : null;
+    }
+}
+
+if (!function_exists('instituteOptions')) {
+    /** Institutes for dropdowns (an institute user only sees itself). */
+    function instituteOptions()
+    {
+        return \App\Models\User::institutes()
+            ->when(authInstituteId(), fn ($q, $id) => $q->whereKey($id))
+            ->orderBy('name')
+            ->get(['id', 'name', 'status']);
+    }
+}
+
 if (!function_exists('schoolInfo')) {
     /**
-     * School letterhead data for every report (page, PDF, Excel), all from
-     * Site Settings — change it there and every report follows.
+     * Letterhead data for every report (page, PDF, Excel): the institute's
+     * own details (users row) when one is selected, otherwise the global
+     * Site Settings. Change it there and every report follows.
      *
      * @return object{name:string, address:?string, eiin:?string, phone:?string, email:?string,
-     *                website:?string, logo_path:?string, logo_url:?string, contact_line:string}
+     *                website:?string, logo_path:?string, logo_url:?string, contact_line:string, is_institute:bool}
      */
-    function schoolInfo(): object
+    function schoolInfo(?int $instituteId = null): object
     {
+        $instituteId = $instituteId ?? selectedInstituteId();
+        $inst = $instituteId ? \App\Models\User::institutes()->find($instituteId) : null;
         $s    = siteSettings();
-        $logo = !empty($s->logo) && is_file(public_path($s->logo)) ? $s->logo : null;
+
+        $src = $inst ? (object) [
+            'site_name' => $inst->name, 'address' => $inst->address, 'eiin' => $inst->eiin,
+            'mobile' => $inst->mobile, 'email' => $inst->email, 'website' => $inst->website,
+            'logo' => $inst->logo ?: ($s->logo ?? null),
+        ] : $s;
+
+        $logo = !empty($src->logo) && is_file(public_path($src->logo)) ? $src->logo : null;
 
         $contact = array_filter([
-            !empty($s->eiin) ? 'EIIN: ' . $s->eiin : null,
-            !empty($s->mobile) ? 'Phone: ' . $s->mobile : null,
-            !empty($s->email) ? 'Email: ' . $s->email : null,
-            !empty($s->website) ? $s->website : null,
+            !empty($src->eiin) ? 'EIIN: ' . $src->eiin : null,
+            !empty($src->mobile) ? 'Phone: ' . $src->mobile : null,
+            !empty($src->email) ? 'Email: ' . $src->email : null,
+            !empty($src->website) ? $src->website : null,
         ]);
 
         return (object) [
-            'name'         => !empty($s->site_name) ? $s->site_name : config('app.name', 'School'),
-            'address'      => $s->address ?? null,
-            'eiin'         => $s->eiin ?? null,
-            'phone'        => $s->mobile ?? null,
-            'email'        => $s->email ?? null,
-            'website'      => $s->website ?? null,
+            'name'         => !empty($src->site_name) ? $src->site_name : config('app.name', 'School'),
+            'address'      => $src->address ?? null,
+            'eiin'         => $src->eiin ?? null,
+            'phone'        => $src->mobile ?? null,
+            'email'        => $src->email ?? null,
+            'website'      => $src->website ?? null,
             'logo_path'    => $logo ? public_path($logo) : null, // for PDF / Excel
             'logo_url'     => $logo ? asset($logo) : null,       // for web pages
             'contact_line' => implode('  |  ', $contact),
+            'is_institute' => (bool) $inst,
         ];
     }
 }

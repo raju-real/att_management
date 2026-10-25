@@ -133,11 +133,21 @@ class AttendanceReportService
         $start = Carbon::parse($from)->subDay()->startOfDay()->format('Y-m-d H:i:s');
         $end   = Carbon::parse($to)->addDays(2)->startOfDay()->format('Y-m-d H:i:s');
 
+        // Multi-institute: a device ID (teacher_no) is only unique inside one
+        // institute, so every join also matches the institute. Institute users
+        // are ALWAYS limited to their own institute here (raw queries are not
+        // covered by the Eloquent InstituteScope).
+        $institute = self::instituteFilter($f);
+
         return DB::table('attendance_logs as al')
-            ->leftJoin('teachers as t', 't.teacher_no', '=', DB::raw("NULLIF(al.teacher_no, '')"))
+            ->leftJoin('teachers as t', function ($j) {
+                $j->on('t.teacher_no', '=', DB::raw("NULLIF(al.teacher_no, '')"))
+                  ->whereRaw('t.institute_id <=> al.institute_id');
+            })
             ->leftJoin('departments as d', 'd.id', '=', 't.department_id')
             ->leftJoin('shifts as sh', 'sh.id', '=', 'd.shift_id')
             ->selectRaw("
+                al.institute_id,
                 al.user_type,
                 COALESCE(NULLIF(al.student_no, ''), NULLIF(al.teacher_no, '')) AS user_no,
                 NULLIF(al.student_no, '') AS student_no,
@@ -155,6 +165,7 @@ class AttendanceReportService
             ->where('al.punch_time', '>=', $start)
             ->where('al.punch_time', '<', $end)
             ->whereRaw("COALESCE(NULLIF(al.student_no, ''), NULLIF(al.teacher_no, '')) IS NOT NULL")
+            ->when($institute, fn ($q, $v) => $q->where('al.institute_id', $v))
             ->when($f['user_type'] ?? null, fn ($q, $v) => $q->where('al.user_type', $v))
             ->when($f['teacher_no'] ?? null, fn ($q, $v) => $q->where('al.teacher_no', $v))
             ->when($f['user_no'] ?? null, fn ($q, $v) => $q->where(
@@ -171,6 +182,7 @@ class AttendanceReportService
         return DB::query()
             ->fromSub(self::punchQuery($from, $to, $f), 'p')
             ->selectRaw("
+                p.institute_id,
                 p.user_type,
                 p.user_no,
                 MAX(p.student_no) AS student_no,
@@ -187,7 +199,7 @@ class AttendanceReportService
                 SUM(p.in_win) AS win_punches
             ")
             ->whereBetween('p.work_date', [Carbon::parse($from)->toDateString(), Carbon::parse($to)->toDateString()])
-            ->groupBy('p.user_type', 'p.user_no', 'p.work_date');
+            ->groupBy('p.institute_id', 'p.user_type', 'p.user_no', 'p.work_date');
     }
 
     /**
@@ -202,12 +214,15 @@ class AttendanceReportService
 
         return DB::query()
             ->fromSub(self::dailyPunches($from, $to, $f), 'a')
-            ->leftJoin('teachers as t', 't.teacher_no', '=', 'a.teacher_no')
+            ->leftJoin('teachers as t', function ($j) {
+                $j->on('t.teacher_no', '=', 'a.teacher_no')
+                  ->whereRaw('t.institute_id <=> a.institute_id');
+            })
             // students.student_no is not unique, so join exactly ONE row per
             // student_no (a live student before a deleted one) — a plain join
             // would duplicate attendance rows.
             ->leftJoin('students as s', 's.id', '=', DB::raw(
-                '(SELECT s2.id FROM students s2 WHERE s2.student_no = a.student_no
+                '(SELECT s2.id FROM students s2 WHERE s2.student_no = a.student_no AND s2.institute_id <=> a.institute_id
                   ORDER BY s2.deleted_at IS NULL DESC, s2.id DESC LIMIT 1)'
             ))
             ->leftJoin('departments as d', 'd.id', '=', 't.department_id')
@@ -255,6 +270,7 @@ class AttendanceReportService
         $q = DB::query()
             ->fromSub(self::scheduledQuery($from, $to, $f), 'r')
             ->selectRaw("
+                r.institute_id,
                 r.user_type,
                 r.user_no,
                 r.att_date,
@@ -365,6 +381,7 @@ class AttendanceReportService
         return DB::query()
             ->fromSub(self::dailyQuery($from, $to, $f), 'x')
             ->selectRaw("
+                x.institute_id,
                 x.user_type,
                 x.user_no,
                 MAX(x.name)          AS name,
@@ -388,7 +405,7 @@ class AttendanceReportService
                 " . self::arrivalClock('MAX(x.arrival_offset)', 'MAX(TIME(x.in_time))') . " AS latest_in,
                 " . self::arrivalClock('ROUND(AVG(x.arrival_offset))', 'SEC_TO_TIME(ROUND(AVG(TIME_TO_SEC(TIME(x.in_time)))))') . " AS avg_in
             ")
-            ->groupBy('x.user_type', 'x.user_no');
+            ->groupBy('x.institute_id', 'x.user_type', 'x.user_no');
     }
 
     public static function monthlySummary(array $f, int $perPage = 50)
@@ -433,7 +450,7 @@ class AttendanceReportService
             ->fromSub(self::dailyQuery($from, $to, $f), 'x')
             ->selectRaw("
                 COALESCE(x.user_type, 'unknown') AS user_type,
-                COUNT(DISTINCT x.user_no) AS users,
+                COUNT(DISTINCT x.institute_id, x.user_no) AS users,
                 COUNT(*)                  AS present_days,
                 SUM(x.is_late)            AS late_days,
                 SUM(x.is_early_out)       AS early_out_days,
@@ -484,9 +501,12 @@ class AttendanceReportService
         $isToday = Carbon::parse($date)->isToday();
         $now     = now();
 
+        $institute = self::instituteFilter($filters);
+
         $teachers = Teacher::query()
             ->leftJoin('departments as d', 'd.id', '=', 'teachers.department_id')
             ->leftJoin('shifts as sh', 'sh.id', '=', 'd.shift_id')
+            ->when($institute, fn ($q) => $q->where('teachers.institute_id', $institute))
             ->when($deptId, fn ($q) => $q->where('teachers.department_id', $deptId))
             ->when($shiftId, fn ($q) => $q->where('d.shift_id', $shiftId))
             ->get([
@@ -498,9 +518,10 @@ class AttendanceReportService
         // Rows for the date and the day before: on "today", a night-shift
         // teacher's current shift day may still be yesterday (e.g. at 02:00).
         $from = $isToday ? Carbon::parse($date)->subDay()->toDateString() : $date;
+        // keyed by teacher id (device IDs repeat across institutes)
         $rows = self::dailyQuery($from, $date, array_filter([
-            'user_type' => 'teacher', 'department_id' => $deptId, 'shift_id' => $shiftId,
-        ]))->get()->keyBy(fn ($r) => $r->user_no . '|' . $r->att_date);
+            'user_type' => 'teacher', 'department_id' => $deptId, 'shift_id' => $shiftId, 'institute_id' => $institute,
+        ]))->get()->keyBy(fn ($r) => $r->teacher_id . '|' . $r->att_date);
 
         $siteIn  = siteSettings()->in_time ?? null;
         $siteOut = siteSettings()->out_time ?? null;
@@ -529,7 +550,7 @@ class AttendanceReportService
                     }
                 }
             }
-            $r = $rows->get($t->teacher_no . '|' . $workDate);
+            $r = $rows->get($t->id . '|' . $workDate);
 
             if ($r) {
                 $status = $r->is_late ? 'late' : 'on_time';
@@ -581,6 +602,19 @@ class AttendanceReportService
             'summary'  => $summary,
             'teachers' => $list->map(fn ($t) => collect($t)->except('sort_key'))->all(),
         ];
+    }
+
+    /**
+     * Institute a report runs for: the logged-in institute (always, it can
+     * not see others), otherwise the admin's choice in $f['institute_id']
+     * (null = all institutes).
+     */
+    public static function instituteFilter(array $f = []): ?int
+    {
+        if (($own = authInstituteId()) !== null) {
+            return $own;
+        }
+        return !empty($f['institute_id']) ? (int) $f['institute_id'] : null;
     }
 
     /** Cards per slide the board can show. */

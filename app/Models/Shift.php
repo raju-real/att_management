@@ -17,12 +17,12 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  */
 class Shift extends Model
 {
-    use HasFactory, ModelHelper, SoftDeletes;
+    use HasFactory, ModelHelper, SoftDeletes, \App\Traits\BelongsToInstitute;
 
     protected $table = 'shifts';
 
     protected $fillable = [
-        'title', 'in_time', 'out_time', 'status',
+        'institute_id', 'title', 'in_time', 'out_time', 'status',
         'late_count_time', 'early_out_count_time',
         'punch_before_minutes', 'punch_after_minutes', 'is_overnight',
     ];

@@ -83,7 +83,7 @@ class DeviceActivityController extends Controller
             }
 
             if (in_array($request->direction, ['db_to_device', 'both'])) {
-                $this->syncUsersToDevice($zk, $request);
+                $this->syncUsersToDevice($zk, $request, $device);
             }
 
             $this->zkService->disconnect($zk);
@@ -120,10 +120,11 @@ class DeviceActivityController extends Controller
     }
 
     /** Push DB users to device via TCP/UDP socket */
-    protected function syncUsersToDevice($zk, Request $request): void
+    protected function syncUsersToDevice($zk, Request $request, Device $device): void
     {
+        // only the device's own institute is pushed to it
         // Students
-        $studentsQuery = Student::query()
+        $studentsQuery = Student::withoutGlobalScope(\App\Models\Scopes\InstituteScope::class)->where('institute_id', $device->institute_id ?: -1)
             ->when($request->from_date, function ($q) use ($request) {
                 if (! $request->to_date) {
                     $q->whereDate('created_at', $request->from_date);
@@ -141,7 +142,7 @@ class DeviceActivityController extends Controller
         }
 
         // Teachers
-        $teachersQuery = Teacher::query()
+        $teachersQuery = Teacher::withoutGlobalScope(\App\Models\Scopes\InstituteScope::class)->where('institute_id', $device->institute_id ?: -1)
             ->when($request->from_date, function ($q) use ($request) {
                 if (! $request->to_date) {
                     $q->whereDate('created_at', $request->from_date);
@@ -165,9 +166,10 @@ class DeviceActivityController extends Controller
     protected function queueUsersToDevice(Device $device, Request $request): int
     {
         $count = 0;
+        // only the device's own institute is pushed to it
 
         // Students
-        $studentsQuery = Student::query()
+        $studentsQuery = Student::withoutGlobalScope(\App\Models\Scopes\InstituteScope::class)->where('institute_id', $device->institute_id ?: -1)
             ->when($request->from_date, function ($q) use ($request) {
                 if (! $request->to_date) {
                     $q->whereDate('created_at', $request->from_date);
@@ -189,7 +191,7 @@ class DeviceActivityController extends Controller
         }
 
         // Teachers
-        $teachersQuery = Teacher::query()
+        $teachersQuery = Teacher::withoutGlobalScope(\App\Models\Scopes\InstituteScope::class)->where('institute_id', $device->institute_id ?: -1)
             ->when($request->from_date, function ($q) use ($request) {
                 if (! $request->to_date) {
                     $q->whereDate('created_at', $request->from_date);

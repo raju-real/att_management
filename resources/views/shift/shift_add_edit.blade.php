@@ -30,6 +30,17 @@
                     @method('PUT')
                 @endisset
 
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label class="form-label">Institute {!! starSign() !!}</label>
+                            @include('partials.institute_select', ['required' => true, 'selected' => $shift->institute_id ?? null])
+                            @error('institute_id')
+                                {!! displayError($message) !!}
+                            @enderror
+                        </div>
+                    </div>
+                </div>
                 <h6 class="text-muted text-uppercase small font-weight-bold mb-2">Standard times</h6>
                 <div class="row">
                     <div class="col-md-3">

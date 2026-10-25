@@ -65,7 +65,7 @@
                     <thead>
                         <tr>
                             <th>#</th>
-                            <th>PIN <i class="fas fa-question-circle text-muted" {!! tooltip('User ID on the device; must equal the Teacher No / Student No') !!}></i></th>
+                            <th>PIN <i class="fas fa-question-circle text-muted" {!! tooltip('User ID on the device; must equal the Teacher/Staff No / Student No') !!}></i></th>
                             <th>Name on device</th>
                             <th>Role</th>
                             <th>Card</th>
@@ -83,7 +83,7 @@
                                 <td>{{ $u->card ?: '-' }}</td>
                                 <td>
                                     @if($u->teacher_id)
-                                        <span class="badge badge-success">Teacher</span>
+                                        <span class="badge badge-success">Teacher/Staff</span>
                                         @if($u->teacher_name && $u->name && strcasecmp(trim($u->teacher_name), trim($u->name)) !== 0)
                                             <small class="text-muted d-block">as "{{ $u->teacher_name }}"</small>
                                         @endif
@@ -92,7 +92,7 @@
                                     @else
                                         <span class="badge badge-danger">Not registered</span>
                                         <a href="{{ route('teachers.create', ['pin' => $u->pin, 'name' => $u->name]) }}" class="small ml-1"
-                                           {!! tooltip('Open the Add Teacher form pre-filled with this PIN and name') !!}>Add as teacher</a>
+                                           {!! tooltip('Open the Add Teacher/Staff form pre-filled with this PIN and name') !!}>Add as teacher/staff</a>
                                     @endif
                                 </td>
                                 <td>

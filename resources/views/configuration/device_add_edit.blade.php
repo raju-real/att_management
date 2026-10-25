@@ -61,6 +61,16 @@
                 <div class="row">
                     <div class="col-md-4">
                         <div class="form-group">
+                            <label class="form-label">Institute {!! starSign() !!}</label>
+                            @include('partials.institute_select', ['required' => true, 'selected' => $device->institute_id ?? null])
+                            <small class="text-muted">Punches from this device are saved for this institute. A device without an institute is refused.</small>
+                            @error('institute_id')
+                                {!! displayError($message) !!}
+                            @enderror
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
                             <label class="form-label">Name {!! starSign() !!}</label>
                             <input type="text" name="name" value="{{ old('name') ?? ($device->name ?? '') }}"
                                 class="form-control {{ hasError('name') }}" placeholder="Device Name">

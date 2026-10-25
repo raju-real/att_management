@@ -133,7 +133,7 @@
                     <div class="col-md-12">
                         <div class="alert alert-info py-2 mb-3 small">
                             <i class="fas fa-info-circle mr-1"></i>
-                            Teachers are counted <strong>late in / early out</strong> against their department's
+                            Teachers/staff are counted <strong>late in / early out</strong> against their department's
                             <a href="{{ route('shifts.index') }}">Shift</a>. The default times below apply only to
                             <strong>students</strong> and to teachers whose department has no shift. Leave them empty to skip
                             late/early checks for those.

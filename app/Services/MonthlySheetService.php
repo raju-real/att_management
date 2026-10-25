@@ -72,29 +72,36 @@ class MonthlySheetService
 
         $deptId  = !empty($filters['department_id']) ? (int) $filters['department_id'] : null;
         $shiftId = !empty($filters['shift_id']) ? (int) $filters['shift_id'] : null;
+        $institute = Report::instituteFilter($filters); // forced for institute users
 
         // Every teacher in scope (also those without any punch in the range).
         $teachers = Teacher::query()
             ->leftJoin('departments as d', 'd.id', '=', 'teachers.department_id')
             ->leftJoin('shifts as sh', 'sh.id', '=', 'd.shift_id')
+            ->leftJoin('users as ins', 'ins.id', '=', 'teachers.institute_id')
+            ->when($institute, fn ($q) => $q->where('teachers.institute_id', $institute))
             ->when($deptId, fn ($q) => $q->where('teachers.department_id', $deptId))
             ->when($shiftId, fn ($q) => $q->where('d.shift_id', $shiftId))
+            ->orderBy('ins.name')
             ->orderByRaw('sh.in_time IS NULL, sh.in_time')
             ->orderByRaw('CAST(teachers.teacher_no AS UNSIGNED), teachers.teacher_no')
             ->get([
+                'teachers.id', 'teachers.institute_id', 'ins.name as institute_name',
                 'teachers.teacher_no', 'teachers.name', 'teachers.designation', 'd.name as department',
                 'sh.id as shift_id', 'sh.title as shift_title', 'sh.in_time as shift_in', 'sh.out_time as shift_out',
             ]);
 
         $rows = Report::dailyQuery($start->toDateString(), $end->toDateString(), array_filter([
-            'user_type' => 'teacher', 'department_id' => $deptId, 'shift_id' => $shiftId,
-        ]))->get()->keyBy(fn ($r) => $r->user_no . '|' . $r->att_date);
+            'user_type' => 'teacher', 'department_id' => $deptId, 'shift_id' => $shiftId, 'institute_id' => $institute,
+        ]))->get()->keyBy(fn ($r) => $r->teacher_id . '|' . $r->att_date); // device IDs repeat across institutes
 
         $sections = [];
-        foreach ($teachers->groupBy(fn ($t) => (string) ($t->shift_id ?? 0)) as $group) {
+        // one section per shift (per institute + shift when the admin views all institutes)
+        foreach ($teachers->groupBy(fn ($t) => (int) $t->institute_id . '|' . (int) ($t->shift_id ?? 0)) as $group) {
             $first = $group->first();
+            $title = $first->shift_title ? $first->shift_title : 'No Shift Assigned';
             $section = [
-                'title'  => $first->shift_title ? $first->shift_title : 'No Shift Assigned',
+                'title'  => $institute ? $title : ($first->institute_name ?: 'No Institute') . ' - ' . $title,
                 'timing' => $first->shift_in
                     ? Report::shiftClock($first->shift_in) . ' - ' . Report::shiftClock($first->shift_out, $first->shift_in)
                     : null,
@@ -127,6 +134,7 @@ class MonthlySheetService
             'days'          => $days,
             'working_days'  => $workingDays,
             'filter_label'  => $deptName ? 'Department: ' . $deptName : null,
+            'institute_id'  => $institute,
             'sections'      => $sections,
         ];
     }
@@ -137,7 +145,7 @@ class MonthlySheetService
         $present = $presentOnWorkingDays = $absent = $late = $overtime = 0;
 
         foreach ($days as $d => $day) {
-            $r = $rows->get($t->teacher_no . '|' . $day['date']);
+            $r = $rows->get($t->id . '|' . $day['date']);
 
             if ($r) {
                 $present++;

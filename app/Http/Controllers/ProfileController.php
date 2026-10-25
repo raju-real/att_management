@@ -19,10 +19,10 @@ class ProfileController extends Controller
     {
         $id = authUser()->id;
 
-        // Column sizes: users.email varchar(30), users.mobile varchar(11).
+        // Column sizes: users.email varchar(100), users.mobile varchar(11).
         $this->validate($request, [
             'name'   => ['required', 'string', 'max:50'],
-            'email'  => ['required', 'email', 'max:30', Rule::unique('users', 'email')->whereNull('deleted_at')->ignore($id)],
+            'email'  => ['required', 'email', 'max:100', Rule::unique('users', 'email')->whereNull('deleted_at')->ignore($id)],
             'mobile' => ['required', 'regex:/^[0-9]{6,11}$/', Rule::unique('users', 'mobile')->whereNull('deleted_at')->ignore($id)],
             'image'  => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:1024'],
             'current_password' => ['nullable', 'required_with:password', 'current_password'],

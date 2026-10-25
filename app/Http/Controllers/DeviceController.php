@@ -23,7 +23,9 @@ class DeviceController extends Controller
 
     public function index()
     {
-        $devices = Device::latest()->paginate(20);
+        $devices = Device::with('institute:id,name')
+            ->forInstitute(selectedInstituteId())
+            ->latest()->paginate(20);
         return view('configuration.device_list', compact('devices'));
     }
 
@@ -202,20 +204,23 @@ class DeviceController extends Controller
     {
         $device = Device::findOrFail($deviceId);
 
-        $users = \App\Models\DeviceUser::query()
+        // aliased table → the global scope cannot qualify its column; the device
+        // itself was already institute-checked by findOrFail() above
+        $users = \App\Models\DeviceUser::withoutGlobalScope(\App\Models\Scopes\InstituteScope::class)
             ->from('device_users as du')
             ->where('du.device_id', $device->id)
-            ->leftJoin('teachers as t', fn ($j) => $j->on('t.teacher_no', '=', 'du.pin')->whereNull('t.deleted_at'))
+            // matched inside the device's institute only (numbers repeat across institutes)
+            ->leftJoin('teachers as t', fn ($j) => $j->on('t.teacher_no', '=', 'du.pin')->where('t.institute_id', '=', (int) $device->institute_id)->whereNull('t.deleted_at'))
             ->select('du.*', 't.id as teacher_id', 't.name as teacher_name')
-            ->selectRaw('(SELECT s.id FROM students s WHERE s.student_no = du.pin AND s.deleted_at IS NULL LIMIT 1) AS student_id')
+            ->selectRaw('(SELECT s.id FROM students s WHERE s.student_no = du.pin AND s.institute_id = ? AND s.deleted_at IS NULL LIMIT 1) AS student_id', [(int) $device->institute_id])
             ->when($request->filled('search'), function ($q) use ($request) {
                 $s = '%' . trim($request->search) . '%';
                 $q->where(fn ($w) => $w->where('du.pin', 'like', $s)->orWhere('du.name', 'like', $s));
             })
             ->when($request->status === 'registered', fn ($q) => $q->where(fn ($w) => $w->whereNotNull('t.id')
-                ->orWhereRaw('EXISTS (SELECT 1 FROM students s WHERE s.student_no = du.pin AND s.deleted_at IS NULL)')))
+                ->orWhereRaw('EXISTS (SELECT 1 FROM students s WHERE s.student_no = du.pin AND s.institute_id = ? AND s.deleted_at IS NULL)', [(int) $device->institute_id])))
             ->when($request->status === 'unregistered', fn ($q) => $q->whereNull('t.id')
-                ->whereRaw('NOT EXISTS (SELECT 1 FROM students s WHERE s.student_no = du.pin AND s.deleted_at IS NULL)'))
+                ->whereRaw('NOT EXISTS (SELECT 1 FROM students s WHERE s.student_no = du.pin AND s.institute_id = ? AND s.deleted_at IS NULL)', [(int) $device->institute_id]))
             ->orderByRaw('CAST(du.pin AS UNSIGNED), du.pin')
             ->paginate(100)
             ->withQueryString();
@@ -257,9 +262,14 @@ class DeviceController extends Controller
     protected function validateDevice(Request $request, $ignoreId = null): void
     {
         $this->validate($request, [
+            // every device belongs to an institute: its punches are saved for that institute
+            'institute_id' => [
+                'required',
+                Rule::exists('users', 'id')->where('role', 'institute')->whereNull('deleted_at'),
+            ],
             'name' => [
                 'required', 'string', 'max:50',
-                Rule::unique('devices')->whereNull('deleted_at')->ignore($ignoreId),
+                Rule::unique('devices')->where('institute_id', $request->institute_id)->whereNull('deleted_at')->ignore($ignoreId),
             ],
             'serial_no' => [
                 'required', 'string', 'max:100', 'regex:/^[A-Za-z0-9_\-]+$/',
@@ -278,6 +288,8 @@ class DeviceController extends Controller
             'device_for'     => 'required|in:student_teacher,student,teacher',
             'use_push_mode'  => 'sometimes|boolean',
         ], [
+            'institute_id.required' => 'Select the institute this device belongs to.',
+            'institute_id.exists'   => 'The selected institute does not exist.',
             'serial_no.regex' => 'Serial number may only contain letters, numbers, - and _ (as shown on the device: Menu → System Info).',
             'ip_address.ip'  => 'Enter a valid IP address, e.g. 192.168.1.201.',
             'gateway_ip.ip'  => 'Enter a valid gateway IP address, e.g. 192.168.1.1.',
@@ -286,6 +298,7 @@ class DeviceController extends Controller
 
     protected function fillDevice(Device $device, Request $request): void
     {
+        $device->institute_id  = (int) $request->institute_id;
         $device->name          = $request->name;
         $device->slug          = Str::slug($request->serial_no);
         $device->serial_no     = trim($request->serial_no);

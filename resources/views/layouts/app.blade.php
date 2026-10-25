@@ -68,9 +68,9 @@
     <nav class="navbar navbar-expand-lg navbar-admin">
         <div class="container-fluid">
             <!-- Logo/Brand on left -->
-            <a class="navbar-brand" href="{{ route('dashboard') }}" {!! tooltip(siteSettings()->site_name ?? 'Attendance Management') !!}>
+            <a class="navbar-brand" href="{{ route('dashboard') }}" {!! tooltip(authInstituteId() ? authUser()->name : (siteSettings()->site_name ?? 'Attendance Management')) !!}>
                 <i class="fas fa-chart-line"></i>
-                {{ textLimit(siteSettings()->site_name ?? 'Attendance Management', 15) }}
+                {{ textLimit(authInstituteId() ? authUser()->name : (siteSettings()->site_name ?? 'Attendance Management'), 15) }}
             </a>
 
             <!-- Mobile toggle button -->
@@ -94,7 +94,7 @@
                 <ul class="navbar-nav">
                     {{-- Manage Attendance --}}
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle {{ request()->routeIs(['attendance.logs', 'attendance.monthly-summary', 'attendance.month-sheet', 'attendance.unmatched']) ? 'active' : '' }}"
+                        <a class="nav-link dropdown-toggle {{ request()->routeIs(['attendance.logs', 'attendance.monthly-summary', 'attendance.month-sheet', 'attendance.unmatched', 'teacher-profiles.*']) ? 'active' : '' }}"
                             href="#" id="attendanceDropdown" role="button" data-toggle="dropdown">
                             <i class="fas fa-clock mr-1"></i> Attendance
                         </a>
@@ -111,23 +111,34 @@
                                 href="{{ route('attendance.month-sheet') }}">
                                 <i class="fas fa-table mr-2"></i> Month &amp; Day Wise Summary
                             </a>
+                            <a class="dropdown-item {{ request()->routeIs('teacher-profiles.*') ? 'active' : '' }}"
+                                href="{{ route('teacher-profiles.index') }}">
+                                <i class="fas fa-id-card mr-2"></i> Teacher/Staff Profile
+                            </a>
                         </div>
                     </li>
 
                     {{-- Configuration --}}
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle {{ request()->routeIs(['students.*', 'teachers.*', 'devices.*', 'devices-monitor', 'departments.*', 'shifts.*']) ? 'active' : '' }}"
+                        <a class="nav-link dropdown-toggle {{ request()->routeIs(['students.*', 'teachers.*', 'devices.*', 'devices-monitor', 'departments.*', 'shifts.*', 'institutes.*']) ? 'active' : '' }}"
                             href="#" id="configDropdown" role="button" data-toggle="dropdown">
                             <i class="fas fa-cogs mr-1"></i> Configuration
                         </a>
                         <div class="dropdown-menu dropdown-menu-right">
+                            @if (isSuperAdmin())
+                                <a class="dropdown-item {{ request()->routeIs('institutes.*') ? 'active' : '' }}"
+                                    href="{{ route('institutes.index') }}">
+                                    <i class="fas fa-university mr-2"></i> Institutes
+                                </a>
+                                <div class="dropdown-divider"></div>
+                            @endif
                             <a class="dropdown-item {{ request()->routeIs('students.*') ? 'active' : '' }}"
                                 href="{{ route('students.index') }}">
                                 <i class="fas fa-user-graduate mr-2"></i> Students
                             </a>
                             <a class="dropdown-item {{ request()->routeIs('teachers.*') ? 'active' : '' }}"
                                 href="{{ route('teachers.index') }}">
-                                <i class="fas fa-chalkboard-teacher mr-2"></i> Teachers
+                                <i class="fas fa-chalkboard-teacher mr-2"></i> Teachers/Staff
                             </a>
                             <a class="dropdown-item {{ request()->routeIs('devices.*') ? 'active' : '' }}"
                                 href="{{ route('devices.index') }}">
@@ -184,16 +195,19 @@
                                 <i class="fas fa-user-circle mr-1"></i>
                             @endif
                             {{ textLimit(authUser()->name, 10) ?? 'Admin User' }}
+                            <span class="badge badge-{{ isSuperAdmin() ? 'danger' : 'info' }} ml-1" style="font-size:.65em">{{ isSuperAdmin() ? 'Super Admin' : 'Institute' }}</span>
                         </a>
                         <div class="dropdown-menu dropdown-menu-right">
                             <a class="dropdown-item {{ request()->routeIs('profile') ? 'active' : '' }}"
                                 href="{{ route('profile') }}">
                                 <i class="fas fa-user mr-2"></i> Profile
                             </a>
-                            <a class="dropdown-item {{ request()->routeIs('site-settings') ? 'active' : '' }}"
-                                href="{{ route('site-settings') }}">
-                                <i class="fas fa-sliders-h mr-2"></i> Site Settings
-                            </a>
+                            @if (isSuperAdmin())
+                                <a class="dropdown-item {{ request()->routeIs('site-settings') ? 'active' : '' }}"
+                                    href="{{ route('site-settings') }}">
+                                    <i class="fas fa-sliders-h mr-2"></i> Site Settings
+                                </a>
+                            @endif
                             <div class="dropdown-divider"></div>
                             <a class="dropdown-item" href="{{ route('logout') }}">
                                 <i class="fas fa-sign-out-alt mr-2"></i> Logout
@@ -240,6 +254,18 @@
 
     <script src="{{ asset('assets/common/datetimepicker/js/custom_picker.js') }}"></script>
     <script src="{{ asset('assets/js/custom.js') }}"></script>
+    <script>
+        // Institute dropdowns (partials/institute_select): searchable; locked for institute users.
+        if ($.fn.select2) {
+            $('.institute-select2').each(function () {
+                $(this).select2({
+                    width: '100%',
+                    placeholder: $(this).data('placeholder') || 'All Institutes',
+                    allowClear: $(this).data('allow-clear') == 1,
+                });
+            });
+        }
+    </script>
     @stack('js')
 
 </body>

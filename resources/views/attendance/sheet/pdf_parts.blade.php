@@ -1,5 +1,5 @@
 {{--
-    PDF pieces of the Teacher's Attendance Report, written to mPDF in small
+    PDF pieces of the Teacher/Staff Attendance Report, written to mPDF in small
     chunks (see AttendanceController::monthSheetPdf). Short CSS classes
     instead of inline styles keep each chunk well under pcre.backtrack_limit.
     School details come from Site Settings (schoolInfo()).
@@ -51,8 +51,8 @@
         <tr><td class="ct">{{ $school->contact_line }}</td></tr>
     </table>
     <table class="rt">
-        <tr><td colspan="4" class="ti">Teacher's Attendance Report</td></tr>
-        <tr><td colspan="4" class="st">Date wise In / Out Time Summary</td></tr>
+        <tr><td colspan="4" class="ti">Teacher/Staff Attendance Report</td></tr>
+        <tr><td colspan="4" class="st">Date wise In / Out Time Summary @if(!$school->is_institute && isSuperAdmin()) &nbsp;·&nbsp; All Institutes @endif</td></tr>
         <tr>
             <td><b>Shift:</b> {{ $section['title'] }}@if($section['timing']) ({{ $section['timing'] }})@endif</td>
             <td>@if($sheet['filter_label'])<b>{{ \Illuminate\Support\Str::before($sheet['filter_label'], ':') }}:</b>{{ \Illuminate\Support\Str::after($sheet['filter_label'], ':') }}@endif</td>
@@ -64,7 +64,7 @@
     <table class="g">
         <thead>
             <tr>
-                <th class="c-sl">SL<br>No</th><th class="c-id">ID<br>No</th><th class="l w">Teacher's Name</th><th class="tt">Time<br>Table</th>
+                <th class="c-sl">SL<br>No</th><th class="c-id">ID<br>No</th><th class="l w">Teacher/Staff Name</th><th class="tt">Time<br>Table</th>
                 @foreach($sheet['days'] as $day)<th class="{{ $sheet['day_count'] >= 28 ? 'd' : '' }}{{ $day['holiday'] ? ' h' : '' }}">@if($day['month_mark'])<span class="mm">{{ $day['month_mark'] }}</span><br>@endif{{ $day['day'] }}<br>{{ $day['abbr'] }}</th>@endforeach
                 <th class="c-tot">Total<br>Present</th><th class="c-tot">Total<br>Absent</th><th class="c-tot">Total<br>Late</th><th class="c-tot">Over<br>Time</th><th class="c-pc">Attendance<br>Percentage %</th>
             </tr>
@@ -102,7 +102,7 @@
 @elseif($part === 'footer')
     <table class="ft">
         <tr>
-            <td style="width:40%;">{{ schoolInfo()->name }} &nbsp;·&nbsp; Teacher's Attendance Report &nbsp;·&nbsp; {{ $sheet['period_label'] }}</td>
+            <td style="width:40%;">{{ schoolInfo()->name }} &nbsp;·&nbsp; Teacher/Staff Attendance Report &nbsp;·&nbsp; {{ $sheet['period_label'] }}</td>
             <td style="width:35%;text-align:center;">Generated {{ now()->format('d M Y, h:i A') }}@if(auth()->user()) by {{ auth()->user()->name }}@endif</td>
             <td style="width:25%;text-align:right;">Page {PAGENO} of {nbpg}</td>
         </tr>

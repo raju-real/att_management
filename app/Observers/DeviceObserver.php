@@ -5,7 +5,8 @@ namespace App\Observers;
 use App\Models\Device;
 
 /**
- * Keeps the "device_serial_number" cache = serial numbers of ACTIVE devices.
+ * Keeps the "device_serial_number" cache = serial numbers of ACTIVE devices
+ * that are assigned to an institute (only these may send attendance).
  * A device is added when it becomes active and removed when it becomes
  * inactive or is deleted. Read it with activeDeviceSerials().
  *
@@ -43,7 +44,7 @@ class DeviceObserver
 
     public function updated(Device $device): void
     {
-        if ($device->wasChanged(['status', 'serial_no'])) {
+        if ($device->wasChanged(['status', 'serial_no', 'institute_id'])) {
             self::refresh();
         }
     }
@@ -74,7 +75,11 @@ class DeviceObserver
     /** @return string[] */
     public static function fromDatabase(): array
     {
-        return Device::where('status', 'active')
+        // all institutes (not limited by the logged-in institute); only devices
+        // that are active AND assigned to an institute may send attendance
+        return Device::withoutGlobalScope(\App\Models\Scopes\InstituteScope::class)
+            ->where('status', 'active')
+            ->whereNotNull('institute_id')
             ->whereNotNull('serial_no')
             ->orderBy('serial_no')
             ->pluck('serial_no')

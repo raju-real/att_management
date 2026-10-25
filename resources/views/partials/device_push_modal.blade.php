@@ -10,7 +10,7 @@
 --}}
 @php
     $dpDevices = app(\App\Services\DevicePushService::class)->devices($group);
-    $dpLabel   = ucfirst($group);
+    $dpLabel   = $group === 'teacher' ? 'Teacher/Staff' : ucfirst($group);
 @endphp
 
 <div class="modal fade" id="devicePushModal" tabindex="-1" role="dialog" aria-hidden="true">

@@ -29,9 +29,12 @@ class TeachersImport implements ToCollection, WithHeadingRow
 
     protected Collection $departments;
 
-    public function __construct(protected ?int $defaultDepartmentId = null)
+    /** Every imported teacher/staff belongs to this institute (departments and device IDs are looked up inside it). */
+    public function __construct(protected ?int $defaultDepartmentId = null, protected ?int $instituteId = null)
     {
-        $this->departments = Department::pluck('id', 'name')
+        $this->instituteId ??= authInstituteId();
+        $this->departments = Department::withoutGlobalScope(\App\Models\Scopes\InstituteScope::class)
+            ->where('institute_id', $this->instituteId)->pluck('id', 'name')
             ->mapWithKeys(fn ($id, $name) => [mb_strtolower(trim($name)) => $id]);
     }
 
@@ -54,7 +57,7 @@ class TeachersImport implements ToCollection, WithHeadingRow
                 $this->skipped[] = "Row {$line}: teacher_no \"{$teacherNo}\" must be a number of 1 to 20 digits.";
                 continue;
             }
-            $pinRule = new UniqueDevicePin('teacher');
+            $pinRule = new UniqueDevicePin('teacher', $this->instituteId);
             if (!$pinRule->passes('teacher_no', $teacherNo)) {
                 $this->skipped[] = "Row {$line} ({$teacherNo}): " . $pinRule->message();
                 continue;
@@ -75,12 +78,13 @@ class TeachersImport implements ToCollection, WithHeadingRow
                 }
             }
 
-            $teacher = Teacher::withTrashed()->where('teacher_no', $teacherNo)->first();
+            $teacher = Teacher::withoutGlobalScope(\App\Models\Scopes\InstituteScope::class)->withTrashed()
+                ->where('institute_id', $this->instituteId)->where('teacher_no', $teacherNo)->first();
             $isNew   = !$teacher;
 
             if ($isNew) {
                 if ($name === null) {
-                    $this->skipped[] = "Row {$line} ({$teacherNo}): name is required for a new teacher.";
+                    $this->skipped[] = "Row {$line} ({$teacherNo}): name is required for a new teacher/staff.";
                     continue;
                 }
                 $departmentId ??= $this->defaultDepartmentId;
@@ -89,7 +93,8 @@ class TeachersImport implements ToCollection, WithHeadingRow
                     continue;
                 }
                 $teacher = new Teacher();
-                $teacher->teacher_no = $teacherNo;
+                $teacher->teacher_no   = $teacherNo;
+                $teacher->institute_id = $this->instituteId;
             }
 
             // Only overwrite with values actually present in the file.

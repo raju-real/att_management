@@ -80,11 +80,11 @@
                                     <th>Device For</th>
                                     <td>
                                         @if ($device->device_for == 'student_teacher')
-                                            Student and Teacher
+                                            Student and Teacher/Staff
                                         @elseif($device->device_for == 'student')
                                             Student
                                         @elseif($device->device_for == 'teacher')
-                                            Teacher
+                                            Teacher/Staff
                                         @endif
                                     </td>
                                 </tr>

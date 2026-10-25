@@ -7,9 +7,11 @@ use Illuminate\Database\Eloquent\Model;
 /** A user (PIN + name) enrolled on a fingerprint device. */
 class DeviceUser extends Model
 {
+    use \App\Traits\BelongsToInstitute;
+
     protected $table = 'device_users';
 
-    protected $fillable = ['device_id', 'pin', 'name', 'privilege', 'card', 'received_at'];
+    protected $fillable = ['institute_id', 'device_id', 'pin', 'name', 'privilege', 'card', 'received_at'];
 
     protected $casts = [
         'received_at' => 'datetime',

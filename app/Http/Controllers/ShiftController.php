@@ -13,6 +13,8 @@ class ShiftController extends Controller
     public function index()
     {
         $shifts = Shift::withCount(['departments', 'teachers'])
+            ->with('institute:id,name')
+            ->forInstitute(selectedInstituteId())
             ->orderBy('in_time')
             ->paginate(20);
 
@@ -62,10 +64,16 @@ class ShiftController extends Controller
 
     protected function validated(Request $request, ?int $ignoreId = null): array
     {
+        // institute: forced for institute users, chosen by the admin
+        $institute = authInstituteId() ?? ($request->filled('institute_id') ? (int) $request->institute_id : null);
+
         $this->validate($request, [
+            'institute_id' => isSuperAdmin()
+                ? ['required', Rule::exists('users', 'id')->where('role', 'institute')->whereNull('deleted_at')]
+                : ['nullable'],
             'title' => [
                 'required', 'string', 'max:100',
-                Rule::unique('shifts')->whereNull('deleted_at')->ignore($ignoreId),
+                Rule::unique('shifts')->where('institute_id', $institute)->whereNull('deleted_at')->ignore($ignoreId),
             ],
             'in_time'              => 'required',
             'out_time'             => 'required',
@@ -75,6 +83,8 @@ class ShiftController extends Controller
             'punch_after_minutes'  => 'nullable|integer|min:0|max:720',
             'status'               => 'required|in:active,inactive',
         ], [
+            'institute_id.required'    => 'Please select the institute.',
+            'title.unique'             => 'This institute already has a shift with this title.',
             'punch_before_minutes.max' => 'Punch window before in time can be at most 12 hours (720 minutes).',
             'punch_after_minutes.max'  => 'Punch window after out time can be at most 12 hours (720 minutes).',
         ]);
@@ -108,7 +118,9 @@ class ShiftController extends Controller
             throw ValidationException::withMessages($errors);
         }
 
-        return [
+        return array_filter([
+            'institute_id'         => $institute,
+        ]) + [
             'title'                => trim($request->title),
             'in_time'              => $in,
             'out_time'             => $out,

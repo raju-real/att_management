@@ -24,6 +24,10 @@ class ZktecoAdmsController extends Controller
 
     public function cdata(Request $request)
     {
+        if (! $this->registered($request)) {
+            return $this->refuse($request, $request->isMethod('get') ? 'HANDSHAKE' : 'DATA ' . strtoupper((string) $request->query('table', '')));
+        }
+
         // GET = handshake
         if ($request->isMethod('get')) {
             $this->track($request, 'HANDSHAKE');
@@ -80,6 +84,9 @@ class ZktecoAdmsController extends Controller
      * instead of the plain "OK".
      */
     public function getRequest(Request $request) {
+        if (! $this->registered($request)) {
+            return $this->refuse($request, null); // polls come every few seconds: not logged
+        }
         $body    = $this->adms->getRequest($request);
         $pending = $this->commands->deliver($this->device($request));
 
@@ -101,6 +108,9 @@ class ZktecoAdmsController extends Controller
      * AdmsService do its usual logging.
      */
     public function deviceCommand(Request $request) {
+        if (! $this->registered($request)) {
+            return $this->refuse($request, 'COMMAND RESULT');
+        }
         $body = $this->adms->deviceCommand($request);
         $this->commands->applyResults($this->device($request), $request->getContent());
         $this->track($request, 'COMMAND RESULT', ['result' => trim($request->getContent())]);
@@ -112,6 +122,26 @@ class ZktecoAdmsController extends Controller
             'Content-Type',
             'text/plain'
         );
+    }
+
+    /**
+     * Only devices added in Configuration → Devices, ACTIVE and assigned to
+     * an institute, may talk to the server. Unknown serials are no longer
+     * auto-registered (AdmsService::registerDevice is simply never reached)
+     * and their punches are not saved. Uses the device_serial_number cache.
+     */
+    private function registered(Request $request): bool
+    {
+        $sn = (string) $request->query('SN', '');
+        return $sn !== '' && in_array($sn, activeDeviceSerials(), true);
+    }
+
+    private function refuse(Request $request, ?string $event)
+    {
+        if ($event !== null) {
+            $this->track($request, 'REFUSED ' . $event, ['reason' => 'device not registered, inactive or without institute']);
+        }
+        return response('OK', 200)->header('Content-Type', 'text/plain');
     }
 
     private function device(Request $request): ?Device

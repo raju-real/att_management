@@ -46,7 +46,14 @@ Route::middleware('auth')->group(function () {
     // Live push monitor (device check-ins + incoming punches)
     Route::get('devices-monitor', [\App\Http\Controllers\DeviceMonitorController::class, 'index'])->name('devices-monitor');
     Route::get('devices-monitor/data', [\App\Http\Controllers\DeviceMonitorController::class, 'data'])->name('devices-monitor.data');
-    Route::resource('devices', DeviceController::class);
+    // Devices: institutes can view their own devices; add/edit/delete is super admin only
+    // (a device decides which institute its punches belong to).
+    Route::middleware('admin')->group(function () {
+        Route::resource('devices', DeviceController::class)->except(['index', 'show']);
+        // Institutes (users with role = institute)
+        Route::resource('institutes', \App\Http\Controllers\InstituteController::class)->except('show');
+    });
+    Route::resource('devices', DeviceController::class)->only(['index', 'show']);
     // Push / remove teachers or students on devices (single, selected or all; one device or all active)
     Route::post('device-push/{group}', [\App\Http\Controllers\DevicePushController::class, 'push'])
         ->whereIn('group', ['teacher', 'student'])->name('device-push');
@@ -89,6 +96,9 @@ Route::middleware('auth')->group(function () {
         Route::get('attendance-month-day-summary', 'monthSheet')->name('attendance.month-sheet');
         Route::get('attendance-unmatched', 'unmatched')->name('attendance.unmatched');
     });
+    // Teacher/Staff profile (list → profile page / PDF with month-wise attendance)
+    Route::get('teacher-profiles', [\App\Http\Controllers\TeacherProfileController::class, 'index'])->name('teacher-profiles.index');
+    Route::get('teacher-profiles/{id}', [\App\Http\Controllers\TeacherProfileController::class, 'show'])->whereNumber('id')->name('teacher-profiles.show');
     // Legacy attendance/report URLs → new pages (names kept so old links still resolve)
     Route::redirect('present-logs', '/attendance-logs')->name('present-logs');
     Route::redirect('attendance-summery', '/attendance-logs')->name('attendance-summery');
@@ -103,7 +113,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/commands/delete-user', 'deleteUserFromDevice')->name('commands.delete.user');      // DELETE USER FROM DEVICE
     });
     // Settings
-    Route::controller(SettingController::class)->group(function () {
+    Route::controller(SettingController::class)->middleware('admin')->group(function () {
         Route::get('site-settings', 'siteSettings')->name('site-settings');
         Route::put('update-site-settings', 'updateSiteSettings')->name('update-site-settings');
         Route::get('fee-settings', 'feeSettings')->name('fee-settings');

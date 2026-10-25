@@ -39,16 +39,16 @@ class DeviceActivityService
     /** @return array{success: bool, count: int, message: string} */
     public function pushTeachers(Device $device): array
     {
-        return $this->pushBatch($device, Teacher::all()->map(fn (Teacher $t) => [
+        return $this->pushBatch($device, Teacher::withoutGlobalScope(\App\Models\Scopes\InstituteScope::class)->where('institute_id', $device->institute_id ?: -1)->get()->map(fn (Teacher $t) => [
             'pin'  => (string) $t->teacher_no,
-            'name' => $t->name ?: 'Teacher',
+            'name' => $t->name ?: 'Teacher/Staff',
         ]), 'teacher');
     }
 
     /** @return array{success: bool, count: int, message: string} */
     public function pushStudents(Device $device): array
     {
-        return $this->pushBatch($device, Student::all()->map(fn (Student $s) => [
+        return $this->pushBatch($device, Student::withoutGlobalScope(\App\Models\Scopes\InstituteScope::class)->where('institute_id', $device->institute_id ?: -1)->get()->map(fn (Student $s) => [
             'pin'  => (string) $s->student_no,
             'name' => showStudentFullName($s->firstname, $s->middlename, $s->lastname) ?: 'Student',
         ]), 'student');
@@ -213,6 +213,13 @@ class DeviceActivityService
             ];
         }
 
+        if (! $device->institute_id) {
+            return ['success' => false, 'message' => "[{$device->name}] has no institute. Assign one in the device form first."];
+        }
+        // Only this device's institute: other institutes may use the same numbers.
+        $students = fn () => Student::withoutGlobalScope(\App\Models\Scopes\InstituteScope::class)->where('institute_id', $device->institute_id);
+        $teachers = fn () => Teacher::withoutGlobalScope(\App\Models\Scopes\InstituteScope::class)->where('institute_id', $device->institute_id);
+
         $zk = $this->zk->connect($device);
         if (! $zk) {
             return ['success' => false, 'message' => "Cannot connect to [{$device->name}] via TCP."];
@@ -236,8 +243,9 @@ class DeviceActivityService
             $scope = $device->device_for;
 
             if ($scope === 'student') {
-                if (! Student::where('student_no', $pin)->exists()) {
+                if (! $students()->where('student_no', $pin)->exists()) {
                     $student = new Student();
+                    $student->institute_id = $device->institute_id;
                     $student->student_no = $pin;
                     $student->firstname  = $name ?: "Student {$pin}";
                     $student->save();
@@ -249,9 +257,10 @@ class DeviceActivityService
             }
 
             if ($scope === 'teacher') {
-                $teacher = Teacher::where('teacher_no', $pin)->first();
+                $teacher = $teachers()->where('teacher_no', $pin)->first();
                 if (! $teacher) {
                     $teacher = new Teacher();
+                    $teacher->institute_id = $device->institute_id;
                     $teacher->teacher_no = $pin;
                     $teacher->name       = $name ?: "Teacher {$pin}";
                     $teacher->save();
@@ -267,11 +276,11 @@ class DeviceActivityService
             }
 
             // Mixed device: only auto-touch PINs that already exist in one table.
-            $existingStudent = Student::where('student_no', $pin)->first();
-            $existingTeacher = Teacher::where('teacher_no', $pin)->first();
+            $existingStudent = $students()->where('student_no', $pin)->first();
+            $existingTeacher = $teachers()->where('teacher_no', $pin)->first();
 
             if ($existingStudent && $existingTeacher) {
-                $unclassified[] = ['pin' => $pin, 'name' => $name, 'reason' => 'PIN exists as BOTH a student and a teacher — needs manual review'];
+                $unclassified[] = ['pin' => $pin, 'name' => $name, 'reason' => 'PIN exists as BOTH a student and a teacher/staff — needs manual review'];
                 continue;
             }
             if ($existingStudent) {
@@ -289,7 +298,7 @@ class DeviceActivityService
                 continue;
             }
 
-            $unclassified[] = ['pin' => $pin, 'name' => $name, 'reason' => 'New PIN not yet in your Student or Teacher list'];
+            $unclassified[] = ['pin' => $pin, 'name' => $name, 'reason' => 'New PIN not yet in your Student or Teacher/Staff list'];
         }
 
         return [

@@ -28,7 +28,7 @@
     </div>
 
     @php
-        $filterOpen = request()->hasAny(['name', 'student_id', 'student_no', 'class']);
+        $filterOpen = request()->hasAny(['name', 'student_id', 'student_no', 'class', 'institute_id']);
     @endphp
 
     <div class="accordion mb-3" id="studentFilterAccordion">
@@ -50,8 +50,14 @@
                 <div class="card-body">
                     <form method="GET" action="{{ route('students.index') }}">
                         <div class="row g-2">
-                            <!-- Name -->
                             <div class="col-md-3">
+                                <div class="form-group">
+                                    <label class="form-label">Institute</label>
+                                    @include('partials.institute_select')
+                                </div>
+                            </div>
+                            <!-- Name -->
+                            <div class="col-md-2">
                                 <div class="form-group">
                                     <label class="form-label">Name</label>
                                     <input type="search" name="name" class="form-control" value="{{ request('name') }}"
@@ -60,7 +66,7 @@
                             </div>
 
                             <!-- Student ID -->
-                            <div class="col-md-3">
+                            <div class="col-md-1">
                                 <div class="form-group">
                                     <label class="form-label">Student ID</label>
                                     <input type="search" name="student_id" class="form-control"
@@ -136,6 +142,7 @@
                             <th>Section</th>
                             <th>Shift</th>
                             <th>Group</th>
+                            @if (isSuperAdmin())<th>Institute</th>@endif
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -153,8 +160,9 @@
                                 <td>{{ $student->section ?? '' }}</td>
                                 <td>{{ $student->shift ?? '' }}</td>
                                 <td>{{ $student->medium ?? '' }}</td>
+                                @if (isSuperAdmin())<td><small>{{ $student->institute->name ?? '—' }}</small></td>@endif
                                 <td>
-                                    <a href="{{ route('students.show', $student->student_no) }}"
+                                    <a href="{{ route('students.show', $student->id) }}"
                                         class="action-btn text-info" {!! tooltip('Show Details of Student') !!}><i class="fas fa-eye"></i></a>
                                     <a href="{{ route('students.edit', $student->id) }}" class="action-btn text-primary"
                                         {!! tooltip('Edit Student') !!}><i class="fas fa-edit"></i></a>

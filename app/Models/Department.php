@@ -9,11 +9,11 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Department extends Model
 {
-    use HasFactory, ModelHelper, SoftDeletes;
+    use HasFactory, ModelHelper, SoftDeletes, \App\Traits\BelongsToInstitute;
 
     protected $table = 'departments';
 
-    protected $fillable = ['name', 'shift_id', 'status'];
+    protected $fillable = ['institute_id', 'name', 'shift_id', 'status'];
 
     public function shift()
     {

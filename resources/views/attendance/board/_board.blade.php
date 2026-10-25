@@ -34,7 +34,7 @@
 
     <div class="tb-head">
         <div>
-            <h4 class="tb-title"><i class="fas fa-crown mr-2"></i>{{ $title ?? 'Teacher Attendance Board' }}</h4>
+            <h4 class="tb-title"><i class="fas fa-crown mr-2"></i>{{ $title ?? 'Teacher/Staff Attendance Board' }}</h4>
             <div class="tb-date">
                 <span data-tb="date-label">{{ \Carbon\Carbon::parse($date)->format('l, d M Y') }}</span>
                 <span class="tb-live ml-2" data-tb="live">Live</span>
@@ -56,25 +56,34 @@
         </div>
         <div class="tb-controls">
             @php
-                $boardDepts  = \App\Models\Department::orderBy('name')->get(['id', 'name', 'shift_id']);
-                $boardShifts = \App\Models\Shift::orderBy('in_time')->get(['id', 'title', 'in_time', 'out_time']);
+                // institute users only get their own (InstituteScope)
+                $boardDepts  = \App\Models\Department::orderBy('name')->get(['id', 'name', 'shift_id', 'institute_id']);
+                $boardShifts = \App\Models\Shift::orderBy('in_time')->get(['id', 'title', 'in_time', 'out_time', 'institute_id']);
             @endphp
+            @if (isSuperAdmin())
+                <select class="tb-size-select" data-tb="institute" aria-label="Institute" title="Filter by institute">
+                    <option value="">All institutes</option>
+                    @foreach (instituteOptions() as $bi)
+                        <option value="{{ $bi->id }}">{{ $bi->name }}</option>
+                    @endforeach
+                </select>
+            @endif
             <select class="tb-size-select" data-tb="department" aria-label="Department" title="Filter by department">
                 <option value="">All departments</option>
                 @foreach($boardDepts as $bd)
-                    <option value="{{ $bd->id }}" data-shift="{{ $bd->shift_id }}">{{ $bd->name }}</option>
+                    <option value="{{ $bd->id }}" data-shift="{{ $bd->shift_id }}" data-institute="{{ $bd->institute_id }}">{{ $bd->name }}</option>
                 @endforeach
             </select>
             <select class="tb-size-select" data-tb="shift" aria-label="Shift" title="Filter by shift (works with or without a department)">
                 <option value="">All shifts</option>
                 @foreach($boardShifts as $bs)
-                    <option value="{{ $bs->id }}">{{ $bs->title }} ({{ \App\Services\AttendanceReportService::shiftClock($bs->in_time) }} - {{ \App\Services\AttendanceReportService::shiftClock($bs->out_time, $bs->in_time) }})</option>
+                    <option value="{{ $bs->id }}" data-institute="{{ $bs->institute_id }}">{{ $bs->title }} ({{ \App\Services\AttendanceReportService::shiftClock($bs->in_time) }} - {{ \App\Services\AttendanceReportService::shiftClock($bs->out_time, $bs->in_time) }})</option>
                 @endforeach
             </select>
             <input type="text" class="tb-date-input" data-tb="date" value="{{ $date }}" readonly aria-label="Date"
                    title="Pick a date to view its attendance">
-            <select class="tb-size-select" data-tb="per-page" aria-label="Teachers per slide"
-                    title="Teachers per slide (saved for your account)">
+            <select class="tb-size-select" data-tb="per-page" aria-label="Teachers/Staff per slide"
+                    title="Teachers/Staff per slide (saved for your account)">
                 @foreach(\App\Services\AttendanceReportService::BOARD_PAGE_SIZES as $size)
                     <option value="{{ $size }}" {{ $perPage === $size ? 'selected' : '' }}>{{ $size }} / slide</option>
                 @endforeach

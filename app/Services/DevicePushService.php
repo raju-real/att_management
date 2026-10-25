@@ -37,11 +37,13 @@ class DevicePushService
      *
      * @param 'teacher'|'student' $group
      */
-    public function devices(string $group, ?int $onlyDeviceId = null): Collection
+    public function devices(string $group, ?int $onlyDeviceId = null, ?int $instituteId = null): Collection
     {
         return Device::where('status', 'active')
             ->whereIn('device_for', [$group, 'student_teacher'])
             ->when($onlyDeviceId, fn ($q) => $q->where('id', $onlyDeviceId))
+            // people are only ever pushed to their own institute's devices
+            ->when($instituteId, fn ($q) => $q->where('institute_id', $instituteId))
             ->orderBy('name')
             ->get();
     }
@@ -51,12 +53,12 @@ class DevicePushService
      * @param array<string, string> $people pin => name
      * @return array{devices: int, lines: string[], added: int, renamed: int, skipped: int}
      */
-    public function push(string $group, array $people, ?int $onlyDeviceId = null): array
+    public function push(string $group, array $people, ?int $onlyDeviceId = null, ?int $instituteId = null): array
     {
         $people = $this->clean($people);
         $result = ['devices' => 0, 'lines' => [], 'added' => 0, 'renamed' => 0, 'skipped' => 0];
 
-        foreach ($this->devices($group, $onlyDeviceId) as $device) {
+        foreach ($this->devices($group, $onlyDeviceId, $instituteId) as $device) {
             $result['devices']++;
             $r = $device->use_push_mode ? $this->pushQueued($device, $people) : $this->pushTcp($device, $people);
 
@@ -74,12 +76,12 @@ class DevicePushService
      * @param string[]            $pins
      * @return array{devices: int, lines: string[], removed: int}
      */
-    public function remove(string $group, array $pins, ?int $onlyDeviceId = null): array
+    public function remove(string $group, array $pins, ?int $onlyDeviceId = null, ?int $instituteId = null): array
     {
         $pins   = array_values(array_unique(array_filter(array_map(fn ($p) => trim((string) $p), $pins), 'strlen')));
         $result = ['devices' => 0, 'lines' => [], 'removed' => 0];
 
-        foreach ($this->devices($group, $onlyDeviceId) as $device) {
+        foreach ($this->devices($group, $onlyDeviceId, $instituteId) as $device) {
             $result['devices']++;
 
             if ($device->use_push_mode) {
@@ -147,7 +149,7 @@ class DevicePushService
             $this->queueOnce($device, DeviceCommand::userInfoCommand($pin, $name));
             // Expected on the device; received_at stays empty until the device confirms it
             // (and the row is dropped again if the device rejects the command).
-            DeviceUser::firstOrCreate(['device_id' => $device->id, 'pin' => (string) $pin], ['name' => $name, 'privilege' => 0]);
+            DeviceUser::firstOrCreate(['device_id' => $device->id, 'pin' => (string) $pin], ['name' => $name, 'privilege' => 0, 'institute_id' => $device->institute_id]);
             $added++;
         }
 

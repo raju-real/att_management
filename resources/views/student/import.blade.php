@@ -27,6 +27,15 @@
             <form action="{{ route('students.upload') }}" method="POST" enctype="multipart/form-data" id="prevent-form">
                 @csrf
                 <div class="row">
+                    <div class="col-md-12">
+                        <div class="form-group">
+                            <label class="form-label">Institute {!! starSign() !!}</label>
+                            @include('partials.institute_select', ['required' => true, 'selected' => null])
+                            @error('institute_id')
+                                {!! displayError($message) !!}
+                            @enderror
+                        </div>
+                    </div>
                     <div class="col-md-6">
                         <div class="form-group">
                             <label class="form-label">Select File (XLS, XLSX, CSV) {!! starSign() !!}</label>

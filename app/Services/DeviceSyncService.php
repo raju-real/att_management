@@ -22,27 +22,27 @@ class DeviceSyncService
      * @param string $group 'student' or 'teacher'
      * @return string[] one status line per device touched
      */
-    public function pushOne(string $group, string $pin, string $name): array
+    public function pushOne(string $group, string $pin, string $name, ?int $instituteId = null): array
     {
         $pin = trim($pin);
         if ($pin === '') {
             return [];
         }
 
-        return $this->push->push($group, [$pin => $name ?: ucfirst($group)])['lines'];
+        return $this->push->push($group, [$pin => $name ?: ucfirst($group)], null, $instituteId)['lines'];
     }
 
     /**
      * @param string $group 'student' or 'teacher'
      * @return string[] one status line per device touched
      */
-    public function deleteOne(string $group, string $pin): array
+    public function deleteOne(string $group, string $pin, ?int $instituteId = null): array
     {
         $pin = trim($pin);
         if ($pin === '') {
             return [];
         }
 
-        return $this->push->remove($group, [$pin])['lines'];
+        return $this->push->remove($group, [$pin], null, $instituteId)['lines'];
     }
 }

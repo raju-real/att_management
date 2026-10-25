@@ -9,6 +9,12 @@ use Maatwebsite\Excel\Concerns\WithHeadingRow;
 
 class StudentsImport implements ToCollection, WithHeadingRow
 {
+    /** Every imported student belongs to this institute (defaults to the logged-in one). */
+    public function __construct(protected ?int $instituteId = null)
+    {
+        $this->instituteId ??= authInstituteId();
+    }
+
     public function collection(Collection $rows)
     {
         foreach ($rows as $row) {
@@ -18,12 +24,14 @@ class StudentsImport implements ToCollection, WithHeadingRow
             }
 
             // Check if student already exists by student_id to prevent duplicates
-            $existing = Student::where('student_id', $row['student_id'])->first();
+            $existing = Student::withoutGlobalScope(\App\Models\Scopes\InstituteScope::class)
+                ->where('institute_id', $this->instituteId)->where('student_id', $row['student_id'])->first();
             if ($existing) {
                 continue;
             }
 
             $student = new Student();
+            $student->institute_id = $this->instituteId;
             $student->student_no = Student::getStudentNo(); // Auto Generate
             $student->student_id = $row['student_id'];
             $student->firstname = $row['firstname'];

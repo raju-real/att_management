@@ -32,12 +32,12 @@
 <table style="width:100%;border-collapse:collapse;border-top:2px solid #1e1b4b;margin-bottom:6px;">
     <tr>
         <td colspan="4" style="text-align:center;padding:6px 0 2px;font-size:{{ $xlsx ? '13' : '16px' }};font-weight:bold;letter-spacing:.5px;">
-            Teacher's Attendance Report
+            Teacher/Staff Attendance Report
         </td>
     </tr>
     <tr>
         <td colspan="4" style="text-align:center;padding:0 0 6px;color:#555;">
-            Date wise In / Out Time Summary
+            Date wise In / Out Time Summary @if(!$school->is_institute && isSuperAdmin()) &nbsp;·&nbsp; All Institutes @endif
         </td>
     </tr>
     <tr>

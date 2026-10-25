@@ -27,6 +27,8 @@ class AttendanceBoardController extends Controller
         $filters = [
             'department_id' => ctype_digit((string) $request->query('department_id')) ? (int) $request->query('department_id') : null,
             'shift_id'      => ctype_digit((string) $request->query('shift_id')) ? (int) $request->query('shift_id') : null,
+            // forced to the logged-in institute; the admin may choose one (empty = all)
+            'institute_id'  => selectedInstituteId(),
         ];
 
         $payload = Report::teacherBoard($this->date($request), $filters);

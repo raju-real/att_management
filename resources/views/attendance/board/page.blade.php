@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Attendance Board · {{ siteSettings()->site_name ?? 'School' }}</title>
+    <title>Attendance Board · {{ schoolInfo(authInstituteId())->name }}</title>
     <link rel="shortcut icon" href="{{ asset('assets/common/images/favicon.png') }}">
     <link rel="stylesheet" href="{{ asset('assets/css/bootstrap.min.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
@@ -41,7 +41,7 @@
             <a class="ab-brand" href="{{ route('attendance-board') }}">
                 <div class="ab-crest"><i class="fas fa-school"></i></div>
                 <div>
-                    <div class="ab-school">{{ siteSettings()->site_name ?? 'Attendance Management' }}</div>
+                    <div class="ab-school">{{ schoolInfo(authInstituteId())->name }}</div>
                     <div class="ab-sub">Daily Attendance Monitor</div>
                 </div>
             </a>
@@ -66,7 +66,7 @@
             <span class="d-none d-md-inline" style="--c:transparent"><i class="far fa-keyboard mr-1"></i>&larr; &rarr; to slide, Space to pause</span>
         </div>
 
-        <div class="ab-foot">&copy; {{ date('Y') }} {{ siteSettings()->site_name ?? 'Attendance Management' }}</div>
+        <div class="ab-foot">&copy; {{ date('Y') }} {{ schoolInfo(authInstituteId())->name }}</div>
     </div>
 
     <script src="{{ asset('assets/common/flatpicker/flatpicker.min.js') }}"></script>

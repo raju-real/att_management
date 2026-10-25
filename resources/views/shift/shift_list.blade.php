@@ -15,8 +15,11 @@
     </div>
 
     <div class="card admin-card">
-        <div class="card-header">
-            <h5 class="card-title"><i class="fas fa-business-time mr-2"></i>Shift List</h5>
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
+            <h5 class="card-title mb-0"><i class="fas fa-business-time mr-2"></i>Shift List</h5>
+            <form method="GET" action="{{ route('shifts.index') }}" style="min-width:260px">
+                @include('partials.institute_select', ['autoSubmit' => true, 'class' => 'form-control form-control-sm'])
+            </form>
         </div>
         <div class="card-body">
             <div class="table-responsive">
@@ -25,13 +28,14 @@
                         <tr>
                             <th>#</th>
                             <th>Title</th>
+                            @if (isSuperAdmin())<th>Institute</th>@endif
                             <th class="text-center">In Time</th>
                             <th class="text-center">Out Time</th>
                             <th class="text-center">Late after</th>
                             <th class="text-center">Early out before</th>
                             <th class="text-center">Duration</th>
                             <th class="text-center">Departments</th>
-                            <th class="text-center">Teachers</th>
+                            <th class="text-center">Teachers/Staff</th>
                             <th>Status</th>
                             <th>Actions</th>
                         </tr>
@@ -44,6 +48,7 @@
                             <tr>
                                 <td>{{ $shifts->firstItem() + $loop->index }}</td>
                                 <td class="fw-semibold">{{ $shift->title }}</td>
+                                @if (isSuperAdmin())<td><small>{{ $shift->institute->name ?? '—' }}</small></td>@endif
                                 <td class="text-center"><span class="badge badge-light border">{{ timeFormat($shift->in_time, 'h:i A') }}</span></td>
                                 <td class="text-center"><span class="badge badge-light border">{{ timeFormat($shift->out_time, 'h:i A') }}</span>
                                     @if($shift->is_overnight)<span class="badge badge-dark ml-1" {!! tooltip('Night shift: out time is on the next day') !!}><i class="fas fa-moon"></i> +1</span>@endif</td>

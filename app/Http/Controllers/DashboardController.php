@@ -15,19 +15,23 @@ class DashboardController extends Controller
     {
         $today = Carbon::today();
 
-        $total_students = Student::count();
-        $total_teachers = Teacher::count();
-        $total_devices  = Device::active()->count();
+        // institute users: own data only (InstituteScope); the admin may pick one institute
+        $institute = selectedInstituteId();
+
+        $total_students = Student::forInstitute($institute)->count();
+        $total_teachers = Teacher::forInstitute($institute)->count();
+        $total_devices  = Device::active()->forInstitute($institute)->count();
 
         // Index-friendly range on punch_time (no DATE() wrapper).
         $today_present = DB::table('attendance_logs')
             ->where('punch_time', '>=', $today->format('Y-m-d 00:00:00'))
             ->where('punch_time', '<', $today->copy()->addDay()->format('Y-m-d 00:00:00'))
             ->whereRaw(Report::USER_NO_SQL . ' IS NOT NULL')
+            ->when($institute, fn ($q, $v) => $q->where('institute_id', $v))
             ->distinct()
-            ->count(DB::raw(Report::USER_NO_SQL));
+            ->count(DB::raw('institute_id, ' . Report::USER_NO_SQL));
 
-        $today_logs = Report::logs(['date' => $today->toDateString(), 'sort' => 'in_asc'], 10);
+        $today_logs = Report::logs(array_filter(['date' => $today->toDateString(), 'sort' => 'in_asc', 'institute_id' => $institute]), 10);
 
         return view('dashboard', compact(
             'total_students',

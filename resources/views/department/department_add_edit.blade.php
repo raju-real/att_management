@@ -30,6 +30,15 @@
                 <div class="row">
                     <div class="col-md-4">
                         <div class="form-group">
+                            <label class="form-label">Institute {!! starSign() !!}</label>
+                            @include('partials.institute_select', ['required' => true, 'selected' => $department->institute_id ?? null])
+                            @error('institute_id')
+                                {!! displayError($message) !!}
+                            @enderror
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
                             <label class="form-label">Name {!! starSign() !!}</label>
                             <input type="text" name="name" value="{{ old('name') ?? ($department->name ?? '') }}"
                                 class="form-control {{ hasError('name') }}" placeholder="e.g. Science Department">
@@ -44,14 +53,14 @@
                             <select name="shift_id" id="shiftSelect" class="form-control {{ hasError('shift_id') }}">
                                 <option value="">-- Select Shift --</option>
                                 @foreach ($shifts as $shift)
-                                    <option value="{{ $shift->id }}"
+                                    <option value="{{ $shift->id }}" data-institute="{{ $shift->institute_id }}"
                                         data-timing="{{ timeFormat($shift->in_time, 'h:i A') }} - {{ timeFormat($shift->out_time, 'h:i A') }}"
                                         {{ (string) $selectedShift === (string) $shift->id ? 'selected' : '' }}>
                                         {{ $shift->title }} ({{ timeFormat($shift->in_time, 'h:i A') }} - {{ timeFormat($shift->out_time, 'h:i A') }}){{ $shift->status !== 'active' ? ' [inactive]' : '' }}
                                     </option>
                                 @endforeach
                             </select>
-                            <small class="text-muted">Teachers in this department use this shift's in/out time for late &amp; early-out.</small>
+                            <small class="text-muted">Teachers/staff in this department use this shift's in/out time for late &amp; early-out.</small>
                             @error('shift_id')
                                 {!! displayError($message) !!}
                             @enderror
@@ -81,3 +90,25 @@
         </div>
     </div>
 @endsection
+
+@push('js')
+<script>
+// A department follows a shift of the same institute: show only that institute's shifts.
+(function () {
+    const inst  = $('#instituteSelect');
+    const shift = document.getElementById('shiftSelect');
+    if (!inst.length || !shift) return;
+    function filterShifts() {
+        const id = String(inst.val() || '');
+        Array.from(shift.options).forEach(function (opt) {
+            if (!opt.value) return;
+            const show = id !== '' && opt.dataset.institute === id;
+            opt.hidden = !show; opt.disabled = !show;
+            if (!show && opt.selected) shift.value = '';
+        });
+    }
+    inst.on('change', filterShifts);
+    filterShifts();
+})();
+</script>
+@endpush

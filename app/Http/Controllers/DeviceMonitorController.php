@@ -26,8 +26,12 @@ class DeviceMonitorController extends Controller
     public function data()
     {
         $today = Carbon::today();
+        $institute = selectedInstituteId(); // forced for institute users
 
-        $devices = Device::orderBy('name')->get()->map(function (Device $d) use ($today) {
+        $devices = Device::forInstitute($institute)->orderBy('name')->get();
+        $serials = $devices->pluck('serial_no')->filter()->map(fn ($s) => (string) $s)->all();
+
+        $devices = $devices->map(function (Device $d) use ($today) {
             $last = DB::table('attendance_logs')->where('device_serial', $d->serial_no)->orderByDesc('id')->first(['punch_time', 'created_at']);
             $seen = $d->last_seen_at ? Carbon::parse($d->last_seen_at) : null;
 
@@ -58,12 +62,16 @@ class DeviceMonitorController extends Controller
 
         // Latest punches as saved by the server (newest first).
         $feed = DB::table('attendance_logs as al')
-            ->leftJoin('teachers as t', 't.teacher_no', '=', DB::raw("NULLIF(al.teacher_no, '')"))
+            ->leftJoin('teachers as t', function ($j) {
+                $j->on('t.teacher_no', '=', DB::raw("NULLIF(al.teacher_no, '')"))
+                  ->whereRaw('t.institute_id <=> al.institute_id');
+            })
             ->leftJoin('students as s', 's.id', '=', DB::raw(
-                "(SELECT s2.id FROM students s2 WHERE s2.student_no = NULLIF(al.student_no, '')
+                "(SELECT s2.id FROM students s2 WHERE s2.student_no = NULLIF(al.student_no, '') AND s2.institute_id <=> al.institute_id
                   ORDER BY s2.deleted_at IS NULL DESC, s2.id DESC LIMIT 1)"
             ))
             ->leftJoin('devices as d', 'd.serial_no', '=', 'al.device_serial')
+            ->when($institute, fn ($q, $v) => $q->where('al.institute_id', $v))
             ->orderByDesc('al.id')
             ->limit(50)
             ->get([
@@ -89,12 +97,14 @@ class DeviceMonitorController extends Controller
             'server_time' => now()->format('d M Y, h:i:s A'),
             'devices'     => $devices,
             'feed'        => $feed,
-            'log'         => $this->logTail(40),
+            // the device log is shared by all institutes: an institute (or a filtered
+            // admin view) only sees lines of its own devices
+            'log'         => $this->logTail(40, $institute ? $serials : null),
         ]);
     }
 
     /** Last lines of today's device log (storage/logs/adms-YYYY-MM-DD.log). */
-    protected function logTail(int $lines): array
+    protected function logTail(int $lines, ?array $onlySerials = null): array
     {
         $file = storage_path('logs/adms-' . now()->format('Y-m-d') . '.log');
         if (! is_file($file)) {
@@ -102,11 +112,21 @@ class DeviceMonitorController extends Controller
         }
         $size = filesize($file);
         $fh = fopen($file, 'r');
-        fseek($fh, max(0, $size - 20000)); // the end of the file is enough
+        fseek($fh, max(0, $size - ($onlySerials !== null ? 300000 : 20000))); // the end of the file is enough (more when filtering)
         $chunk = stream_get_contents($fh);
         fclose($fh);
 
         $rows = array_values(array_filter(explode("\n", $chunk), 'strlen'));
+        if ($onlySerials !== null) {
+            $rows = array_values(array_filter($rows, function ($line) use ($onlySerials) {
+                foreach ($onlySerials as $sn) {
+                    if ($sn !== '' && str_contains($line, '"sn":"' . $sn . '"')) {
+                        return true;
+                    }
+                }
+                return false;
+            }));
+        }
         return array_reverse(array_slice($rows, -$lines));
     }
 }

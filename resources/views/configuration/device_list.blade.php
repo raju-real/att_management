@@ -42,17 +42,22 @@
             {{-- <a href="{{ route('devices.setup-guide') }}" class="btn btn-info text-white" {!! tooltip('Setup & Configuration Guide') !!}>
                 <i class="fas fa-book mr-1"></i> Setup Guide
             </a> --}}
+            @if (isSuperAdmin())
             <a href="{{ route('devices.create') }}" class="btn btn-primary-admin text-white" {!! tooltip('Add New Device') !!}>
                 <i class="fas fa-plus mr-1"></i> Add New
             </a>
+            @endif
         </div>
     </div>
 
     <div class="card admin-card">
-        <div class="card-header">
-            <h5 class="card-title"><i class="fas fa-microchip mr-2"></i>Device List
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
+            <h5 class="card-title mb-0"><i class="fas fa-microchip mr-2"></i>Device List
                 &nbsp;<small class="text-muted ms-2" style="font-size:.78em;">Click a row to expand actions</small>
             </h5>
+            <form method="GET" action="{{ route('devices.index') }}" style="min-width:260px">
+                @include('partials.institute_select', ['autoSubmit' => true, 'class' => 'form-control form-control-sm'])
+            </form>
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">
@@ -61,6 +66,7 @@
                         <tr>
                             <th style="width:35px">#</th>
                             <th>Name</th>
+                            <th>Institute</th>
                             <th>Serial No</th>
                             {{-- <th>Subnet / Location</th> --}}
                             <th>Mode / Status</th>
@@ -76,6 +82,7 @@
                                 onclick="toggleDeviceRow({{ $device->id }}, this)">
                                 <td>{{ $loop->index + 1 }}</td>
                                 <td class="fw-semibold">{{ $device->name ?? '' }}</td>
+                                <td>{!! $device->institute ? e($device->institute->name) : '<span class="badge badge-danger">Not assigned: attendance refused</span>' !!}</td>
                                 <td><code>{{ $device->serial_no ?? '' }}</code></td>
                                 {{-- <td>
                                     @if($device->subnet_label)
@@ -111,18 +118,20 @@
                                     @endif
                                 </td>
                                 <td>
-                                    @if($device->device_for == 'student_teacher') <span class="badge bg-secondary">Student &amp; Teacher</span>
+                                    @if($device->device_for == 'student_teacher') <span class="badge bg-secondary">Student &amp; Teacher/Staff</span>
                                     @elseif($device->device_for == 'student') <span class="badge bg-info">Student</span>
-                                    @elseif($device->device_for == 'teacher') <span class="badge bg-warning text-dark">Teacher</span>
+                                    @elseif($device->device_for == 'teacher') <span class="badge bg-warning text-dark">Teacher/Staff</span>
                                     @endif
                                 </td>
                                 <td>{!! showStatus($device->status) !!}</td>
                                 <td class="text-right text-nowrap" onclick="event.stopPropagation()">
                                     {{-- Inline quick links --}}
                                     <a href="{{ route('devices.show', $device->slug) }}" class="action-btn text-info" {!! tooltip('Details') !!}><i class="fas fa-eye"></i></a>
+                                    @if (isSuperAdmin())
                                     <a href="{{ route('devices.edit', $device->slug) }}" class="action-btn" {!! tooltip('Edit') !!}><i class="fas fa-edit"></i></a>
                                     <a href="javascript:void(0)" class="action-btn text-danger delete-data"
                                        data-id="delete-device-{{ $device->id }}" {!! tooltip('Delete') !!}><i class="fas fa-trash-alt"></i></a>
+                                    @endif
                                     <i class="fas fa-chevron-down text-muted ms-2" id="chevron-{{ $device->id }}" style="font-size:.75em;transition:transform .2s"></i>
 
                                     <form id="delete-device-{{ $device->id }}" action="{{ route('devices.destroy', $device->id) }}" method="POST">
@@ -133,7 +142,7 @@
 
                             {{-- ── Expanded actions row ── --}}
                             <tr id="device-row-{{ $device->id }}" class="device-actions-row" style="display:none">
-                                <td colspan="8" class="px-4 py-3">
+                                <td colspan="9" class="px-4 py-3">
                                     <div class="d-flex flex-wrap align-items-center gap-2">
 
                                         {{-- Test Connection (AJAX) --}}
@@ -167,7 +176,7 @@
                                             <button type="submit" class="device-action-btn btn-push-teachers"
                                                 onclick="return confirm('Push ALL teachers to [{{ $device->name }}]?')">
                                                 <i class="fas fa-chalkboard-teacher"></i>
-                                                Push Teachers
+                                                Push Teachers/Staff
                                             </button>
                                         </form>
                                         @endif --}}
@@ -219,7 +228,7 @@
                                 </td>
                             </tr>
                         @empty
-                            <tr><td colspan="8"><x-no-data-found /></td></tr>
+                            <tr><td colspan="9"><x-no-data-found /></td></tr>
                         @endforelse
                     </tbody>
                 </table>

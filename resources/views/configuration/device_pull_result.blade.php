@@ -25,14 +25,14 @@
     <div class="alert alert-info">
         <i class="fas fa-info-circle mr-1"></i>
         Read {{ $totalOnDevice }} user(s) already enrolled on <strong>{{ $device->name }}</strong>
-        ({{ $device->serial_no }}) and matched them against your Student/Teacher lists by PIN.
+        ({{ $device->serial_no }}) and matched them against your Student/Teacher-Staff lists by PIN.
     </div>
 
     <div class="row mb-4">
         <div class="col-md-3 col-6 mb-3">
             <div class="pull-stat stat-created">
                 <div class="val">{{ $createdStudents + $createdTeachers }}</div>
-                <div class="lbl">Created ({{ $createdStudents }} student, {{ $createdTeachers }} teacher)</div>
+                <div class="lbl">Created ({{ $createdStudents }} student, {{ $createdTeachers }} teacher/staff)</div>
             </div>
         </div>
         <div class="col-md-3 col-6 mb-3">
@@ -79,8 +79,8 @@
                                     <td><small class="text-muted">{{ $row['reason'] }}</small></td>
                                     <td class="text-nowrap">
                                         <a href="{{ route('teachers.create', ['pin' => $row['pin'], 'name' => $row['name']]) }}"
-                                           class="btn btn-sm btn-info text-white" {!! tooltip('Add as Teacher') !!}>
-                                            <i class="fas fa-chalkboard-teacher"></i> Teacher
+                                           class="btn btn-sm btn-info text-white" {!! tooltip('Add as Teacher/Staff') !!}>
+                                            <i class="fas fa-chalkboard-teacher"></i> Teacher/Staff
                                         </a>
                                         <a href="{{ route('students.create', ['pin' => $row['pin'], 'name' => $row['name']]) }}"
                                            class="btn btn-sm btn-primary" {!! tooltip('Add as Student') !!}>

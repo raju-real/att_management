@@ -20,7 +20,7 @@
 
 @php
     $today   = \Illuminate\Support\Carbon::today();
-    $keep    = request()->only(['department_id', 'shift_id']);
+    $keep    = request()->only(['department_id', 'shift_id', 'institute_id']);
     $current = ['from_date' => $sheet['from'], 'to_date' => $sheet['to']];
     $presets = [
         'This Month'   => [$today->copy()->startOfMonth(), $today->copy()->endOfMonth()],
@@ -54,6 +54,12 @@
             @endforeach
         </div>
         <form method="GET" action="{{ route('attendance.month-sheet') }}" class="row align-items-end">
+                <div class="col-lg-2 col-md-4 col-12">
+                    <div class="form-group mb-2">
+                        <label class="form-label">Institute</label>
+                        @include('partials.institute_select', ['autoSubmit' => true])
+                    </div>
+                </div>
             <div class="col-lg-2 col-md-3 col-6">
                 <div class="form-group mb-2">
                     <label class="form-label">From Date</label>
@@ -71,7 +77,7 @@
                     @error('to_date') {!! displayError($message) !!} @enderror
                 </div>
             </div>
-            <div class="col-lg-3 col-md-3 col-6">
+            <div class="col-lg-2 col-md-3 col-6">
                 <div class="form-group mb-2">
                     <label class="form-label">Department <small class="text-muted">(optional)</small></label>
                     <select name="department_id" class="form-control">
@@ -82,7 +88,7 @@
                     </select>
                 </div>
             </div>
-            <div class="col-lg-3 col-md-3 col-6">
+            <div class="col-lg-2 col-md-3 col-6">
                 <div class="form-group mb-2">
                     <label class="form-label">Shift <small class="text-muted">(optional)</small></label>
                     <select name="shift_id" class="form-control">
@@ -112,7 +118,7 @@
         @empty
             <div class="text-center text-muted py-5">
                 <i class="fas fa-users fa-2x d-block mb-2" style="opacity:.3"></i>
-                No teachers found for the selected filters.
+                No teachers/staff found for the selected filters.
             </div>
         @endforelse
     </div>

@@ -19,7 +19,8 @@ class AttendanceController extends Controller
     public function syncBackground(Request $request)
     {
         $request->validate([
-            'device_id'      => 'nullable|exists:devices,id',
+            'device_id'      => ['nullable', \Illuminate\Validation\Rule::exists('devices', 'id')
+                ->when(authInstituteId(), fn ($r, $id) => $r->where('institute_id', $id))],
             'sync_from_date' => 'nullable|date',
             'sync_to_date'   => 'nullable|date|after_or_equal:sync_from_date',
         ]);
@@ -61,6 +62,7 @@ class AttendanceController extends Controller
                 COUNT(*) as punch_count
             ")
             ->whereNotNull('unmatched_pin')
+            ->forInstitute(selectedInstituteId())
             ->groupBy('unmatched_pin', 'device_serial')
             ->orderByDesc('last_seen')
             ->paginate(50);
@@ -92,14 +94,15 @@ class AttendanceController extends Controller
         // Same rows and rules as the Attendance Logs page. Date = work date
         // (the day the shift started); "(+1)" = punch on the next day.
         return $this->csv("attendance_logs_{$from}_to_{$to}.csv",
-            ['Work Date', 'Day', 'User Type', 'ID', 'Name', 'Department', 'Shift', 'Shift In', 'Shift Out',
+            ['Institute', 'Work Date', 'Day', 'User Type', 'ID', 'Name', 'Department', 'Shift', 'Shift In', 'Shift Out',
              'Late After', 'Early Out Before', 'In Time', 'Out Time', 'Status', 'Late By', 'Early Out By',
              'Working Hours', 'Punches', 'Outside Shift Punches'],
             $rows,
             fn ($r) => [
+                $this->instituteName($r->institute_id),
                 $r->att_date,
                 Carbon::parse($r->att_date)->format('l'),
-                ucfirst((string) $r->user_type),
+                self::userTypeLabel($r->user_type),
                 $r->user_no,
                 $r->name,
                 $r->department ?? '-',
@@ -118,6 +121,20 @@ class AttendanceController extends Controller
                 (int) $r->outside_punches,
             ]
         );
+    }
+
+    /** Display name of a user type: teachers are shown as "Teacher/Staff" (DB value stays 'teacher'). */
+    public static function userTypeLabel(?string $type): string
+    {
+        return $type === 'teacher' ? 'Teacher/Staff' : ucfirst((string) $type);
+    }
+
+    /** Institute name for CSV rows (cached per request). */
+    protected function instituteName($id): string
+    {
+        static $names = null;
+        $names ??= \App\Models\User::institutes()->pluck('name', 'id')->all();
+        return $names[$id] ?? '-';
     }
 
     /** Human status of one day row, shared by the CSV export. */
@@ -163,12 +180,13 @@ class AttendanceController extends Controller
         $rows = Report::monthlySummaryForExport($filters);
 
         return $this->csv("attendance_summary_{$from}_to_{$to}.csv",
-            ['User Type', 'ID', 'Name', 'Department', 'Shift', 'Shift In', 'Shift Out', 'Working Days', 'Present Days', 'Absent Days',
+            ['Institute', 'User Type', 'ID', 'Name', 'Department', 'Shift', 'Shift In', 'Shift Out', 'Working Days', 'Present Days', 'Absent Days',
              'On Time (days)', 'Late In (days)', 'Total Late', 'Early Out (days)', 'Total Early Out', 'Missing In/Out (days)',
              'Outside Shift Punches', 'Earliest In', 'Average In', 'Total Working Hours'],
             $rows,
             fn ($r) => [
-                ucfirst((string) $r->user_type),
+                $this->instituteName($r->institute_id),
+                self::userTypeLabel($r->user_type),
                 $r->user_no,
                 $r->name,
                 $r->department ?? '-',
@@ -209,6 +227,7 @@ class AttendanceController extends Controller
             'year'          => ['nullable', 'integer', 'between:2000,' . (Carbon::today()->year + 1)],
             'department_id' => ['nullable', 'integer'],
             'shift_id'      => ['nullable', 'integer'],
+            'institute_id'  => ['nullable', 'integer'],
         ], [
             'to_date.after_or_equal' => 'The "To" date must be on or after the "From" date.',
         ]);
@@ -230,9 +249,10 @@ class AttendanceController extends Controller
         $sheet = \App\Services\MonthlySheetService::buildRange($from->toDateString(), $to->toDateString(), [
             'department_id' => $request->department_id,
             'shift_id'      => $request->shift_id,
+            'institute_id'  => selectedInstituteId(),
         ]);
 
-        $file = 'teacher_attendance_' . $sheet['from'] . '_to_' . $sheet['to'];
+        $file = 'teacher_staff_attendance_' . $sheet['from'] . '_to_' . $sheet['to'];
 
         if ($request->get('export') === 'xlsx') {
             return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\MonthlySheetExport($sheet), $file . '.xlsx');
@@ -307,14 +327,14 @@ class AttendanceController extends Controller
         $part = fn (string $name, array $data = []) => view('attendance.sheet.pdf_parts', $data + ['part' => $name, 'sheet' => $sheet])->render();
         $body = \Mpdf\HTMLParserMode::HTML_BODY;
 
-        $mpdf->SetTitle(schoolInfo()->name . " - Teacher's Attendance Report ({$sheet['period_label']})");
+        $mpdf->SetTitle(schoolInfo()->name . " - Teacher/Staff Attendance Report ({$sheet['period_label']})");
         $mpdf->SetAuthor(schoolInfo()->name);
         $mpdf->WriteHTML($part('css'), \Mpdf\HTMLParserMode::HEADER_CSS);
         $mpdf->SetHTMLFooter($part('footer'));
 
         if (!$sheet['sections']) {
             $mpdf->WriteHTML($part('header', ['section' => ['title' => 'All Shifts', 'timing' => null]]), $body);
-            $mpdf->WriteHTML('<p>No teachers found for the selected filters.</p>', $body);
+            $mpdf->WriteHTML('<p>No teachers/staff found for the selected filters.</p>', $body);
         }
 
         foreach ($sheet['sections'] as $i => $section) {
@@ -365,15 +385,17 @@ class AttendanceController extends Controller
             'search'        => $request->search,
             'status'        => $status,
             'sort'          => $request->sort,
+            // forced to the logged-in institute; the admin may pick one (empty = all)
+            'institute_id'  => selectedInstituteId(),
         ], fn ($v) => $v !== null && $v !== '');
     }
 
     protected function filterOptions(): array
     {
         return [
-            'teachers'    => Teacher::orderBy('name')->get(['teacher_no', 'name']),
-            'departments' => Department::orderBy('name')->get(['id', 'name', 'shift_id']),
-            'shifts'      => \App\Models\Shift::orderBy('in_time')->get(['id', 'title', 'in_time', 'out_time']),
+            'teachers'    => Teacher::forInstitute(selectedInstituteId())->orderBy('name')->get(['teacher_no', 'name']),
+            'departments' => Department::forInstitute(selectedInstituteId())->orderBy('name')->get(['id', 'name', 'shift_id']),
+            'shifts'      => \App\Models\Shift::forInstitute(selectedInstituteId())->orderBy('in_time')->get(['id', 'title', 'in_time', 'out_time']),
             'statuses'    => Report::STATUSES,
         ];
     }

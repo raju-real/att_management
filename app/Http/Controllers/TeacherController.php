@@ -24,7 +24,7 @@ class TeacherController extends Controller
 
     public function index(Request $request)
     {
-        $query = Teacher::with('department.shift');
+        $query = Teacher::with('department.shift', 'institute:id,name')->forInstitute(selectedInstituteId());
 
         if ($request->filled('name')) {
             $query->where('name', 'like', '%' . $request->name . '%');
@@ -40,7 +40,7 @@ class TeacherController extends Controller
         }
 
         $teachers    = $query->latest('teacher_no')->paginate(25);
-        $departments = Department::orderBy('name')->get(['id', 'name']);
+        $departments = Department::forInstitute(selectedInstituteId())->orderBy('name')->get(['id', 'name']);
         return view('teacher.teacher_list', compact('teachers', 'departments'));
     }
 
@@ -52,18 +52,19 @@ class TeacherController extends Controller
         $result = $this->activity->pushTeachersToAllDevices();
 
         if ($result['deviceCount'] === 0) {
-            return redirect()->back()->with(dangerMessage('danger', 'No active devices found for teachers.'));
+            return redirect()->back()->with(dangerMessage('danger', 'No active devices found for teachers/staff.'));
         }
 
         $msg = implode("\n", $result['messages']);
         return redirect()->back()->with(successMessage('success',
-            "{$result['total']} teacher(s) processed across {$result['deviceCount']} device(s).\n{$msg}"));
+            "{$result['total']} teacher/staff processed across {$result['deviceCount']} device(s).\n{$msg}"));
     }
 
     // ───────────────────────────── Import (CSV / Excel) ─────────────────────────────
 
     public function import()
     {
+        // the admin picks the institute on the form; departments are filtered to it in the browser
         $departments = Department::where('status', 'active')->with('shift:id,title,in_time,out_time')->orderBy('name')->get();
         return view('teacher.import', compact('departments'));
     }
@@ -86,10 +87,11 @@ class TeacherController extends Controller
     {
         $this->validate($request, [
             'file'          => 'required|file|mimes:xls,xlsx,csv,txt|max:5120',
-            'department_id' => ['nullable', Rule::exists('departments', 'id')->whereNull('deleted_at')],
-        ]);
+            'institute_id'  => $this->instituteRule(),
+            'department_id' => ['nullable', Rule::exists('departments', 'id')->where('institute_id', $this->instituteFor($request))->whereNull('deleted_at')],
+        ], ['institute_id.required' => 'Select the institute these teachers/staff belong to.']);
 
-        $import = new \App\Imports\TeachersImport($request->department_id ? (int) $request->department_id : null);
+        $import = new \App\Imports\TeachersImport($request->department_id ? (int) $request->department_id : null, $this->instituteFor($request));
 
         try {
             \Maatwebsite\Excel\Facades\Excel::import($import, $request->file('file'));
@@ -97,11 +99,11 @@ class TeacherController extends Controller
             return redirect()->back()->withErrors(['file' => 'Error reading file: ' . $e->getMessage()]);
         }
 
-        $summary = "{$import->created} teacher(s) created, {$import->updated} updated"
+        $summary = "{$import->created} teacher/staff created, {$import->updated} updated"
             . (count($import->skipped) ? ', ' . count($import->skipped) . ' skipped' : '') . '.';
 
         if (($import->created + $import->updated) > 0) {
-            $summary .= ' Use "Push to Device" to send new/updated teachers to the fingerprint devices.';
+            $summary .= ' Use "Push to Device" to send new/updated teachers/staff to the fingerprint devices.';
         }
 
         return redirect()->route('teachers.import')
@@ -121,6 +123,7 @@ class TeacherController extends Controller
         $this->validate($request, $this->rules($request), $this->messages());
 
         $teacher = new Teacher();
+        $teacher->institute_id = $this->instituteFor($request);
         // The device PIN — user-typed so it can match a PIN already enrolled
         // on a device (e.g. resolving an Unmatched Attendance / Pull Users
         // record) instead of always minting a brand new number.
@@ -130,6 +133,7 @@ class TeacherController extends Controller
         $teacher->mobile        = $request->mobile;
         $teacher->designation   = $request->designation;
         $teacher->department_id = $request->department_id;
+        $this->fillProfile($teacher, $request);
 
         if ($request->hasFile('image')) {
             $teacher->image = uploadImage($request->file('image'), 'teachers');
@@ -143,14 +147,15 @@ class TeacherController extends Controller
 
         // Push this one teacher to every device that should have them —
         // no need to re-run the bulk "Push to Device" for a single addition.
-        $this->deviceSync->pushOne('teacher', (string) $teacher->teacher_no, $teacher->name);
+        $this->deviceSync->pushOne('teacher', (string) $teacher->teacher_no, $teacher->name, $teacher->institute_id);
 
         return redirect()->route('teachers.index')->with(successMessage());
     }
 
-    public function edit($teacher_no)
+    public function edit($id)
     {
-        $teacher     = Teacher::whereTeacherNo($teacher_no)->firstOrFail();
+        // by id: teacher_no is only unique inside one institute
+        $teacher     = Teacher::findOrFail($id);
         $route       = route('teachers.update', $teacher->id);
         $departments = $this->departmentOptions($teacher->department_id);
         return view('teacher.teacher_add_edit', compact('teacher', 'route', 'departments'));
@@ -162,12 +167,15 @@ class TeacherController extends Controller
 
         $teacher                = Teacher::findOrFail($id);
         $oldTeacherNo           = $teacher->teacher_no;
+        $oldInstituteId         = $teacher->institute_id;
+        $teacher->institute_id  = $this->instituteFor($request) ?? $teacher->institute_id;
         $teacher->teacher_no    = trim($request->teacher_no);
         $teacher->name          = $request->name;
         $teacher->email         = $request->email;
         $teacher->mobile        = $request->mobile;
         $teacher->designation   = $request->designation;
         $teacher->department_id = $request->department_id;
+        $this->fillProfile($teacher, $request);
 
         if ($request->hasFile('image')) {
             if ($teacher->image !== null && file_exists($teacher->image)) {
@@ -187,8 +195,9 @@ class TeacherController extends Controller
 
         // If the device PIN itself changed, remove the old PIN from devices
         // (it no longer belongs to anyone) before pushing the new one.
-        if ($oldTeacherNo !== $teacher->teacher_no) {
-            $this->deviceSync->deleteOne('teacher', (string) $oldTeacherNo);
+        // Same when the teacher/staff moved to another institute (old institute's devices).
+        if ($oldTeacherNo !== $teacher->teacher_no || (int) $oldInstituteId !== (int) $teacher->institute_id) {
+            $this->deviceSync->deleteOne('teacher', (string) $oldTeacherNo, $oldInstituteId);
         }
 
         // Historical attendance punches that came in with this PIN before we
@@ -197,7 +206,7 @@ class TeacherController extends Controller
         $this->healUnmatchedAttendance($teacher);
 
         // Keep the device's copy of this teacher's name in sync.
-        $this->deviceSync->pushOne('teacher', (string) $teacher->teacher_no, $teacher->name);
+        $this->deviceSync->pushOne('teacher', (string) $teacher->teacher_no, $teacher->name, $teacher->institute_id);
 
         return redirect()->route('teachers.index')->with(infoMessage());
     }
@@ -209,7 +218,7 @@ class TeacherController extends Controller
             unlink($teacher->image);
         }
 
-        $this->deviceSync->deleteOne('teacher', (string) $teacher->teacher_no);
+        $this->deviceSync->deleteOne('teacher', (string) $teacher->teacher_no, $teacher->institute_id);
 
         $teacher->delete();
         return redirect()->route('teachers.index')->with(deleteMessage());
@@ -217,25 +226,49 @@ class TeacherController extends Controller
 
     protected function rules(Request $request, $ignoreId = null): array
     {
-        $unique = fn () => Rule::unique('teachers')->whereNull('deleted_at')->ignore($ignoreId);
+        // device ID / email / mobile only need to be unique inside the institute
+        $institute = $this->instituteFor($request) ?? ($ignoreId ? Teacher::whereKey($ignoreId)->value('institute_id') : null);
+        $unique    = fn () => Rule::unique('teachers')->where('institute_id', $institute)->whereNull('deleted_at')->ignore($ignoreId);
 
         return [
+            'institute_id'  => $this->instituteRule(),
             'name'          => ['required', 'string', 'max:100'],
-            'teacher_no'    => ['required', 'regex:/^[0-9]{1,20}$/', Rule::unique('teachers')->ignore($ignoreId), new UniqueDevicePin('teacher')],
+            'teacher_no'    => ['required', 'regex:/^[0-9]{1,20}$/', Rule::unique('teachers')->where('institute_id', $institute)->ignore($ignoreId), new UniqueDevicePin('teacher', $institute)],
             'email'         => ['nullable', 'email', 'max:100', $unique()],
             'mobile'        => ['nullable', 'regex:/^[0-9+\-\s]{6,20}$/', $unique()],
             'designation'   => ['nullable', 'string', 'max:100'],
-            'department_id' => ['required', Rule::exists('departments', 'id')->whereNull('deleted_at')],
+            'department_id' => ['required', Rule::exists('departments', 'id')->where('institute_id', $institute)->whereNull('deleted_at')],
             'image'         => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:2048'],
+            // profile (Teacher/Staff Profile report)
+            'date_of_birth'       => ['nullable', 'date', 'before:today'],
+            'gender'              => ['nullable', Rule::in(Teacher::GENDERS)],
+            'blood_group'         => ['nullable', Rule::in(Teacher::BLOOD_GROUPS)],
+            'religion'            => ['nullable', 'string', 'max:30'],
+            'subject'             => ['nullable', 'string', 'max:100'],
+            'present_address'     => ['nullable', 'string', 'max:500'],
+            'permanent_address'   => ['nullable', 'string', 'max:500'],
+            'newspaper_ad'        => ['nullable', 'string', 'max:191'],
+            'joining_date'        => ['nullable', 'date'],
+            'joining_post'        => ['nullable', 'string', 'max:100'],
+            'time_scale'          => ['nullable', 'string', 'max:100'],
+            'mpo_index'           => ['nullable', 'string', 'max:50'],
+            'education'           => ['nullable', 'array', 'max:20'],
+            'education.*.*'       => ['nullable', 'string', 'max:191'],
+            'class_teacher'       => ['nullable', 'array', 'max:30'],
+            'class_teacher.*.*'   => ['nullable', 'string', 'max:100'],
+            'subject_teacher'     => ['nullable', 'array', 'max:30'],
+            'subject_teacher.*.*' => ['nullable', 'string', 'max:100'],
         ];
     }
 
     protected function messages(): array
     {
         return [
+            'institute_id.required'  => 'Please select the institute.',
             'department_id.required' => 'Please select a department (its shift sets the in/out time).',
+            'department_id.exists'   => 'The department does not belong to the selected institute.',
             'teacher_no.regex'       => 'Device ID must be a number of 1 to 20 digits (fingerprint devices only accept numeric IDs).',
-            'teacher_no.unique'      => 'This device ID already belongs to another teacher (including deleted teachers).',
+            'teacher_no.unique'      => 'This device ID already belongs to another teacher/staff of this institute (including deleted ones).',
             'mobile.regex'           => 'Enter a valid phone number (digits, +, - and spaces only).',
         ];
     }
@@ -246,11 +279,37 @@ class TeacherController extends Controller
      */
     protected function departmentOptions(?int $currentId = null)
     {
-        return Department::with('shift:id,title,in_time,out_time')
+        return Department::with('shift:id,title,in_time,out_time', 'institute:id,name')
             ->where(fn ($q) => $q->where('status', 'active')
                 ->when($currentId, fn ($q) => $q->orWhere('id', $currentId)))
             ->orderBy('name')
-            ->get(['id', 'name', 'shift_id', 'status']);
+            ->get(['id', 'name', 'shift_id', 'status', 'institute_id']);
+    }
+
+    /** Institute of the record being saved: forced for institute users, chosen by the admin. */
+    protected function instituteFor(Request $request): ?int
+    {
+        return authInstituteId() ?? ($request->filled('institute_id') ? (int) $request->institute_id : null);
+    }
+
+    protected function instituteRule(): array
+    {
+        return isSuperAdmin()
+            ? ['required', Rule::exists('users', 'id')->where('role', 'institute')->whereNull('deleted_at')]
+            : ['nullable'];
+    }
+
+    /** Teacher/Staff profile fields (shown on the profile page / PDF). */
+    protected function fillProfile(Teacher $teacher, Request $request): void
+    {
+        foreach (['date_of_birth', 'gender', 'blood_group', 'religion', 'subject', 'present_address',
+                  'permanent_address', 'newspaper_ad', 'joining_date', 'joining_post', 'time_scale', 'mpo_index'] as $field) {
+            $teacher->{$field} = $request->filled($field) ? trim((string) $request->input($field)) : null;
+        }
+
+        $teacher->education       = Teacher::cleanRows($request->input('education', []), Teacher::EDUCATION_COLUMNS);
+        $teacher->class_teacher   = Teacher::cleanRows($request->input('class_teacher', []), Teacher::CLASS_COLUMNS);
+        $teacher->subject_teacher = Teacher::cleanRows($request->input('subject_teacher', []), Teacher::CLASS_COLUMNS);
     }
 
     /**
@@ -260,6 +319,7 @@ class TeacherController extends Controller
     protected function healUnmatchedAttendance(Teacher $teacher): void
     {
         AttendanceLog::where('unmatched_pin', $teacher->teacher_no)
+            ->where('institute_id', $teacher->institute_id)
             ->whereNull('teacher_no')
             ->whereNull('student_no')
             ->get()

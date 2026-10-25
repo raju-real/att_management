@@ -45,9 +45,47 @@ class User extends Authenticatable
         return $this->belongsTo(Designation::class, 'designation_id', 'id');
     }
 
+    // ─── Roles: 'admin' = super admin, 'institute' = an institute account ────
+    // An institute IS a user row: it logs in and holds its letterhead details
+    // (name, address, eiin, website, logo). Institute-owned rows point at it
+    // with institute_id (see App\Traits\BelongsToInstitute).
+
+    public const ROLE_ADMIN     = 'admin';
+    public const ROLE_INSTITUTE = 'institute';
+
+    public function isSuperAdmin(): bool
+    {
+        return $this->role === self::ROLE_ADMIN;
+    }
+
+    public function isInstitute(): bool
+    {
+        return $this->role === self::ROLE_INSTITUTE;
+    }
+
+    public function scopeInstitutes($query)
+    {
+        return $query->where('role', self::ROLE_INSTITUTE);
+    }
+
     public function scopeAdmin($query)
     {
         return $query->where('role', 'admin');
+    }
+
+    public function teachers()
+    {
+        return $this->hasMany(Teacher::class, 'institute_id');
+    }
+
+    public function students()
+    {
+        return $this->hasMany(Student::class, 'institute_id');
+    }
+
+    public function instituteDevices()
+    {
+        return $this->hasMany(Device::class, 'institute_id');
     }
 
     public function scopeEmployee($query)

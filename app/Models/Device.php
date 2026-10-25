@@ -9,11 +9,12 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Device extends Model
 {
-    use HasFactory, ModelHelper, SoftDeletes;
+    use HasFactory, ModelHelper, SoftDeletes, \App\Traits\BelongsToInstitute;
 
     protected $table = 'devices';
 
     protected $fillable = [
+        'institute_id',
         'name',
         'slug',
         'serial_no',

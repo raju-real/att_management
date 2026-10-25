@@ -1,9 +1,9 @@
 @extends('layouts.app')
-@section('title', 'Import Teachers')
+@section('title', 'Import Teachers/Staff')
 
 @section('content')
     <div class="d-flex justify-content-between align-items-center mb-2">
-        <h3>Import Teachers</h3>
+        <h3>Import Teachers/Staff</h3>
         <a href="{{ route('teachers.index') }}" class="btn btn-secondary" {!! tooltip('Back to List') !!}>
             <i class="fas fa-arrow-left mr-2"></i> Back
         </a>
@@ -22,7 +22,7 @@
 
     <div class="card admin-card">
         <div class="card-header">
-            <h5 class="card-title"><i class="fas fa-file-excel mr-2"></i> Upload Teachers File</h5>
+            <h5 class="card-title"><i class="fas fa-file-excel mr-2"></i> Upload Teachers/Staff File</h5>
         </div>
         <div class="card-body">
             <div class="alert alert-info">
@@ -44,6 +44,15 @@
             <form action="{{ route('teachers.upload') }}" method="POST" enctype="multipart/form-data" id="prevent-form">
                 @csrf
                 <div class="row">
+                    <div class="col-md-12">
+                        <div class="form-group">
+                            <label class="form-label">Institute {!! starSign() !!}</label>
+                            @include('partials.institute_select', ['required' => true, 'selected' => null])
+                            @error('institute_id')
+                                {!! displayError($message) !!}
+                            @enderror
+                        </div>
+                    </div>
                     <div class="col-md-6">
                         <div class="form-group">
                             <label class="form-label">Select File (XLS, XLSX, CSV) {!! starSign() !!}</label>
@@ -58,10 +67,10 @@
                     <div class="col-md-6">
                         <div class="form-group">
                             <label class="form-label">Default Department <small class="text-muted">(for new teachers)</small></label>
-                            <select name="department_id" class="form-control {{ hasError('department_id') }}">
+                            <select name="department_id" id="departmentSelect" class="form-control {{ hasError('department_id') }}">
                                 <option value="">-- None (use department column) --</option>
                                 @foreach($departments as $d)
-                                    <option value="{{ $d->id }}" {{ (string) old('department_id') === (string) $d->id ? 'selected' : '' }}>
+                                    <option value="{{ $d->id }}" data-institute="{{ $d->institute_id }}" {{ (string) old('department_id') === (string) $d->id ? 'selected' : '' }}>
                                         {{ $d->name }}@if($d->shift) ({{ $d->shift->title }}: {{ timeFormat($d->shift->in_time, 'h:i A') }} - {{ timeFormat($d->shift->out_time, 'h:i A') }})@endif
                                     </option>
                                 @endforeach
@@ -83,3 +92,25 @@
         </div>
     </div>
 @endsection
+
+@push('js')
+<script>
+// Default department: only the chosen institute's departments.
+(function () {
+    const inst = $('#instituteSelect');
+    const dept = document.getElementById('departmentSelect');
+    if (!inst.length || !dept) return;
+    function filterDepartments() {
+        const id = String(inst.val() || '');
+        Array.from(dept.options).forEach(function (opt) {
+            if (!opt.value) return;
+            const show = id !== '' && opt.dataset.institute === id;
+            opt.hidden = !show; opt.disabled = !show;
+            if (!show && opt.selected) dept.value = '';
+        });
+    }
+    inst.on('change', filterDepartments);
+    filterDepartments();
+})();
+</script>
+@endpush

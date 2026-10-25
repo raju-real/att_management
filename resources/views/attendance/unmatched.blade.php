@@ -18,16 +18,19 @@
 
     <div class="alert alert-warning">
         <i class="fas fa-exclamation-triangle mr-1"></i>
-        These are fingerprint punches whose device PIN doesn't match any Student or Teacher yet — either a brand
+        These are fingerprint punches whose device PIN doesn't match any Student or Teacher/Staff yet — either a brand
         new person enrolled directly on the device, or (on a mixed student+teacher device) the same PIN happens
         to exist in both lists. They are <strong>never silently guessed</strong> as one or the other; classify
-        each PIN below by adding it as a Student or Teacher with that exact PIN — past punches will
+        each PIN below by adding it as a Student or Teacher/Staff with that exact PIN — past punches will
         automatically re-attach once you do.
     </div>
 
     <div class="card admin-card">
-        <div class="card-header">
-            <h5 class="card-title"><i class="fas fa-question-circle mr-2"></i>Unrecognized PINs</h5>
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
+            <h5 class="card-title mb-0"><i class="fas fa-question-circle mr-2"></i>Unrecognized PINs</h5>
+            <form method="GET" action="{{ route('attendance.unmatched') }}" style="min-width:260px">
+                @include('partials.institute_select', ['autoSubmit' => true, 'class' => 'form-control form-control-sm'])
+            </form>
         </div>
         <div class="card-body">
             <div class="table-responsive">
@@ -52,8 +55,8 @@
                                 <td>{{ dateFormat($row->last_seen, 'd M, Y h:i A') }}</td>
                                 <td class="text-nowrap">
                                     <a href="{{ route('teachers.create', ['pin' => $row->unmatched_pin]) }}"
-                                       class="btn btn-sm btn-info text-white" {!! tooltip('Add as Teacher') !!}>
-                                        <i class="fas fa-chalkboard-teacher"></i> Teacher
+                                       class="btn btn-sm btn-info text-white" {!! tooltip('Add as Teacher/Staff') !!}>
+                                        <i class="fas fa-chalkboard-teacher"></i> Teacher/Staff
                                     </a>
                                     <a href="{{ route('students.create', ['pin' => $row->unmatched_pin]) }}"
                                        class="btn btn-sm btn-primary" {!! tooltip('Add as Student') !!}>

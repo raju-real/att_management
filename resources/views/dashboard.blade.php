@@ -96,6 +96,17 @@
 
 @section('content')
 
+    {{-- Institute: super admin may pick one (empty = all); an institute sees only itself --}}
+    <div class="d-flex justify-content-between align-items-center flex-wrap mb-3">
+        <h4 class="mb-2"><i class="fas fa-university mr-2 text-muted"></i>{{ schoolInfo(selectedInstituteId())->name }}
+            @if (isSuperAdmin() && ! selectedInstituteId())<span class="badge badge-warning ml-1" style="font-size:.55em">All Institutes</span>@endif
+        </h4>
+        @if (isSuperAdmin())
+            <form method="GET" action="{{ route('dashboard') }}" style="min-width:280px" class="mb-2">
+                @include('partials.institute_select', ['autoSubmit' => true])
+            </form>
+        @endif
+    </div>
 
     {{-- ═══════════════════════════════════════════
          STAT CARDS ROW
@@ -115,9 +126,9 @@
         <div class="col-xl-3 col-md-6 mb-4">
             <div class="dash-stat-card stat-card-green">
                 <div class="card-glow"></div><div class="card-glow-2"></div>
-                <div class="stat-label"><i class="fas fa-chalkboard-teacher mr-1"></i>Total Teachers</div>
+                <div class="stat-label"><i class="fas fa-chalkboard-teacher mr-1"></i>Total Teachers/Staff</div>
                 <div class="stat-value">{{ number_format($total_teachers ?? 0) }}</div>
-                <div class="stat-sub"><i class="fas fa-circle" style="font-size:7px;color:#6ee7b7"></i> Active Teachers</div>
+                <div class="stat-sub"><i class="fas fa-circle" style="font-size:7px;color:#6ee7b7"></i> Active Teachers/Staff</div>
                 <i class="fas fa-chalkboard-teacher stat-icon"></i>
             </div>
         </div>
@@ -145,7 +156,7 @@
     </div>
 
 
-    {{-- Teacher status board (shared: attendance/board/_board) --}}
+    {{-- Teacher/Staff status board (shared: attendance/board/_board) --}}
     @include('attendance.board._board', [
         'theme' => 'dark',
         'link'  => ['url' => route('attendance-board'), 'icon' => 'fas fa-external-link-alt', 'title' => 'Open full-page board', 'blank' => true],
@@ -189,7 +200,7 @@
                                     @if($row->user_type === 'student')
                                         <span class="att-badge-student"><i class="fas fa-user-graduate mr-1"></i>Student</span>
                                     @elseif($row->user_type === 'teacher')
-                                        <span class="att-badge-teacher"><i class="fas fa-chalkboard-teacher mr-1"></i>Teacher</span>
+                                        <span class="att-badge-teacher"><i class="fas fa-chalkboard-teacher mr-1"></i>Teacher/Staff</span>
                                     @else
                                         <span class="att-badge-other">Unknown</span>
                                     @endif

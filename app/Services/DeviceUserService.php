@@ -77,7 +77,7 @@ class DeviceUserService
         $count = $this->store($device, $rows, true);
 
         return ['success' => true, 'queued' => false, 'count' => $count,
-            'message' => "{$count} user(s) read from [{$device->name}]; {$this->lastTeachersCreated} new teacher(s) created (existing teachers unchanged)."];
+            'message' => "{$count} user(s) read from [{$device->name}]; {$this->lastTeachersCreated} new teacher/staff created (existing teachers/staff unchanged)."];
     }
 
     /**
@@ -154,6 +154,7 @@ class DeviceUserService
             DeviceUser::updateOrCreate(
                 ['device_id' => $device->id, 'pin' => $pin],
                 [
+                    'institute_id' => $device->institute_id,
                     'name'        => $name !== '' ? mb_substr($name, 0, 191) : null,
                     'privilege'   => (int) ($r['privilege'] ?? 0),
                     'card'        => isset($r['card']) && $r['card'] !== '' ? mb_substr((string) $r['card'], 0, 50) : null,
@@ -195,7 +196,7 @@ class DeviceUserService
      */
     protected function createMissingTeachers(Device $device, array $pins): int
     {
-        if ($device->device_for === 'student' || ! $pins) {
+        if ($device->device_for === 'student' || ! $pins || ! $device->institute_id) {
             return 0;
         }
 
@@ -204,8 +205,11 @@ class DeviceUserService
             return 0;
         }
 
-        $teacherNos = Teacher::withTrashed()->whereIn('teacher_no', $pins)->pluck('teacher_no')->map(fn ($v) => (string) $v)->all();
-        $studentNos = Student::withTrashed()->whereIn('student_no', $pins)->pluck('student_no')->map(fn ($v) => (string) $v)->all();
+        // Only this device's institute counts (other schools may use the same numbers).
+        $teacherNos = Teacher::withoutGlobalScope(\App\Models\Scopes\InstituteScope::class)->withTrashed()
+            ->where('institute_id', $device->institute_id)->whereIn('teacher_no', $pins)->pluck('teacher_no')->map(fn ($v) => (string) $v)->all();
+        $studentNos = Student::withoutGlobalScope(\App\Models\Scopes\InstituteScope::class)->withTrashed()
+            ->where('institute_id', $device->institute_id)->whereIn('student_no', $pins)->pluck('student_no')->map(fn ($v) => (string) $v)->all();
         $new = array_diff($pins, $teacherNos, $studentNos);
         if (! $new) {
             return 0;
@@ -220,6 +224,7 @@ class DeviceUserService
                 $teacher->teacher_no    = $pin;
                 $teacher->name          = trim((string) ($names[$pin] ?? '')) ?: "Teacher {$pin}";
                 $teacher->department_id = self::UNASSIGNED_DEPARTMENT;
+                $teacher->institute_id  = $device->institute_id;
                 $teacher->save();
                 $created++;
             } catch (\Throwable $e) {

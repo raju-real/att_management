@@ -11,13 +11,14 @@ class DepartmentController extends Controller
 {
     public function index(Request $request)
     {
-        $departments = Department::with('shift')
+        $departments = Department::with('shift', 'institute:id,name')
             ->withCount('teachers')
+            ->forInstitute(selectedInstituteId())
             ->when($request->filled('shift_id'), fn ($q) => $q->where('shift_id', $request->shift_id))
             ->orderBy('name')
             ->paginate(20);
 
-        $shifts = Shift::orderBy('in_time')->get(['id', 'title', 'in_time', 'out_time']);
+        $shifts = Shift::forInstitute(selectedInstituteId())->orderBy('in_time')->get(['id', 'title', 'in_time', 'out_time']);
 
         return view('department.department_list', compact('departments', 'shifts'));
     }
@@ -58,7 +59,7 @@ class DepartmentController extends Controller
 
         if ($department->teachers()->exists()) {
             return redirect()->route('departments.index')
-                ->with(dangerMessage('danger', 'Cannot delete — teachers are still assigned to this department.'));
+                ->with(dangerMessage('danger', 'Cannot delete — teachers/staff are still assigned to this department.'));
         }
 
         $department->delete();
@@ -67,21 +68,31 @@ class DepartmentController extends Controller
 
     protected function validated(Request $request, ?int $ignoreId = null): array
     {
+        // institute: forced for institute users, chosen by the admin
+        $institute = authInstituteId() ?? ($request->filled('institute_id') ? (int) $request->institute_id : null);
+
         $this->validate($request, [
+            'institute_id' => isSuperAdmin()
+                ? ['required', Rule::exists('users', 'id')->where('role', 'institute')->whereNull('deleted_at')]
+                : ['nullable'],
             'name' => [
                 'required', 'string', 'max:100',
-                Rule::unique('departments')->whereNull('deleted_at')->ignore($ignoreId),
+                Rule::unique('departments')->where('institute_id', $institute)->whereNull('deleted_at')->ignore($ignoreId),
             ],
             'shift_id' => [
                 'required',
-                Rule::exists('shifts', 'id')->whereNull('deleted_at'),
+                // the shift must belong to the same institute
+                Rule::exists('shifts', 'id')->where('institute_id', $institute)->whereNull('deleted_at'),
             ],
             'status' => 'required|in:active,inactive',
         ], [
             'shift_id.required' => 'Please select the shift this department follows.',
+            'shift_id.exists'   => 'The shift does not belong to the selected institute.',
+            'institute_id.required' => 'Please select the institute.',
+            'name.unique'       => 'This institute already has a department with this name.',
         ]);
 
-        return [
+        return array_filter(['institute_id' => $institute]) + [
             'name'     => trim($request->name),
             'shift_id' => $request->shift_id,
             'status'   => $request->status,
@@ -97,6 +108,6 @@ class DepartmentController extends Controller
         return Shift::where('status', 'active')
             ->when($currentShiftId, fn ($q) => $q->orWhere('id', $currentShiftId))
             ->orderBy('in_time')
-            ->get(['id', 'title', 'in_time', 'out_time', 'status']);
+            ->get(['id', 'title', 'in_time', 'out_time', 'status', 'institute_id']);
     }
 }

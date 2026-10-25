@@ -240,9 +240,9 @@
                                         <div class="row">
                                             {{-- Employee ID --}}
                                             <div class="col-md-6 mb-3">
-                                                <label class="form-label fw-semibold">Student/Teacher No (PIN)</label>
+                                                <label class="form-label fw-semibold">Student/Teacher-Staff No (PIN)</label>
                                                 <input type="text" name="pin" class="form-control" required
-                                                    placeholder="Student no. or Teacher no.">
+                                                    placeholder="Student no. or Teacher/Staff no.">
                                             </div>
 
                                             {{-- Device --}}

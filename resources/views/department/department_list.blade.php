@@ -18,6 +18,9 @@
         <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
             <h5 class="card-title mb-0"><i class="fas fa-building mr-2"></i>Department List</h5>
             <form method="GET" action="{{ route('departments.index') }}" class="form-inline">
+                <div class="mr-1" style="min-width:220px">
+                    @include('partials.institute_select', ['autoSubmit' => true, 'class' => 'form-control form-control-sm'])
+                </div>
                 <select name="shift_id" class="form-control form-control-sm mr-1" onchange="this.form.submit()">
                     <option value="">All Shifts</option>
                     @foreach($shifts as $s)
@@ -26,7 +29,7 @@
                         </option>
                     @endforeach
                 </select>
-                @if(request()->filled('shift_id'))
+                @if(request()->filled('shift_id') || request()->filled('institute_id'))
                     <a href="{{ route('departments.index') }}" class="btn btn-sm btn-secondary"><i class="fas fa-undo"></i></a>
                 @endif
             </form>
@@ -38,10 +41,11 @@
                         <tr>
                             <th>#</th>
                             <th>Name</th>
+                            @if (isSuperAdmin())<th>Institute</th>@endif
                             <th>Shift</th>
                             <th class="text-center">In Time</th>
                             <th class="text-center">Out Time</th>
-                            <th class="text-center">Teachers</th>
+                            <th class="text-center">Teachers/Staff</th>
                             <th>Status</th>
                             <th>Actions</th>
                         </tr>
@@ -51,6 +55,7 @@
                             <tr>
                                 <td>{{ $departments->firstItem() + $loop->index }}</td>
                                 <td class="fw-semibold">{{ $department->name }}</td>
+                                @if (isSuperAdmin())<td><small>{{ $department->institute->name ?? '—' }}</small></td>@endif
                                 <td>
                                     @if($department->shift)
                                         {{ $department->shift->title }}

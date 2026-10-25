@@ -1,5 +1,5 @@
 @extends('layouts.app')
-@section('title', 'Teacher List')
+@section('title', 'Teacher/Staff List')
 
 @push('css')
 <style>
@@ -27,7 +27,7 @@
 
 @section('content')
     <div class="d-flex justify-content-between align-items-center mb-2">
-        <h3>Teacher Management</h3>
+        <h3>Teacher/Staff Management</h3>
         <div>
             <button type="button" class="btn btn-info text-white mr-2" data-dp-action="push" data-dp-scope="selected" disabled
                {!! tooltip('Push the ticked teachers to a device') !!}>
@@ -40,21 +40,21 @@
             <a href="{{ route('teachers.import') }}" class="btn btn-success text-white mr-2" {!! tooltip('Import teachers from CSV / Excel') !!}>
                 <i class="fas fa-file-import mr-1"></i> Import
             </a>
-            <a href="{{ route('teachers.create') }}" class="btn btn-primary-admin text-white" {!! tooltip('Add Teacher') !!}>
-                <i class="fas fa-plus mr-1"></i> Add Teacher
+            <a href="{{ route('teachers.create') }}" class="btn btn-primary-admin text-white" {!! tooltip('Add Teacher/Staff') !!}>
+                <i class="fas fa-plus mr-1"></i> Add Teacher/Staff
             </a>
         </div>
     </div>
 
     {{-- ── Search / Filter ── --}}
-    @php $filterOpen = request()->hasAny(['name','teacher_no','designation','department_id']); @endphp
+    @php $filterOpen = request()->hasAny(['name','teacher_no','designation','department_id','institute_id']); @endphp
     <div class="accordion mb-3" id="teacherFilterAccordion">
         <div class="card">
             <div class="card-header p-0" id="filterHeading">
                 <button class="btn btn-link btn-block text-left d-flex justify-content-between align-items-center"
                     type="button" data-toggle="collapse" data-target="#filterCollapse"
                     aria-expanded="{{ $filterOpen ? 'true' : 'false' }}" aria-controls="filterCollapse">
-                    <span><i class="fas fa-filter mr-1"></i> Filter Teachers</span>
+                    <span><i class="fas fa-filter mr-1"></i> Filter Teachers/Staff</span>
                     <i class="fas fa-chevron-down"></i>
                 </button>
             </div>
@@ -65,9 +65,15 @@
                         <div class="row g-2">
                             <div class="col-md-3">
                                 <div class="form-group">
+                                    <label class="form-label">Institute</label>
+                                    @include('partials.institute_select')
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="form-group">
                                     <label class="form-label">Name</label>
                                     <input type="search" name="name" class="form-control"
-                                           value="{{ request('name') }}" placeholder="Teacher Name">
+                                           value="{{ request('name') }}" placeholder="Name">
                                 </div>
                             </div>
                             <div class="col-md-2">
@@ -77,7 +83,7 @@
                                            value="{{ request('teacher_no') }}" placeholder="Device ID / No">
                                 </div>
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-md-1">
                                 <div class="form-group">
                                     <label class="form-label">Designation</label>
                                     <input type="search" name="designation" class="form-control"
@@ -118,7 +124,7 @@
 
     <div class="card admin-card">
         <div class="card-header">
-            <h5 class="card-title"><i class="fas fa-chalkboard-teacher mr-2"></i>Teacher List</h5>
+            <h5 class="card-title"><i class="fas fa-chalkboard-teacher mr-2"></i>Teacher/Staff List</h5>
         </div>
         <div class="card-body">
             <div class="table-responsive">
@@ -134,6 +140,7 @@
                             <th>Mobile</th>
                             <th>Designation</th>
                             <th>Department / Shift</th>
+                            @if (isSuperAdmin())<th>Institute</th>@endif
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -169,9 +176,14 @@
                                         <span class="text-danger small"><i class="fas fa-exclamation-triangle"></i> Not set</span>
                                     @endif
                                 </td>
+                                @if (isSuperAdmin())<td><small>{{ $teacher->institute->name ?? "—" }}</small></td>@endif
                                 <td class="text-nowrap">
-                                    <a href="{{ route('teachers.edit', $teacher->teacher_no) }}"
-                                       class="action-btn text-info" {!! tooltip('Edit Teacher') !!}>
+                                    <a href="{{ route('teacher-profiles.show', $teacher->id) }}"
+                                       class="action-btn text-success" {!! tooltip('View Profile') !!}>
+                                       <i class="fas fa-id-card"></i>
+                                    </a>
+                                    <a href="{{ route('teachers.edit', $teacher->id) }}"
+                                       class="action-btn text-info" {!! tooltip('Edit Teacher/Staff') !!}>
                                        <i class="fas fa-edit"></i>
                                     </a>
                                     <a href="javascript:void(0);" class="action-btn text-primary" {!! tooltip('Push to device') !!}
@@ -182,7 +194,7 @@
                                        data-dp-action="remove" data-dp-scope="one" data-dp-id="{{ $teacher->id }}" data-dp-name="{{ $teacher->name }} (#{{ $teacher->teacher_no }})">
                                         <i class="fas fa-user-slash"></i>
                                     </a>
-                                    <a {!! tooltip('Delete Teacher') !!} class="action-btn text-danger delete-data"
+                                    <a {!! tooltip('Delete Teacher/Staff') !!} class="action-btn text-danger delete-data"
                                        data-id="delete-teacher-{{ $teacher->id }}" href="javascript:void(0);">
                                         <i class="fas fa-trash-alt"></i>
                                     </a>

@@ -27,7 +27,7 @@
         <tr>
             <th style="{{ $th }}">SL<br>No</th>
             <th style="{{ $th }}">ID<br>No</th>
-            <th style="{{ $th }}text-align:left;{{ $mode === 'pdf' ? 'width:30mm;' : 'min-width:150px;' }}">Teacher's Name</th>
+            <th style="{{ $th }}text-align:left;{{ $mode === 'pdf' ? 'width:30mm;' : 'min-width:150px;' }}">Teacher/Staff Name</th>
             <th style="{{ $th }}">Time<br>Table</th>
             @foreach($sheet['days'] as $day)
                 <th style="{{ $th }}{{ $dayW }}{{ $day['holiday'] ? $hol : '' }}">@if($day['month_mark'])<span style="font-size:85%;color:#4338ca;">{{ $day['month_mark'] }}</span><br>@endif{{ $day['day'] }}<br>{{ $day['abbr'] }}</th>
@@ -80,7 +80,7 @@
                 @endforeach
             </tr>
         @empty
-            <tr><td style="{{ $td }}padding:12px;" colspan="{{ 9 + count($sheet['days']) }}">No teachers in this shift.</td></tr>
+            <tr><td style="{{ $td }}padding:12px;" colspan="{{ 9 + count($sheet['days']) }}">No teachers/staff in this shift.</td></tr>
         @endforelse
     </tbody>
 </table>

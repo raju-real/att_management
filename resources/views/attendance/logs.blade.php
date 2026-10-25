@@ -38,6 +38,12 @@
         </div>
         <form method="GET" action="{{ route('attendance.logs') }}" id="logFilterForm">
             <div class="row">
+                <div class="col-lg-3 col-md-4 col-12">
+                    <div class="form-group">
+                        <label class="form-label">Institute</label>
+                        @include('partials.institute_select', ['autoSubmit' => true])
+                    </div>
+                </div>
                 <div class="col-lg-2 col-md-4 col-6">
                     <div class="form-group">
                         <label class="form-label">From Date</label>
@@ -55,16 +61,16 @@
                         <label class="form-label">User Type</label>
                         <select name="user_type" class="form-control">
                             <option value="">All</option>
-                            <option value="teacher" {{ request('user_type') === 'teacher' ? 'selected' : '' }}>Teacher</option>
+                            <option value="teacher" {{ request('user_type') === 'teacher' ? 'selected' : '' }}>Teacher/Staff</option>
                             <option value="student" {{ request('user_type') === 'student' ? 'selected' : '' }}>Student</option>
                         </select>
                     </div>
                 </div>
                 <div class="col-lg-3 col-md-6 col-6">
                     <div class="form-group">
-                        <label class="form-label">Teacher</label>
+                        <label class="form-label">Teacher/Staff</label>
                         <select name="teacher_no" class="form-control select2-filter">
-                            <option value="">All Teachers</option>
+                            <option value="">All Teachers/Staff</option>
                             @foreach($teachers as $t)
                                 <option value="{{ $t->teacher_no }}" {{ (string) request('teacher_no') === (string) $t->teacher_no ? 'selected' : '' }}>
                                     {{ $t->name }} ({{ $t->teacher_no }})
@@ -155,6 +161,11 @@
         </form>
     </div>
 
+    @include('partials.report_heading', [
+        'title'  => 'Attendance Logs',
+        'period' => \Carbon\Carbon::parse($from_date)->format('d M Y') . ' – ' . \Carbon\Carbon::parse($to_date)->format('d M Y'),
+    ])
+
     {{-- ── Table ── --}}
     <div class="card admin-card">
         <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
@@ -199,7 +210,7 @@
                                         @endif
                                         <div>
                                             <div class="font-weight-bold" style="line-height:1.2">{{ $row->name }}</div>
-                                            <span class="rpt-type {{ $row->user_type }}">{{ $row->user_type ?? 'unknown' }}</span>
+                                            <span class="rpt-type {{ $row->user_type }}">{{ $row->user_type === 'teacher' ? 'teacher/staff' : ($row->user_type ?? 'unknown') }}</span>
                                             @if($row->designation)<small class="text-muted ml-1">{{ $row->designation }}</small>@endif
                                         </div>
                                     </div>
@@ -273,7 +284,7 @@
 <script>
     $(function () {
         if ($.fn.select2) {
-            $('.select2-filter').select2({ width: '100%', placeholder: 'All Teachers', allowClear: true });
+            $('.select2-filter').select2({ width: '100%', placeholder: 'All Teachers/Staff', allowClear: true });
         }
     });
 </script>

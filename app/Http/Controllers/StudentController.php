@@ -23,7 +23,7 @@ class StudentController extends Controller
 
     public function index(Request $request)
     {
-        $data = Student::query();
+        $data = Student::with('institute:id,name')->forInstitute(selectedInstituteId());
 
         if ($request->name) {
             $data->where(function ($query) use ($request) {
@@ -101,11 +101,12 @@ class StudentController extends Controller
     public function upload(Request $request)
     {
         $this->validate($request, [
-            'file' => 'required|file|mimes:xls,xlsx,csv,txt|max:5120'
-        ]);
+            'file'         => 'required|file|mimes:xls,xlsx,csv,txt|max:5120',
+            'institute_id' => $this->instituteRule(),
+        ], ['institute_id.required' => 'Select the institute these students belong to.']);
 
         try {
-            \Maatwebsite\Excel\Facades\Excel::import(new \App\Imports\StudentsImport, $request->file('file'));
+            \Maatwebsite\Excel\Facades\Excel::import(new \App\Imports\StudentsImport($this->instituteFor($request)), $request->file('file'));
             return redirect()->route('students.index')->with(successMessage('success', 'Students imported successfully.'));
         } catch (\Exception $e) {
             return redirect()->back()->withErrors(['file' => 'Error importing file: ' . $e->getMessage()]);
@@ -119,14 +120,17 @@ class StudentController extends Controller
 
     public function store(Request $request)
     {
+        $institute = $this->instituteFor($request);
         $this->validate($request, $this->rules() + [
-            'student_id' => ['required', 'string', 'max:191', Rule::unique('students', 'student_id')->whereNull('deleted_at')],
-            // Device PIN: numeric, unique among students (incl. deleted — the PIN
-            // may still be enrolled on a device) and not used by any teacher.
-            'student_no' => ['nullable', 'regex:/^[0-9]{1,20}$/', Rule::unique('students', 'student_no'), new UniqueDevicePin('student')],
+            'institute_id' => $this->instituteRule(),
+            'student_id' => ['required', 'string', 'max:191', Rule::unique('students', 'student_id')->where('institute_id', $institute)->whereNull('deleted_at')],
+            // Device PIN: numeric, unique among the institute's students (incl. deleted:
+            // the PIN may still be enrolled on a device) and not used by its teachers/staff.
+            'student_no' => ['nullable', 'regex:/^[0-9]{1,20}$/', Rule::unique('students', 'student_no')->where('institute_id', $institute), new UniqueDevicePin('student', $institute)],
         ], $this->messages());
 
         $student = new Student();
+        $student->institute_id = $institute;
         // A custom student_no lets you match a PIN already enrolled on a
         // device (e.g. resolving an Unmatched Attendance / Pull Users
         // record) instead of always minting a brand new number.
@@ -151,7 +155,7 @@ class StudentController extends Controller
         // Push this one student to every device that should have them —
         // no need to re-run the bulk "Push to Device" for a single addition.
         $name = showStudentFullName($student->firstname, $student->middlename, $student->lastname);
-        $this->deviceSync->pushOne('student', (string) $student->student_no, $name);
+        $this->deviceSync->pushOne('student', (string) $student->student_no, $name, $student->institute_id);
 
         return redirect()->route('students.index')->with(successMessage());
     }
@@ -164,11 +168,16 @@ class StudentController extends Controller
 
     public function update(Request $request, $id)
     {
+        $student   = Student::findOrFail($id);
+        $institute = $this->instituteFor($request) ?? $student->institute_id;
         $this->validate($request, $this->rules() + [
-            'student_id' => ['required', 'string', 'max:191', Rule::unique('students', 'student_id')->whereNull('deleted_at')->ignore($id)],
-        ], $this->messages());
+            'institute_id' => $this->instituteRule(),
+            'student_id' => ['required', 'string', 'max:191', Rule::unique('students', 'student_id')->where('institute_id', $institute)->whereNull('deleted_at')->ignore($id)],
+            'student_no' => ['nullable', Rule::unique('students', 'student_no')->where('institute_id', $institute)->ignore($id), new UniqueDevicePin('student', $institute)],
+        ], $this->messages() + ['student_no.unique' => 'This device ID is already used by a student of the selected institute.']);
 
-        $student = Student::findOrFail($id);
+        $oldInstitute = $student->institute_id;
+        $student->institute_id = $institute;
         $student->student_id = $request->student_id;
         $student->firstname = $request->firstname;
         $student->middlename = $request->middlename;
@@ -182,16 +191,22 @@ class StudentController extends Controller
         $student->group = $request->group;
         $student->save();
 
+        // Moved to another institute: remove from the old institute's devices.
+        if ((int) $oldInstitute !== (int) $student->institute_id) {
+            $this->deviceSync->deleteOne('student', (string) $student->student_no, $oldInstitute);
+        }
+
         // Keep the device's copy of this student's name in sync.
         $name = showStudentFullName($student->firstname, $student->middlename, $student->lastname);
-        $this->deviceSync->pushOne('student', (string) $student->student_no, $name);
+        $this->deviceSync->pushOne('student', (string) $student->student_no, $name, $student->institute_id);
 
         return redirect()->route('students.index')->with(successMessage('success', 'Student updated successfully'));
     }
 
-    public function show($student_no)
+    public function show($id)
     {
-        $student = Student::where('student_no', $student_no)->firstOrFail();
+        // by id: student_no is only unique inside one institute
+        $student = Student::findOrFail($id);
         return view('student.show', compact('student'));
     }
 
@@ -199,7 +214,7 @@ class StudentController extends Controller
     {
         $student = Student::findOrFail($id);
 
-        $this->deviceSync->deleteOne('student', (string) $student->student_no);
+        $this->deviceSync->deleteOne('student', (string) $student->student_no, $student->institute_id);
 
         $student->delete();
 
@@ -231,7 +246,21 @@ class StudentController extends Controller
             'student_id.unique' => 'Another student already has this Student ID.',
             'student_no.regex'  => 'Device ID must be a number of 1 to 20 digits (fingerprint devices only accept numeric IDs).',
             'student_no.unique' => 'This device ID already belongs to another student (including deleted students).',
+            'institute_id.required' => 'Please select the institute.',
         ];
+    }
+
+    /** Institute of the record being saved: forced for institute users, chosen by the admin. */
+    protected function instituteFor(Request $request): ?int
+    {
+        return authInstituteId() ?? ($request->filled('institute_id') ? (int) $request->institute_id : null);
+    }
+
+    protected function instituteRule(): array
+    {
+        return isSuperAdmin()
+            ? ['required', Rule::exists('users', 'id')->where('role', 'institute')->whereNull('deleted_at')]
+            : ['nullable'];
     }
 
     /**
@@ -241,6 +270,7 @@ class StudentController extends Controller
     protected function healUnmatchedAttendance(Student $student): void
     {
         AttendanceLog::where('unmatched_pin', $student->student_no)
+            ->where('institute_id', $student->institute_id)
             ->whereNull('teacher_no')
             ->whereNull('student_no')
             ->get()

@@ -112,9 +112,20 @@
         //    Remembered in this browser so a lobby screen keeps its filter. ──
         const deptSelect  = $('department');
         const shiftSelect = $('shift');
+        // Institute (super admin only; institute users are always limited server-side)
+        const instSelect  = $('institute');
         const FILTER_KEY  = 'tb_filters';
         const allShiftOptions = shiftSelect ? Array.from(shiftSelect.options).map(o => o.cloneNode(true)) : [];
+        const allDeptOptions  = deptSelect ? Array.from(deptSelect.options).map(o => o.cloneNode(true)) : [];
+        const inInstitute = o => !instSelect || !instSelect.value || !o.value || o.dataset.institute === instSelect.value;
 
+        function limitDepartmentsToInstitute() {
+            if (!deptSelect) return;
+            const keep = deptSelect.value;
+            deptSelect.innerHTML = '';
+            allDeptOptions.forEach(o => { if (inInstitute(o)) deptSelect.appendChild(o.cloneNode(true)); });
+            deptSelect.value = Array.from(deptSelect.options).some(o => o.value === keep) ? keep : '';
+        }
         function limitShiftsToDepartment() {
             if (!deptSelect || !shiftSelect) return;
             const opt = deptSelect.options[deptSelect.selectedIndex];
@@ -122,15 +133,17 @@
             const keep = shiftSelect.value;
             shiftSelect.innerHTML = '';
             allShiftOptions.forEach(o => {
-                if (!o.value || !deptShift || o.value === deptShift) shiftSelect.appendChild(o.cloneNode(true));
+                if (inInstitute(o) && (!o.value || !deptShift || o.value === deptShift)) shiftSelect.appendChild(o.cloneNode(true));
             });
             shiftSelect.value = Array.from(shiftSelect.options).some(o => o.value === keep) ? keep : '';
         }
         function saveFilters() {
-            try { localStorage.setItem(FILTER_KEY, JSON.stringify({ d: deptSelect?.value || '', s: shiftSelect?.value || '' })); } catch (e) {}
+            try { localStorage.setItem(FILTER_KEY, JSON.stringify({ i: instSelect?.value || '', d: deptSelect?.value || '', s: shiftSelect?.value || '' })); } catch (e) {}
         }
         try {
             const saved = JSON.parse(localStorage.getItem(FILTER_KEY) || '{}');
+            if (instSelect && saved.i && Array.from(instSelect.options).some(o => o.value === saved.i)) instSelect.value = saved.i;
+            limitDepartmentsToInstitute();
             if (deptSelect && saved.d && Array.from(deptSelect.options).some(o => o.value === saved.d)) deptSelect.value = saved.d;
             limitShiftsToDepartment();
             if (shiftSelect && saved.s && Array.from(shiftSelect.options).some(o => o.value === saved.s)) shiftSelect.value = saved.s;
@@ -178,7 +191,7 @@
             if (!keepSlide || current >= slides) current = 0;
 
             if (!list.length) {
-                track.innerHTML = `<div class="tb-slide is-active" style="grid-template-columns:1fr"><div class="tb-empty"><i class="fas fa-award"></i>${EMPTY_MSG[filter] || 'No teachers found.'}</div></div>`;
+                track.innerHTML = `<div class="tb-slide is-active" style="grid-template-columns:1fr"><div class="tb-empty"><i class="fas fa-award"></i>${EMPTY_MSG[filter] || 'No teachers/staff found.'}</div></div>`;
             } else {
                 let html = '';
                 for (let s = 0; s < slides; s++) {
@@ -251,6 +264,7 @@
             busy = true;
             if (!silent) loader.classList.add('show');
             const params = new URLSearchParams({ date: dateInput.value });
+            if (instSelect && instSelect.value) params.set('institute_id', instSelect.value);
             if (deptSelect && deptSelect.value) params.set('department_id', deptSelect.value);
             if (shiftSelect && shiftSelect.value) params.set('shift_id', shiftSelect.value);
             if (pendingPerPage) params.set('per_page', pendingPerPage);
@@ -322,6 +336,7 @@
         dateInput.addEventListener('change', () => load(false));
 
         // Filters: department narrows the shift list to that department's shift.
+        instSelect?.addEventListener('change', () => { limitDepartmentsToInstitute(); limitShiftsToDepartment(); saveFilters(); load(false); });
         deptSelect?.addEventListener('change', () => { limitShiftsToDepartment(); saveFilters(); load(false); });
         shiftSelect?.addEventListener('change', () => { saveFilters(); load(false); });
 
