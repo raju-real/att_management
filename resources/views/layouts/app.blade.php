@@ -48,6 +48,16 @@
             font-size: 15px;
             font-weight: 500;
         }
+        .navbar-admin .brand-name {
+            font-size: 15px;
+            line-height: 1.2;
+            white-space: normal;
+            max-width: 420px;
+            display: inline-block;
+        }
+        @media (max-width: 991px) {
+            .navbar-admin .brand-name { font-size: 13px; max-width: 230px; }
+        }
         .navbar-admin .nav-link {
             padding: 0.8rem 1.2rem !important;
             transition: all 0.3s ease;
@@ -68,9 +78,11 @@
     <nav class="navbar navbar-expand-lg navbar-admin">
         <div class="container-fluid">
             <!-- Logo/Brand on left -->
-            <a class="navbar-brand" href="{{ route('dashboard') }}" {!! tooltip(authInstitute()->name ?? (siteSettings()->site_name ?? 'Attendance Management')) !!}>
+            {{-- full name (no cut), in a smaller font so long institute names fit --}}
+            @php $brandName = authInstitute()->name ?? (siteSettings()->site_name ?? 'Attendance Management'); @endphp
+            <a class="navbar-brand d-flex align-items-center" href="{{ route('dashboard') }}" {!! tooltip(e($brandName)) !!}>
                 <i class="fas fa-chart-line"></i>
-                {{ textLimit(authInstitute()->name ?? (siteSettings()->site_name ?? 'Attendance Management'), 15) }}
+                <span class="brand-name ml-1">{{ $brandName }}</span>
             </a>
 
             <!-- Mobile toggle button -->

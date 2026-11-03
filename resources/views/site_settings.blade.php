@@ -48,7 +48,7 @@
                             <input type="text" name="site_name" maxlength="100"
                                    value="{{ old('site_name') ?? siteSettings()->site_name ?? '' }}"
                                    class="form-control {{ hasError('site_name') }}"
-                                   placeholder="e.g. Demo High School">
+                                   placeholder="e.g. Demo High School" {!! tooltip('Site / School Name') !!}>
                             <small class="text-muted">Shown in the menu bar, reports and the attendance board.</small>
                             @error('site_name')
                             {!! displayError($message) !!}
@@ -60,7 +60,7 @@
                             <label class="form-label">Email <small class="text-muted">(optional)</small></label>
                             <input type="email" name="email" maxlength="100" value="{{ old('email') ?? siteSettings()->email ?? '' }}"
                                    class="form-control {{ hasError('email') }}"
-                                   placeholder="office@school.edu">
+                                   placeholder="office@school.edu" {!! tooltip('Email') !!}>
                             @error('email')
                             {!! displayError($message) !!}
                             @enderror
@@ -71,7 +71,7 @@
                             <label class="form-label">Mobile <small class="text-muted">(optional)</small></label>
                             <input type="text" name="mobile" maxlength="20" value="{{ old('mobile') ?? siteSettings()->mobile ?? '' }}"
                                    class="form-control {{ hasError('mobile') }}"
-                                   placeholder="01XXXXXXXXX">
+                                   placeholder="01XXXXXXXXX" {!! tooltip('Mobile') !!}>
                             @error('mobile')
                             {!! displayError($message) !!}
                             @enderror
@@ -81,27 +81,27 @@
                         <div class="form-group">
                             <label class="form-label">Address <small class="text-muted">(optional, printed under the school name on reports)</small></label>
                             <input type="text" name="address" maxlength="255" value="{{ old('address') ?? siteSettings()->address ?? '' }}"
-                                   class="form-control {{ hasError('address') }}" placeholder="e.g. 12 College Road, Dhaka-1205">
+                                   class="form-control {{ hasError('address') }}" placeholder="e.g. 12 College Road, Dhaka-1205" {!! tooltip('Address') !!}>
                             @error('address')
                             {!! displayError($message) !!}
                             @enderror
                         </div>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                         <div class="form-group">
                             <label class="form-label">EIIN <small class="text-muted">(optional)</small></label>
                             <input type="text" name="eiin" maxlength="30" value="{{ old('eiin') ?? siteSettings()->eiin ?? '' }}"
-                                   class="form-control {{ hasError('eiin') }}" placeholder="e.g. 108264">
+                                   class="form-control {{ hasError('eiin') }}" placeholder="e.g. 108264" {!! tooltip('EIIN') !!}>
                             @error('eiin')
                             {!! displayError($message) !!}
                             @enderror
                         </div>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                         <div class="form-group">
                             <label class="form-label">Website <small class="text-muted">(optional)</small></label>
                             <input type="text" name="website" maxlength="100" value="{{ old('website') ?? siteSettings()->website ?? '' }}"
-                                   class="form-control {{ hasError('website') }}" placeholder="www.school.edu.bd">
+                                   class="form-control {{ hasError('website') }}" placeholder="www.school.edu.bd" {!! tooltip('Website') !!}>
                             @error('website')
                             {!! displayError($message) !!}
                             @enderror
@@ -116,7 +116,7 @@
                                     <img src="{{ asset($siteLogo) }}" alt="Logo" style="height:56px;max-width:120px;border:1px solid #e5e7eb;border-radius:8px;padding:3px;background:#fff">
                                 @endif
                                 <div>
-                                    <input type="file" name="logo" accept=".jpg,.jpeg,.png,.webp" class="form-control-file {{ hasError('logo') }}">
+                                    <input type="file" name="logo" accept=".jpg,.jpeg,.png,.webp" class="form-control-file {{ hasError('logo') }}" {!! tooltip('Choose School Logo') !!}>
                                     @if($siteLogo)
                                         <label class="small text-danger mt-1 mb-0" style="cursor:pointer">
                                             <input type="checkbox" name="remove_logo" value="1"> Remove current logo
@@ -144,7 +144,7 @@
                             <label class="form-label">Default In Time
                                 <i class="fas fa-question-circle text-muted" {!! tooltip('Arrivals after this time count as Late In (students, and teachers without a shift)') !!}></i>
                             </label>
-                            <input type="time" name="in_time" value="{{ $siteIn }}" class="form-control {{ hasError('in_time') }}">
+                            <input type="time" name="in_time" value="{{ $siteIn }}" class="form-control {{ hasError('in_time') }}" placeholder="HH:MM" {!! tooltip('Default In Time') !!}>
                             @error('in_time')
                             {!! displayError($message) !!}
                             @enderror
@@ -155,7 +155,7 @@
                             <label class="form-label">Default Out Time
                                 <i class="fas fa-question-circle text-muted" {!! tooltip('Leaving before this time counts as Early Out') !!}></i>
                             </label>
-                            <input type="time" name="out_time" value="{{ $siteOut }}" class="form-control {{ hasError('out_time') }}">
+                            <input type="time" name="out_time" value="{{ $siteOut }}" class="form-control {{ hasError('out_time') }}" placeholder="HH:MM" {!! tooltip('Default Out Time') !!}>
                             @error('out_time')
                             {!! displayError($message) !!}
                             @enderror
@@ -167,7 +167,7 @@
                                 <i class="fas fa-question-circle text-muted" {!! tooltip('Excluded from working days and absent counts in the monthly summary') !!}></i>
                             </label>
                             <select name="weekly_holidays[]" id="weekly_holidays" class="form-control select2" multiple
-                                    data-placeholder="Select weekly holidays">
+                                    data-placeholder="Select weekly holidays" {!! tooltip('Select Weekly Holidays') !!}>
                                 @foreach (weekDays() as $day)
                                     <option value="{{ $day }}" {{ in_array($day, (array) $selectedWeekly, true) ? 'selected' : '' }}>{{ $day }}</option>
                                 @endforeach
@@ -186,7 +186,7 @@
                             <label class="form-label">Office Holidays
                                 <small class="text-muted">(pick dates one at a time; click &times; on a date to remove it)</small>
                             </label>
-                            <input type="text" id="holiday_picker" class="form-control" placeholder="Click to add a holiday date" readonly>
+                            <input type="text" id="holiday_picker" class="form-control" placeholder="Click to add a holiday date" readonly {!! tooltip('Office Holidays') !!}>
                             <div id="holiday_tags" class="mt-2"></div>
                             <input type="hidden" name="office_holidays" id="office_holidays"
                                    value="{{ old('office_holidays') ?? json_encode(array_values(officeHolidays())) }}">

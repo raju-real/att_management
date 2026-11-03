@@ -376,7 +376,7 @@
                             value="{{ old('email') }}"
                             autocomplete="off"
                             autofocus
-                        >
+                         {!! tooltip('Email') !!}>
                     </div>
                     @error('email')
                         {!! displayError($message) !!}
@@ -399,7 +399,7 @@
                             id="password"
                             placeholder="Enter your password"
                             autocomplete="off"
-                        >
+                         {!! tooltip('Password') !!}>
                         <div class="input-group-append">
                             <button class="btn btn-outline-secondary" type="button" id="togglePassword">
                                 <i class="fas fa-eye"></i>

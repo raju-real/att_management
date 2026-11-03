@@ -14,8 +14,8 @@
             <h5 class="card-title mb-0"><i class="fas fa-university mr-2"></i>Institute List</h5>
             <form method="GET" action="{{ route('institutes.index') }}" class="form-inline">
                 <input type="text" name="search" value="{{ request('search') }}" class="form-control form-control-sm mr-1"
-                       placeholder="Name, email, mobile, EIIN">
-                <select name="status" class="form-control form-control-sm mr-1">
+                       placeholder="Name, email, mobile, EIIN" {!! tooltip('Name, email, mobile, EIIN') !!}>
+                <select name="status" class="form-control form-control-sm mr-1" {!! tooltip('Select Status') !!}>
                     <option value="">All Status</option>
                     <option value="active" {{ request('status') === 'active' ? 'selected' : '' }}>Active</option>
                     <option value="inactive" {{ request('status') === 'inactive' ? 'selected' : '' }}>Inactive</option>

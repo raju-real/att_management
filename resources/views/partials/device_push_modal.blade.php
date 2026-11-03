@@ -31,7 +31,7 @@
                         <label class="font-weight-bold">Device
                             <i class="fas fa-question-circle text-muted" title="Only active devices that serve {{ strtolower($dpLabel) }}s are listed"></i>
                         </label>
-                        <select name="device_id" class="form-control" id="dpDevice" {{ $dpDevices->isEmpty() ? 'disabled' : '' }}>
+                        <select name="device_id" class="form-control" id="dpDevice" {{ $dpDevices->isEmpty() ? 'disabled' : '' }} {!! tooltip('Select Device') !!}>
                             <option value="">All active devices ({{ $dpDevices->count() }})</option>
                             @foreach($dpDevices as $d)
                                 <option value="{{ $d->id }}">{{ $d->name }} — {{ $d->serial_no }}</option>

@@ -30,7 +30,7 @@
                         <div class="form-group">
                             <label class="form-label">Student ID {!! starSign() !!}</label>
                             <input type="text" name="student_id" value="{{ old('student_id') }}"
-                                class="form-control {{ hasError('student_id') }}" placeholder="Student ID">
+                                class="form-control {{ hasError('student_id') }}" placeholder="Student ID" {!! tooltip('Student ID') !!}>
                             @error('student_id')
                                 {!! displayError($message) !!}
                             @enderror
@@ -40,7 +40,7 @@
                         <div class="form-group">
                             <label class="form-label">First Name {!! starSign() !!}</label>
                             <input type="text" name="firstname" value="{{ old('firstname') ?? request('name') }}"
-                                class="form-control {{ hasError('firstname') }}" placeholder="First Name">
+                                class="form-control {{ hasError('firstname') }}" placeholder="First Name" {!! tooltip('First Name') !!}>
                             @error('firstname')
                                 {!! displayError($message) !!}
                             @enderror
@@ -54,7 +54,7 @@
                             </label>
                             <input type="text" name="student_no" value="{{ old('student_no') ?? request('pin') }}"
                                 class="form-control {{ hasError('student_no') }}"
-                                placeholder="Auto-assigned if left blank">
+                                placeholder="Auto-assigned if left blank" {!! tooltip('Device ID / Student No') !!}>
                             <small class="text-muted">
                                 Set this to match a PIN already enrolled on a fingerprint device
                                 (e.g. from Unmatched Attendance or Pull Users) so it links up instead of
@@ -69,7 +69,7 @@
                         <div class="form-group">
                             <label class="form-label">Middle Name</label>
                             <input type="text" name="middlename" value="{{ old('middlename') }}"
-                                class="form-control {{ hasError('middlename') }}" placeholder="Middle Name">
+                                class="form-control {{ hasError('middlename') }}" placeholder="Middle Name" {!! tooltip('Middle Name') !!}>
                             @error('middlename')
                                 {!! displayError($message) !!}
                             @enderror
@@ -79,7 +79,7 @@
                         <div class="form-group">
                             <label class="form-label">Last Name</label>
                             <input type="text" name="lastname" value="{{ old('lastname') }}"
-                                class="form-control {{ hasError('lastname') }}" placeholder="Last Name">
+                                class="form-control {{ hasError('lastname') }}" placeholder="Last Name" {!! tooltip('Last Name') !!}>
                             @error('lastname')
                                 {!! displayError($message) !!}
                             @enderror
@@ -89,7 +89,7 @@
                         <div class="form-group">
                             <label class="form-label">Nick Name</label>
                             <input type="text" name="nickname" value="{{ old('nickname') }}"
-                                class="form-control {{ hasError('nickname') }}" placeholder="Nick Name">
+                                class="form-control {{ hasError('nickname') }}" placeholder="Nick Name" {!! tooltip('Nick Name') !!}>
                             @error('nickname')
                                 {!! displayError($message) !!}
                             @enderror
@@ -98,7 +98,7 @@
                     <div class="col-md-4">
                         <div class="form-group">
                             <label class="form-label">Class</label>
-                            <select name="class" class="form-control {{ hasError('class') }}">
+                            <select name="class" class="form-control {{ hasError('class') }}" {!! tooltip('Select Class') !!}>
                                 <option value="">Select Class</option>
                                 @foreach (getClassList() as $className)
                                     <option value="{{ $className }}"
@@ -114,7 +114,7 @@
                         <div class="form-group">
                             <label class="form-label">Section</label>
                             <input type="text" name="section" value="{{ old('section') }}"
-                                class="form-control {{ hasError('section') }}" placeholder="Section">
+                                class="form-control {{ hasError('section') }}" placeholder="Section" {!! tooltip('Section') !!}>
                             @error('section')
                                 {!! displayError($message) !!}
                             @enderror
@@ -124,7 +124,7 @@
                         <div class="form-group">
                             <label class="form-label">Roll</label>
                             <input type="text" name="roll" value="{{ old('roll') }}"
-                                class="form-control {{ hasError('roll') }}" placeholder="Roll">
+                                class="form-control {{ hasError('roll') }}" placeholder="Roll" {!! tooltip('Roll') !!}>
                             @error('roll')
                                 {!! displayError($message) !!}
                             @enderror
@@ -134,7 +134,7 @@
                         <div class="form-group">
                             <label class="form-label">Shift</label>
                             <input type="text" name="shift" value="{{ old('shift') }}"
-                                class="form-control {{ hasError('shift') }}" placeholder="Shift">
+                                class="form-control {{ hasError('shift') }}" placeholder="Shift" {!! tooltip('Shift') !!}>
                             @error('shift')
                                 {!! displayError($message) !!}
                             @enderror
@@ -144,7 +144,7 @@
                         <div class="form-group">
                             <label class="form-label">Medium</label>
                             <input type="text" name="medium" value="{{ old('medium') }}"
-                                class="form-control {{ hasError('medium') }}" placeholder="Medium">
+                                class="form-control {{ hasError('medium') }}" placeholder="Medium" {!! tooltip('Medium') !!}>
                             @error('medium')
                                 {!! displayError($message) !!}
                             @enderror
@@ -154,7 +154,7 @@
                         <div class="form-group">
                             <label class="form-label">Group</label>
                             <input type="text" name="group" value="{{ old('group') }}"
-                                class="form-control {{ hasError('group') }}" placeholder="Group">
+                                class="form-control {{ hasError('group') }}" placeholder="Group" {!! tooltip('Group') !!}>
                             @error('group')
                                 {!! displayError($message) !!}
                             @enderror

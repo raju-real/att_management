@@ -58,7 +58,7 @@
                             <label class="form-label">Select File (XLS, XLSX, CSV) {!! starSign() !!}</label>
                             <input type="file" name="file"
                                 class="form-control-file @error('file') is-invalid @enderror"
-                                accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel">
+                                accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" {!! tooltip('Choose Select File') !!}>
                             @error('file')
                                 <div class="invalid-feedback d-block">{{ $message }}</div>
                             @enderror
@@ -67,7 +67,7 @@
                     <div class="col-md-6">
                         <div class="form-group">
                             <label class="form-label">Default Department <small class="text-muted">(for new teachers)</small></label>
-                            <select name="department_id" id="departmentSelect" class="form-control {{ hasError('department_id') }}">
+                            <select name="department_id" id="departmentSelect" class="form-control {{ hasError('department_id') }}" {!! tooltip('Select Default Department') !!}>
                                 <option value="">-- None (use department column) --</option>
                                 @foreach($departments as $d)
                                     <option value="{{ $d->id }}" data-institute="{{ $d->institute_id }}" {{ (string) old('department_id') === (string) $d->id ? 'selected' : '' }}>

@@ -22,13 +22,13 @@
     $iHolder   = $iRequired ? '-- Select Institute --' : 'All Institutes';
 @endphp
 @if (authInstituteId())
-    <select id="{{ $iId }}" class="{{ $iClass }} institute-select2" disabled data-locked="1">
+    <select id="{{ $iId }}" class="{{ $iClass }} institute-select2" disabled data-locked="1" {!! tooltip('Your institute') !!}>
         <option value="{{ authInstituteId() }}" selected>{{ authInstitute()->name ?? '' }}</option>
     </select>
     <input type="hidden" name="{{ $iName }}" value="{{ authInstituteId() }}">
 @else
     <select name="{{ $iName }}" id="{{ $iId }}" class="{{ $iClass }} institute-select2 {{ hasError($iName) }}"
-            data-placeholder="{{ $iHolder }}" data-allow-clear="{{ $iRequired ? 0 : 1 }}"
+            data-placeholder="{{ $iHolder }}" data-allow-clear="{{ $iRequired ? 0 : 1 }}" {!! tooltip('Select Institute') !!}
             @if ($autoSubmit ?? false) onchange="this.form.submit()" @endif>
         <option value="">{{ $iHolder }}</option>
         @foreach (instituteOptions() as $inst)

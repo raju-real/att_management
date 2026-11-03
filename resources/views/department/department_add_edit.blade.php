@@ -41,7 +41,7 @@
                         <div class="form-group">
                             <label class="form-label">Name {!! starSign() !!}</label>
                             <input type="text" name="name" value="{{ old('name') ?? ($department->name ?? '') }}"
-                                class="form-control {{ hasError('name') }}" placeholder="e.g. Science Department">
+                                class="form-control {{ hasError('name') }}" placeholder="e.g. Science Department" {!! tooltip('Name') !!}>
                             @error('name')
                                 {!! displayError($message) !!}
                             @enderror
@@ -50,7 +50,7 @@
                     <div class="col-md-4">
                         <div class="form-group">
                             <label class="form-label">Shift {!! starSign() !!}</label>
-                            <select name="shift_id" id="shiftSelect" class="form-control {{ hasError('shift_id') }}">
+                            <select name="shift_id" id="shiftSelect" class="form-control {{ hasError('shift_id') }}" {!! tooltip('Select Shift') !!}>
                                 <option value="">-- Select Shift --</option>
                                 @foreach ($shifts as $shift)
                                     <option value="{{ $shift->id }}" data-institute="{{ $shift->institute_id }}"
@@ -69,7 +69,7 @@
                     <div class="col-md-4">
                         <div class="form-group">
                             <label class="form-label">Status {!! starSign() !!}</label>
-                            <select name="status" class="form-control {{ hasError('status') }}">
+                            <select name="status" class="form-control {{ hasError('status') }}" {!! tooltip('Select Status') !!}>
                                 @foreach (getStatus() as $status)
                                     <option value="{{ $status->value }}"
                                         {{ (old('status') ?? ($department->status ?? 'active')) === $status->value ? 'selected' : '' }}>

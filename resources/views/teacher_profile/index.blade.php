@@ -19,10 +19,10 @@
                             @include('partials.institute_select', ['autoSubmit' => true])
                         </div>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                         <div class="form-group">
                             <label class="form-label">Department</label>
-                            <select name="department_id" class="form-control">
+                            <select name="department_id" class="form-control" {!! tooltip('Select Department') !!}>
                                 <option value="">All Departments</option>
                                 @foreach($departments as $d)
                                     <option value="{{ $d->id }}" {{ (string) request('department_id') === (string) $d->id ? 'selected' : '' }}>{{ $d->name }}</option>
@@ -30,10 +30,10 @@
                             </select>
                         </div>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                         <div class="form-group">
                             <label class="form-label">Search</label>
-                            <input type="search" name="search" value="{{ request('search') }}" class="form-control" placeholder="Name, ID, mobile, designation">
+                            <input type="search" name="search" value="{{ request('search') }}" class="form-control" placeholder="Name, ID, mobile, designation" {!! tooltip('Search') !!}>
                         </div>
                     </div>
                     <div class="col-md-2 d-flex align-items-end">

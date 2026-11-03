@@ -21,7 +21,7 @@
                 <div class="mr-1" style="min-width:220px">
                     @include('partials.institute_select', ['autoSubmit' => true, 'class' => 'form-control form-control-sm'])
                 </div>
-                <select name="shift_id" class="form-control form-control-sm mr-1" onchange="this.form.submit()">
+                <select name="shift_id" class="form-control form-control-sm mr-1" onchange="this.form.submit()" {!! tooltip('Select Shift') !!}>
                     <option value="">All Shifts</option>
                     @foreach($shifts as $s)
                         <option value="{{ $s->id }}" {{ (string) request('shift_id') === (string) $s->id ? 'selected' : '' }}>

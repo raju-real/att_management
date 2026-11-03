@@ -41,7 +41,7 @@
                             <label class="form-label">Select File (XLS, XLSX, CSV) {!! starSign() !!}</label>
                             <input type="file" name="file"
                                 class="form-control-file @error('file') is-invalid @enderror"
-                                accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel">
+                                accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" {!! tooltip('Choose Select File') !!}>
                             @error('file')
                                 <div class="invalid-feedback d-block">{{ $message }}</div>
                             @enderror

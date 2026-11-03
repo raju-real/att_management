@@ -80,7 +80,7 @@
                     <option value="{{ $bs->id }}" data-institute="{{ $bs->institute_id }}">{{ $bs->title }} ({{ \App\Services\AttendanceReportService::shiftClock($bs->in_time) }} - {{ \App\Services\AttendanceReportService::shiftClock($bs->out_time, $bs->in_time) }})</option>
                 @endforeach
             </select>
-            <input type="text" class="tb-date-input" data-tb="date" value="{{ $date }}" readonly aria-label="Date"
+            <input type="text" class="tb-date-input" data-tb="date" value="{{ $date }}" readonly aria-label="Date" placeholder="YYYY-MM-DD"
                    title="Pick a date to view its attendance">
             <select class="tb-size-select" data-tb="per-page" aria-label="Teachers/Staff per slide"
                     title="Teachers/Staff per slide (saved for your account)">

@@ -31,7 +31,7 @@
                                 <div class="form-group">
                                     <label class="form-label">Name {!! starSign() !!}</label>
                                     <input type="text" name="name" maxlength="50" value="{{ old('name') ?? authUser()->name ?? '' }}"
-                                           class="form-control {{ hasError('name') }}" placeholder="Full name">
+                                           class="form-control {{ hasError('name') }}" placeholder="Full name" {!! tooltip('Name') !!}>
                                     @error('name')
                                     {!! displayError($message) !!}
                                     @enderror
@@ -42,7 +42,7 @@
                                     <label class="form-label">Email {!! starSign() !!}
                                         <i class="fas fa-question-circle text-muted" {!! tooltip('Used to sign in') !!}></i></label>
                                     <input type="email" name="email" maxlength="30" value="{{ old('email') ?? authUser()->email ?? '' }}"
-                                           class="form-control {{ hasError('email') }}" placeholder="admin@school.edu">
+                                           class="form-control {{ hasError('email') }}" placeholder="admin@school.edu" {!! tooltip('Email') !!}>
                                     @error('email')
                                     {!! displayError($message) !!}
                                     @enderror
@@ -53,7 +53,7 @@
                                     <label class="form-label">Mobile {!! starSign() !!}</label>
                                     <input type="text" name="mobile" maxlength="11" inputmode="numeric"
                                            value="{{ old('mobile') ?? authUser()->mobile ?? '' }}"
-                                           class="form-control {{ hasError('mobile') }}" placeholder="01XXXXXXXXX">
+                                           class="form-control {{ hasError('mobile') }}" placeholder="01XXXXXXXXX" {!! tooltip('Mobile') !!}>
                                     @error('mobile')
                                     {!! displayError($message) !!}
                                     @enderror
@@ -63,7 +63,7 @@
                                 <div class="form-group">
                                     <label class="form-label">Photo <small class="text-muted">(JPG/PNG/WEBP, max 1 MB)</small></label>
                                     <input type="file" name="image" id="profileImage"
-                                           class="form-control-file {{ hasError('image') }}" accept=".jpg,.jpeg,.png,.webp">
+                                           class="form-control-file {{ hasError('image') }}" accept=".jpg,.jpeg,.png,.webp" {!! tooltip('Choose Photo') !!}>
                                     @error('image')
                                     {!! displayError($message) !!}
                                     @enderror
@@ -86,7 +86,7 @@
                         <div class="form-group">
                             <label class="form-label">Current Password</label>
                             <input type="password" name="current_password" autocomplete="current-password"
-                                   class="form-control {{ hasError('current_password') }}" placeholder="Current password">
+                                   class="form-control {{ hasError('current_password') }}" placeholder="Current password" {!! tooltip('Current Password') !!}>
                             @error('current_password')
                             {!! displayError($message) !!}
                             @enderror
@@ -96,7 +96,7 @@
                         <div class="form-group">
                             <label class="form-label">New Password</label>
                             <input type="password" name="password" autocomplete="new-password"
-                                   class="form-control {{ hasError('password') }}" placeholder="New password">
+                                   class="form-control {{ hasError('password') }}" placeholder="New password" {!! tooltip('New Password') !!}>
                             <small class="text-muted">At least 6 characters, with letters and numbers.</small>
                             @error('password')
                             {!! displayError($message) !!}
@@ -107,7 +107,7 @@
                         <div class="form-group">
                             <label class="form-label">Confirm New Password</label>
                             <input type="password" name="password_confirmation" autocomplete="new-password"
-                                   class="form-control" placeholder="Repeat new password">
+                                   class="form-control" placeholder="Repeat new password" {!! tooltip('Confirm New Password') !!}>
                         </div>
                     </div>
                 </div>

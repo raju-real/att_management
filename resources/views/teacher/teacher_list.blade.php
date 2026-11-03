@@ -63,37 +63,37 @@
                 <div class="card-body">
                     <form method="GET" action="{{ route('teachers.index') }}">
                         <div class="row g-2">
-                            <div class="col-md-3">
+                            <div class="col-md-4">
                                 <div class="form-group">
                                     <label class="form-label">Institute</label>
                                     @include('partials.institute_select')
                                 </div>
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-md-4">
                                 <div class="form-group">
                                     <label class="form-label">Name</label>
                                     <input type="search" name="name" class="form-control"
-                                           value="{{ request('name') }}" placeholder="Name">
+                                           value="{{ request('name') }}" placeholder="Name" {!! tooltip('Name') !!}>
                                 </div>
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-md-4">
                                 <div class="form-group">
                                     <label class="form-label">Device ID</label>
                                     <input type="search" name="teacher_no" class="form-control"
-                                           value="{{ request('teacher_no') }}" placeholder="Device ID / No">
+                                           value="{{ request('teacher_no') }}" placeholder="Device ID / No" {!! tooltip('Device ID') !!}>
                                 </div>
                             </div>
-                            <div class="col-md-1">
+                            <div class="col-md-4">
                                 <div class="form-group">
                                     <label class="form-label">Designation</label>
                                     <input type="search" name="designation" class="form-control"
-                                           value="{{ request('designation') }}" placeholder="Designation">
+                                           value="{{ request('designation') }}" placeholder="Designation" {!! tooltip('Designation') !!}>
                                 </div>
                             </div>
-                            <div class="col-md-2">
+                            <div class="col-md-4">
                                 <div class="form-group">
                                     <label class="form-label">Department</label>
-                                    <select name="department_id" class="form-control">
+                                    <select name="department_id" class="form-control" {!! tooltip('Select Department') !!}>
                                         <option value="">All</option>
                                         @foreach($departments as $d)
                                             <option value="{{ $d->id }}" {{ (string) request('department_id') === (string) $d->id ? 'selected' : '' }}>{{ $d->name }}</option>

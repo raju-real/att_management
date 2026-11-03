@@ -50,44 +50,44 @@
                 <div class="card-body">
                     <form method="GET" action="{{ route('students.index') }}">
                         <div class="row g-2">
-                            <div class="col-md-3">
+                            <div class="col-md-4">
                                 <div class="form-group">
                                     <label class="form-label">Institute</label>
                                     @include('partials.institute_select')
                                 </div>
                             </div>
                             <!-- Name -->
-                            <div class="col-md-2">
+                            <div class="col-md-4">
                                 <div class="form-group">
                                     <label class="form-label">Name</label>
                                     <input type="search" name="name" class="form-control" value="{{ request('name') }}"
-                                        placeholder="Student Name">
+                                        placeholder="Student Name" {!! tooltip('Name') !!}>
                                 </div>
                             </div>
 
                             <!-- Student ID -->
-                            <div class="col-md-1">
+                            <div class="col-md-4">
                                 <div class="form-group">
                                     <label class="form-label">Student ID</label>
                                     <input type="search" name="student_id" class="form-control"
-                                        value="{{ request('student_id') }}" placeholder="Student ID">
+                                        value="{{ request('student_id') }}" placeholder="Student ID" {!! tooltip('Student ID') !!}>
                                 </div>
                             </div>
 
                             <!-- Student No / Device ID -->
-                            <div class="col-md-2">
+                            <div class="col-md-4">
                                 <div class="form-group">
                                     <label class="form-label">Device ID / Student No</label>
                                     <input type="search" name="student_no" class="form-control"
-                                        value="{{ request('student_no') }}" placeholder="Student No">
+                                        value="{{ request('student_no') }}" placeholder="Student No" {!! tooltip('Device ID / Student No') !!}>
                                 </div>
                             </div>
 
                             <!-- Class -->
-                            <div class="col-md-2">
+                            <div class="col-md-4">
                                 <div class="form-group">
                                     <label class="form-label">Class</label>
-                                    <select name="class" class="form-control">
+                                    <select name="class" class="form-control" {!! tooltip('Select Class') !!}>
                                         <option value="">All</option>
                                         @foreach (getClassList() as $className)
                                             @if ($className)

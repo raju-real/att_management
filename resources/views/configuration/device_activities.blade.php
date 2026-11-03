@@ -35,14 +35,14 @@
                                         <div class="row">
                                             <div class="col-md-6 mb-3">
                                                 <label class="form-label fw-semibold">Employee ID</label>
-                                                <input type="text" name="employee_id" class="form-control" placeholder="Employee ID">
+                                                <input type="text" name="employee_id" class="form-control" placeholder="Employee ID" {!! tooltip('Employee ID') !!}>
                                             </div>
                                             {{-- Direction --}}
                                             <div class="col-md-6 mb-3">
                                                 <label class="form-label fw-semibold">
                                                     Sync Direction
                                                 </label>
-                                                <select name="direction" class="form-select" required>
+                                                <select name="direction" class="form-select" required {!! tooltip('Select Sync Direction') !!}>
                                                     <option value="db_to_device">Database ➜ Device</option>
                                                     <option value="device_to_db">Device ➜ Database</option>
                                                     <option value="both">Both</option>
@@ -64,7 +64,7 @@
                                                            value="{{ request()->from_date ?? '' }}"
                                                            placeholder="Select start date"
                                                            autocomplete="off"
-                                                           readonly>
+                                                           readonly {!! tooltip('From Date') !!}>
                                                     <span class="clear-btn"
                                                           onclick="document.getElementById('from_date').value='';">×</span>
                                                 </div>
@@ -83,7 +83,7 @@
                                                            value="{{ request()->to_date ?? '' }}"
                                                            placeholder="Select end date"
                                                            autocomplete="off"
-                                                           readonly>
+                                                           readonly {!! tooltip('To Date') !!}>
                                                     <span class="clear-btn"
                                                           onclick="document.getElementById('to_date').value='';">×</span>
                                                 </div>
@@ -94,7 +94,7 @@
                                             {{-- Device --}}
                                             <div class="col-md-12 mb-3">
                                                 <label class="form-label fw-semibold">Device (Optional)</label>
-                                                <select name="device" class="form-select">
+                                                <select name="device" class="form-select" {!! tooltip('Select Device') !!}>
                                                     <option value="">All Devices</option>
                                                     @foreach(activeDevices() as $device)
                                                         <option value="{{ $device->serial_no }}">
@@ -131,13 +131,13 @@
                                         <div class="row">
                                             <div class="col-md-6 mb-3">
                                                 <label class="form-label fw-semibold">Employee ID</label>
-                                                <input type="text" name="employee_id" class="form-control" required>
+                                                <input type="text" name="employee_id" class="form-control" required placeholder="Enter employee ID" {!! tooltip('Employee ID') !!}>
                                             </div>
                                             {{-- Single Date --}}
                                             <div class="col-md-6 mb-3">
                                                 <label class="form-label fw-semibold">Date (leave empty for
                                                     today)</label>
-                                                <input type="date" name="date" class="form-control">
+                                                <input type="date" name="date" class="form-control" placeholder="YYYY-MM-DD" {!! tooltip('Date') !!}>
                                             </div>
                                         </div>
 
@@ -145,11 +145,11 @@
                                         <div class="row">
                                             <div class="col-md-6 mb-3">
                                                 <label class="form-label fw-semibold">From</label>
-                                                <input type="date" name="from" class="form-control">
+                                                <input type="date" name="from" class="form-control" placeholder="YYYY-MM-DD" {!! tooltip('From') !!}>
                                             </div>
                                             <div class="col-md-6 mb-3">
                                                 <label class="form-label fw-semibold">To</label>
-                                                <input type="date" name="to" class="form-control">
+                                                <input type="date" name="to" class="form-control" placeholder="YYYY-MM-DD" {!! tooltip('To') !!}>
                                             </div>
                                         </div>
 
@@ -157,7 +157,7 @@
                                             {{-- Device --}}
                                             <div class="col-md-12 mb-3">
                                                 <label class="form-label fw-semibold">Device (Optional)</label>
-                                                <select name="device" class="form-select">
+                                                <select name="device" class="form-select" {!! tooltip('Select Device') !!}>
                                                     <option value="">All Devices</option>
                                                     @foreach(activeDevices() as $device)
                                                         <option value="{{ $device->serial_no }}">
@@ -196,13 +196,13 @@
                                             {{-- Employee ID --}}
                                             <div class="col-md-6 mb-3">
                                                 <label class="form-label fw-semibold">Employee ID</label>
-                                                <input type="text" name="employee_id" class="form-control" required>
+                                                <input type="text" name="employee_id" class="form-control" required placeholder="Enter employee ID" {!! tooltip('Employee ID') !!}>
                                             </div>
 
                                             {{-- Device --}}
                                             <div class="col-md-6 mb-3">
                                                 <label class="form-label fw-semibold">Select Device</label>
-                                                <select name="device" class="form-select" required>
+                                                <select name="device" class="form-select" required {!! tooltip('Select Device') !!}>
                                                     @foreach(activeDevices() as $device)
                                                         <option value="{{ $device->serial_no }}">
                                                             {{ $device->name ?? 'Device' }} ({{ $device->serial_no }})
@@ -242,13 +242,13 @@
                                             <div class="col-md-6 mb-3">
                                                 <label class="form-label fw-semibold">Student/Teacher-Staff No (PIN)</label>
                                                 <input type="text" name="pin" class="form-control" required
-                                                    placeholder="Student no. or Teacher/Staff no.">
+                                                    placeholder="Student no. or Teacher/Staff no." {!! tooltip('Student/Teacher-Staff No') !!}>
                                             </div>
 
                                             {{-- Device --}}
                                             <div class="col-md-6 mb-3">
                                                 <label class="form-label fw-semibold">Device</label>
-                                                <select name="device" class="form-select" required>
+                                                <select name="device" class="form-select" required {!! tooltip('Select Device') !!}>
                                                     @foreach(activeDevices() as $device)
                                                         <option value="{{ $device->serial_no }}">
                                                             {{ $device->name ?? 'Device' }} ({{ $device->serial_no }})

@@ -327,7 +327,7 @@
                     <div class="url-test-box">
                         <input type="text" id="prodTestUrl" class="form-control form-control-sm mb-2"
                                value="{{ rtrim($appUrl, '/') }}/iclock/getrequest"
-                               style="background:#1e293b;color:#a5f3fc;border-color:#334155;">
+                               style="background:#1e293b;color:#a5f3fc;border-color:#334155;" placeholder="https://your-domain/iclock/getrequest" {!! tooltip('URL the device calls') !!}>
                         <button type="button" class="btn btn-sm btn-warning text-white" onclick="testIclockUrl(document.getElementById('prodTestUrl').value, 'prodTestResult', this)">
                             <i class="fas fa-play mr-1"></i> Test Now
                         </button>

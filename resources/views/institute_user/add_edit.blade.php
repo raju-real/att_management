@@ -33,42 +33,42 @@
                     <div class="col-md-4">
                         <div class="form-group">
                             <label class="form-label">Name {!! starSign() !!}</label>
-                            <input type="text" name="name" value="{{ old('name', $user->name ?? '') }}" class="form-control {{ hasError('name') }}">
+                            <input type="text" name="name" value="{{ old('name', $user->name ?? '') }}" class="form-control {{ hasError('name') }}" placeholder="Enter name" {!! tooltip('Name') !!}>
                             @error('name') {!! displayError($message) !!} @enderror
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="form-group">
                             <label class="form-label">Mobile</label>
-                            <input type="text" name="mobile" value="{{ old('mobile', $user->mobile ?? '') }}" class="form-control {{ hasError('mobile') }}" placeholder="017XXXXXXXX">
+                            <input type="text" name="mobile" value="{{ old('mobile', $user->mobile ?? '') }}" class="form-control {{ hasError('mobile') }}" placeholder="017XXXXXXXX" {!! tooltip('Mobile') !!}>
                             @error('mobile') {!! displayError($message) !!} @enderror
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="form-group">
                             <label class="form-label">Login Email {!! starSign() !!}</label>
-                            <input type="email" name="email" value="{{ old('email', $user->email ?? '') }}" class="form-control {{ hasError('email') }}" autocomplete="off">
+                            <input type="email" name="email" value="{{ old('email', $user->email ?? '') }}" class="form-control {{ hasError('email') }}" autocomplete="off" placeholder="Enter login Email" {!! tooltip('Login Email') !!}>
                             @error('email') {!! displayError($message) !!} @enderror
                         </div>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                         <div class="form-group">
                             <label class="form-label">Password @unless(isset($user)) {!! starSign() !!} @endunless</label>
-                            <input type="password" name="password" class="form-control {{ hasError('password') }}" autocomplete="new-password">
+                            <input type="password" name="password" class="form-control {{ hasError('password') }}" autocomplete="new-password" placeholder="Password" {!! tooltip('Password') !!}>
                             @isset($user)<small class="text-muted">Leave blank to keep the current password.</small>@endisset
                             @error('password') {!! displayError($message) !!} @enderror
                         </div>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                         <div class="form-group">
                             <label class="form-label">Confirm Password</label>
-                            <input type="password" name="password_confirmation" class="form-control" autocomplete="new-password">
+                            <input type="password" name="password_confirmation" class="form-control" autocomplete="new-password" placeholder="Confirm Password" {!! tooltip('Confirm Password') !!}>
                         </div>
                     </div>
-                    <div class="col-md-2">
+                    <div class="col-md-4">
                         <div class="form-group">
                             <label class="form-label">Status {!! starSign() !!}</label>
-                            <select name="status" class="form-control {{ hasError('status') }}">
+                            <select name="status" class="form-control {{ hasError('status') }}" {!! tooltip('Select Status') !!}>
                                 @foreach (getStatus() as $status)
                                     <option value="{{ $status->value }}" {{ old('status', $user->status ?? 'active') === $status->value ? 'selected' : '' }}>{{ $status->title }}</option>
                                 @endforeach

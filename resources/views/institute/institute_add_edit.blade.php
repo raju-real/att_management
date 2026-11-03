@@ -26,22 +26,22 @@
                         <div class="form-group">
                             <label class="form-label">Institute Name {!! starSign() !!}</label>
                             <input type="text" name="name" value="{{ old('name', $institute->name ?? '') }}"
-                                class="form-control {{ hasError('name') }}" placeholder="e.g. Ideal High School">
+                                class="form-control {{ hasError('name') }}" placeholder="e.g. Ideal High School" {!! tooltip('Institute Name') !!}>
                             @error('name') {!! displayError($message) !!} @enderror
                         </div>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                         <div class="form-group">
                             <label class="form-label">EIIN</label>
                             <input type="text" name="eiin" value="{{ old('eiin', $institute->eiin ?? '') }}"
-                                class="form-control {{ hasError('eiin') }}">
+                                class="form-control {{ hasError('eiin') }}" placeholder="Enter EIIN" {!! tooltip('EIIN') !!}>
                             @error('eiin') {!! displayError($message) !!} @enderror
                         </div>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                         <div class="form-group">
                             <label class="form-label">Status {!! starSign() !!}</label>
-                            <select name="status" class="form-control {{ hasError('status') }}">
+                            <select name="status" class="form-control {{ hasError('status') }}" {!! tooltip('Select Status') !!}>
                                 @foreach (getStatus() as $status)
                                     <option value="{{ $status->value }}"
                                         {{ old('status', $institute->status ?? 'active') === $status->value ? 'selected' : '' }}>
@@ -56,30 +56,30 @@
                         <div class="form-group">
                             <label class="form-label">Address</label>
                             <input type="text" name="address" value="{{ old('address', $institute->address ?? '') }}"
-                                class="form-control {{ hasError('address') }}">
+                                class="form-control {{ hasError('address') }}" placeholder="Enter address" {!! tooltip('Address') !!}>
                             @error('address') {!! displayError($message) !!} @enderror
                         </div>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                         <div class="form-group">
                             <label class="form-label">Mobile</label>
                             <input type="text" name="mobile" value="{{ old('mobile', $institute->mobile ?? '') }}"
-                                class="form-control {{ hasError('mobile') }}" placeholder="017XXXXXXXX">
+                                class="form-control {{ hasError('mobile') }}" placeholder="017XXXXXXXX" {!! tooltip('Mobile') !!}>
                             @error('mobile') {!! displayError($message) !!} @enderror
                         </div>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                         <div class="form-group">
                             <label class="form-label">Website</label>
                             <input type="text" name="website" value="{{ old('website', $institute->website ?? '') }}"
-                                class="form-control {{ hasError('website') }}" placeholder="www.example.edu.bd">
+                                class="form-control {{ hasError('website') }}" placeholder="www.example.edu.bd" {!! tooltip('Website') !!}>
                             @error('website') {!! displayError($message) !!} @enderror
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="form-group">
                             <label class="form-label">Logo <small class="text-muted">(jpg/png/webp, max 1MB)</small></label>
-                            <input type="file" name="logo" accept="image/*" class="form-control {{ hasError('logo') }}">
+                            <input type="file" name="logo" accept="image/*" class="form-control {{ hasError('logo') }}" {!! tooltip('Choose Logo') !!}>
                             @error('logo') {!! displayError($message) !!} @enderror
                             @if(isset($institute) && $institute->logo && file_exists($institute->logo))
                                 <div class="mt-2 d-flex align-items-center">
@@ -103,14 +103,14 @@
                         <div class="form-group">
                             <label class="form-label">Login Email {!! starSign() !!}</label>
                             <input type="email" name="email" value="{{ old('email', $institute->email ?? '') }}"
-                                class="form-control {{ hasError('email') }}" autocomplete="off">
+                                class="form-control {{ hasError('email') }}" autocomplete="off" placeholder="Enter login Email" {!! tooltip('Login Email') !!}>
                             @error('email') {!! displayError($message) !!} @enderror
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="form-group">
                             <label class="form-label">Password @unless(isset($institute)) {!! starSign() !!} @endunless</label>
-                            <input type="password" name="password" class="form-control {{ hasError('password') }}" autocomplete="new-password">
+                            <input type="password" name="password" class="form-control {{ hasError('password') }}" autocomplete="new-password" placeholder="Password" {!! tooltip('Password') !!}>
                             @isset($institute)<small class="text-muted">Leave blank to keep the current password.</small>@endisset
                             @error('password') {!! displayError($message) !!} @enderror
                         </div>
@@ -118,7 +118,7 @@
                     <div class="col-md-4">
                         <div class="form-group">
                             <label class="form-label">Confirm Password</label>
-                            <input type="password" name="password_confirmation" class="form-control" autocomplete="new-password">
+                            <input type="password" name="password_confirmation" class="form-control" autocomplete="new-password" placeholder="Confirm Password" {!! tooltip('Confirm Password') !!}>
                         </div>
                     </div>
                 </div>
