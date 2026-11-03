@@ -20,6 +20,10 @@ class DashboardController extends Controller
         $institute = selectedInstituteId(); // forced for institute users
         $school    = $institute ? schoolInfo($institute) : null;
 
-        return view('dashboard', compact('institute', 'school'));
+        // department / shift filters of this institute
+        $departments = $institute ? \App\Models\Department::forInstitute($institute)->orderBy('name')->get(['id', 'name', 'shift_id']) : collect();
+        $shifts      = $institute ? \App\Models\Shift::forInstitute($institute)->orderBy('in_time')->get(['id', 'title', 'in_time', 'out_time']) : collect();
+
+        return view('dashboard', compact('institute', 'school', 'departments', 'shifts'));
     }
 }
