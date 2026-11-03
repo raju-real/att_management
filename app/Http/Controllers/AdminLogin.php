@@ -29,6 +29,19 @@ class AdminLogin extends Controller
             $request->session()->regenerate();
 
             $user = auth()->user();
+
+            // An institute user can only log in while its institute is active.
+            if ($user->isInstUser()) {
+                $institute = $user->institute_id ? \App\Models\User::institutes()->find($user->institute_id) : null;
+                if (! $institute || $institute->status !== 'active') {
+                    Auth::logout();
+                    $request->session()->invalidate();
+                    $request->session()->regenerateToken();
+                    return redirect()->back()->withInput($request->only('email'))
+                        ->with(dangerMessage('danger', 'Your institute account is inactive. Please contact the institute.'));
+                }
+            }
+
             $user->last_login_at = now();
             $user->save();
 

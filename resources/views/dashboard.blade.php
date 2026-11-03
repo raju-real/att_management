@@ -30,14 +30,14 @@
     .ld-bar > div { height: 100%; background: linear-gradient(90deg, #10b981, #059669); transition: width .6s ease; }
 
     /* centre: spotlight of absent people */
-    .ld-spot { border: 2px solid #1e1b4b; border-radius: 12px; height: 380px; display: flex; flex-direction: column;
+    .ld-spot { border: 2px solid #1e1b4b; border-radius: 12px; height: 340px; max-width: 420px; margin: 0 auto; display: flex; flex-direction: column;
         align-items: center; justify-content: center; text-align: center; padding: 16px; position: relative; overflow: hidden;
         background: radial-gradient(circle at 50% 30%, #fef2f2, #fff 70%); }
-    .ld-spot-photo { width: 190px; height: 210px; border-radius: 12px; object-fit: cover; border: 4px solid #fecaca;
+    .ld-spot-photo { width: 160px; height: 160px; border-radius: 12px; object-fit: cover; object-position: center top; border: 4px solid #fecaca;
         box-shadow: 0 10px 30px rgba(185, 28, 28, .18); background: #f3f4f6; }
-    .ld-spot-initial { width: 190px; height: 210px; border-radius: 12px; display: flex; align-items: center; justify-content: center;
-        font-size: 90px; font-weight: 800; color: #b91c1c; background: #fee2e2; border: 4px solid #fecaca; }
-    .ld-spot-name { font-size: 24px; font-weight: 800; margin-top: 12px; color: #111827; max-width: 100%; }
+    .ld-spot-initial { width: 160px; height: 160px; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin: 0 auto;
+        font-size: 72px; font-weight: 800; color: #b91c1c; background: #fee2e2; border: 4px solid #fecaca; }
+    .ld-spot-name { font-size: 21px; font-weight: 800; margin-top: 10px; color: #111827; max-width: 100%; }
     .ld-spot-sub { color: #6b7280; font-size: 14px; }
     .ld-spot-tag { display: inline-block; margin-top: 6px; padding: 2px 12px; border-radius: 20px; background: #b91c1c; color: #fff; font-size: 12px; font-weight: 700; }
     .ld-spot-tag.upcoming { background: #0284c7; }
@@ -48,19 +48,19 @@
     .ld-spot-ok i { font-size: 60px; display: block; margin-bottom: 10px; }
 
     /* person card (absent column + present row) */
-    .ld-card { width: 150px; border: 1px solid #d1d5db; border-radius: 10px; padding: 8px; background: #fff; display: flex; gap: 8px;
-        align-items: center; flex: 0 0 auto; }
-    .ld-card img, .ld-card .ini { width: 44px; height: 52px; border-radius: 6px; object-fit: cover; flex: 0 0 44px; }
-    .ld-card .ini { display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 20px; background: #eef2ff; color: #4338ca; }
-    .ld-card .nm { font-weight: 700; font-size: 12px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ld-card { width: 124px; border: 1px solid #d1d5db; border-radius: 10px; padding: 8px 6px; background: #fff; display: flex; flex-direction: column;
+        align-items: center; text-align: center; gap: 5px; flex: 0 0 auto; }
+    .ld-card img, .ld-card .ini { width: 100px; height: 100px; border-radius: 8px; object-fit: cover; object-position: center top; flex: 0 0 100px; }
+    .ld-card .ini { display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 40px; background: #eef2ff; color: #4338ca; }
+    .ld-card .nm { font-weight: 700; font-size: 12px; line-height: 1.25; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .ld-card .tm { font-size: 11px; color: #4b5563; white-space: nowrap; }
     .ld-card .tm b { color: #111827; } .ld-card .late { color: #dc2626 !important; }
     .ld-card.absent { border-color: #fecaca; background: #fff7f7; } .ld-card.absent .ini { background: #fee2e2; color: #b91c1c; }
     .ld-card.present { border-color: #a7f3d0; background: #f6fffb; } .ld-card.present .ini { background: #d1fae5; color: #047857; }
-    .ld-card > div { min-width: 0; }
+    .ld-card > div { min-width: 0; width: 100%; }
 
     /* right: absent list scrolling up */
-    .ld-vwin { height: 380px; overflow: hidden; position: relative; }
+    .ld-vwin { height: 340px; overflow: hidden; position: relative; }
     .ld-vtrack { display: flex; flex-direction: column; align-items: center; gap: 10px; }
     .ld-vtrack.run { animation: ld-up var(--dur, 30s) linear infinite; }
     @keyframes ld-up { from { transform: translateY(0); } to { transform: translateY(-50%); } }

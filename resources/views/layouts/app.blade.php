@@ -68,9 +68,9 @@
     <nav class="navbar navbar-expand-lg navbar-admin">
         <div class="container-fluid">
             <!-- Logo/Brand on left -->
-            <a class="navbar-brand" href="{{ route('dashboard') }}" {!! tooltip(authInstituteId() ? authUser()->name : (siteSettings()->site_name ?? 'Attendance Management')) !!}>
+            <a class="navbar-brand" href="{{ route('dashboard') }}" {!! tooltip(authInstitute()->name ?? (siteSettings()->site_name ?? 'Attendance Management')) !!}>
                 <i class="fas fa-chart-line"></i>
-                {{ textLimit(authInstituteId() ? authUser()->name : (siteSettings()->site_name ?? 'Attendance Management'), 15) }}
+                {{ textLimit(authInstitute()->name ?? (siteSettings()->site_name ?? 'Attendance Management'), 15) }}
             </a>
 
             <!-- Mobile toggle button -->
@@ -92,73 +92,48 @@
                 </ul>
                 {{-- menus from right side --}}
                 <ul class="navbar-nav">
-                    {{-- Manage Attendance --}}
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle {{ request()->routeIs(['attendance.logs', 'attendance.monthly-summary', 'attendance.month-sheet', 'attendance.unmatched', 'teacher-profiles.*']) ? 'active' : '' }}"
-                            href="#" id="attendanceDropdown" role="button" data-toggle="dropdown">
-                            <i class="fas fa-clock mr-1"></i> Attendance
-                        </a>
-                        <div class="dropdown-menu dropdown-menu-right">
-                            <a class="dropdown-item {{ request()->routeIs('attendance.logs') ? 'active' : '' }}"
-                                href="{{ route('attendance.logs') }}">
-                                <i class="fas fa-history mr-2"></i> Attendance Logs
-                            </a>
-                            <a class="dropdown-item {{ request()->routeIs('attendance.monthly-summary') ? 'active' : '' }}"
-                                href="{{ route('attendance.monthly-summary') }}">
-                                <i class="fas fa-calendar-check mr-2"></i> Monthly Summary
-                            </a>
-                            <a class="dropdown-item {{ request()->routeIs('attendance.month-sheet') ? 'active' : '' }}"
-                                href="{{ route('attendance.month-sheet') }}">
-                                <i class="fas fa-table mr-2"></i> Month &amp; Day Wise Summary
-                            </a>
-                            <a class="dropdown-item {{ request()->routeIs('teacher-profiles.*') ? 'active' : '' }}"
-                                href="{{ route('teacher-profiles.index') }}">
-                                <i class="fas fa-id-card mr-2"></i> Teacher/Staff Profile
-                            </a>
-                        </div>
-                    </li>
-
-                    {{-- Configuration --}}
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle {{ request()->routeIs(['students.*', 'teachers.*', 'devices.*', 'devices-monitor', 'departments.*', 'shifts.*', 'institutes.*']) ? 'active' : '' }}"
-                            href="#" id="configDropdown" role="button" data-toggle="dropdown">
-                            <i class="fas fa-cogs mr-1"></i> Configuration
-                        </a>
-                        <div class="dropdown-menu dropdown-menu-right">
-                            @if (isSuperAdmin())
-                                <a class="dropdown-item {{ request()->routeIs('institutes.*') ? 'active' : '' }}"
-                                    href="{{ route('institutes.index') }}">
-                                    <i class="fas fa-university mr-2"></i> Institutes
+                    {{-- Attendance & Configuration: built from App\Support\Permissions::MENU,
+                         so an institute user only sees the submenus it was given --}}
+                    @php
+                        $navGroups = ['Attendance' => 'fa-clock', 'Configuration' => 'fa-cogs'];
+                        $navRoutes = fn ($item) => array_values(array_filter($item['routes'], fn ($r) => ! str_contains($r, ':')));
+                    @endphp
+                    @foreach ($navGroups as $group => $groupIcon)
+                        @php
+                            $navItems = collect(\App\Support\Permissions::MENU[$group])
+                                ->filter(fn ($item, $key) => ($item['menu'] ?? true) && userCan($key));
+                            $extra = $group === 'Configuration' && ! isInstUser(); // Institutes / Users links
+                            $groupActive = $navItems->contains(fn ($item) => request()->routeIs($navRoutes($item)))
+                                || ($group === 'Configuration' && request()->routeIs(['institutes.*', 'institute-users.*']));
+                        @endphp
+                        @if ($navItems->isNotEmpty() || $extra)
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle {{ $groupActive ? 'active' : '' }}" href="#" role="button" data-toggle="dropdown">
+                                    <i class="fas {{ $groupIcon }} mr-1"></i> {{ $group }}
                                 </a>
-                                <div class="dropdown-divider"></div>
-                            @endif
-                            <a class="dropdown-item {{ request()->routeIs('students.*') ? 'active' : '' }}"
-                                href="{{ route('students.index') }}">
-                                <i class="fas fa-user-graduate mr-2"></i> Students
-                            </a>
-                            <a class="dropdown-item {{ request()->routeIs('teachers.*') ? 'active' : '' }}"
-                                href="{{ route('teachers.index') }}">
-                                <i class="fas fa-chalkboard-teacher mr-2"></i> Teachers/Staff
-                            </a>
-                            <a class="dropdown-item {{ request()->routeIs('devices.*') ? 'active' : '' }}"
-                                href="{{ route('devices.index') }}">
-                                <i class="fas fa-fingerprint mr-2"></i> Devices
-                            </a>
-                            <a class="dropdown-item {{ request()->routeIs('devices-monitor') ? 'active' : '' }}"
-                                href="{{ route('devices-monitor') }}">
-                                <i class="fas fa-satellite-dish mr-2"></i> Device Monitor
-                            </a>
-                            <div class="dropdown-divider"></div>
-                            <a class="dropdown-item {{ request()->routeIs('shifts.*') ? 'active' : '' }}"
-                                href="{{ route('shifts.index') }}">
-                                <i class="fas fa-business-time mr-2"></i> Shifts
-                            </a>
-                            <a class="dropdown-item {{ request()->routeIs('departments.*') ? 'active' : '' }}"
-                                href="{{ route('departments.index') }}">
-                                <i class="fas fa-building mr-2"></i> Departments
-                            </a>
-                        </div>
-                    </li>
+                                <div class="dropdown-menu dropdown-menu-right">
+                                    @if ($extra)
+                                        @if (isSuperAdmin())
+                                            <a class="dropdown-item {{ request()->routeIs('institutes.*') ? 'active' : '' }}" href="{{ route('institutes.index') }}">
+                                                <i class="fas fa-university mr-2"></i> Institutes
+                                            </a>
+                                        @endif
+                                        <a class="dropdown-item {{ request()->routeIs('institute-users.*') ? 'active' : '' }}" href="{{ route('institute-users.index') }}">
+                                            <i class="fas fa-users-cog mr-2"></i> Institute Users
+                                        </a>
+                                        @if ($navItems->isNotEmpty())<div class="dropdown-divider"></div>@endif
+                                    @endif
+                                    @foreach ($navItems as $key => $item)
+                                        @if ($landing = \App\Support\Permissions::landingRoute($key))
+                                            <a class="dropdown-item {{ request()->routeIs($navRoutes($item)) ? 'active' : '' }}" href="{{ route($landing) }}">
+                                                <i class="fas {{ $item['icon'] }} mr-2"></i> {{ $item['label'] }}
+                                            </a>
+                                        @endif
+                                    @endforeach
+                                </div>
+                            </li>
+                        @endif
+                    @endforeach
 
                     {{-- Fees Management --}}
                     {{-- <li class="nav-item dropdown">
@@ -195,7 +170,7 @@
                                 <i class="fas fa-user-circle mr-1"></i>
                             @endif
                             {{ textLimit(authUser()->name, 10) ?? 'Admin User' }}
-                            <span class="badge badge-{{ isSuperAdmin() ? 'danger' : 'info' }} ml-1" style="font-size:.65em">{{ isSuperAdmin() ? 'Super Admin' : 'Institute' }}</span>
+                            <span class="badge badge-{{ isSuperAdmin() ? 'danger' : (isInstUser() ? 'secondary' : 'info') }} ml-1" style="font-size:.65em">{{ isSuperAdmin() ? 'Super Admin' : (isInstUser() ? 'Institute User' : 'Institute') }}</span>
                         </a>
                         <div class="dropdown-menu dropdown-menu-right">
                             <a class="dropdown-item {{ request()->routeIs('profile') ? 'active' : '' }}"

@@ -38,6 +38,7 @@ class User extends Authenticatable
      */
     protected $casts = [
         'email_verified_at' => 'datetime',
+        'permissions'       => 'array', // inst_user menu keys (App\Support\Permissions)
     ];
 
     public function designation()
@@ -52,6 +53,8 @@ class User extends Authenticatable
 
     public const ROLE_ADMIN     = 'admin';
     public const ROLE_INSTITUTE = 'institute';
+    // A user created BY an institute: that institute's data, only the permitted menus.
+    public const ROLE_INST_USER = 'inst_user';
 
     public function isSuperAdmin(): bool
     {
@@ -61,6 +64,34 @@ class User extends Authenticatable
     public function isInstitute(): bool
     {
         return $this->role === self::ROLE_INSTITUTE;
+    }
+
+    public function isInstUser(): bool
+    {
+        return $this->role === self::ROLE_INST_USER;
+    }
+
+    /** Admin and the main institute account have every menu; an inst_user only its permissions. */
+    public function hasPermission(string $key): bool
+    {
+        return ! $this->isInstUser() || in_array($key, (array) $this->permissions, true);
+    }
+
+    /** The institute an inst_user belongs to. */
+    public function parentInstitute()
+    {
+        return $this->belongsTo(self::class, 'institute_id')->where('role', self::ROLE_INSTITUTE);
+    }
+
+    /** Users an institute created. */
+    public function instUsers()
+    {
+        return $this->hasMany(self::class, 'institute_id')->where('role', self::ROLE_INST_USER);
+    }
+
+    public function scopeInstituteUsers($query)
+    {
+        return $query->where('role', self::ROLE_INST_USER);
     }
 
     public function scopeInstitutes($query)

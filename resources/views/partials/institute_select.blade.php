@@ -23,7 +23,7 @@
 @endphp
 @if (authInstituteId())
     <select id="{{ $iId }}" class="{{ $iClass }} institute-select2" disabled data-locked="1">
-        <option value="{{ authInstituteId() }}" selected>{{ authUser()->name }}</option>
+        <option value="{{ authInstituteId() }}" selected>{{ authInstitute()->name ?? '' }}</option>
     </select>
     <input type="hidden" name="{{ $iName }}" value="{{ authInstituteId() }}">
 @else

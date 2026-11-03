@@ -40,6 +40,7 @@
                             <th class="text-center">Teachers/Staff</th>
                             <th class="text-center">Students</th>
                             <th class="text-center">Devices</th>
+                            <th class="text-center">Users</th>
                             <th>Status</th>
                             <th>Last Login</th>
                             <th>Actions</th>
@@ -72,6 +73,9 @@
                                 <td class="text-center">
                                     <a href="{{ route('devices.index', ['institute_id' => $institute->id]) }}"
                                        class="badge badge-{{ $institute->institute_devices_count ? 'info' : 'warning' }}">{{ $institute->institute_devices_count }}</a>
+                                </td>
+                                <td class="text-center">
+                                    <a href="{{ route('institute-users.index', ['institute_id' => $institute->id]) }}" class="badge badge-secondary">{{ $institute->inst_users_count }}</a>
                                 </td>
                                 <td>{!! showStatus($institute->status) !!}</td>
                                 <td><small>{{ $institute->last_login_at ? \Carbon\Carbon::parse($institute->last_login_at)->format('d M Y h:i A') : 'Never' }}</small></td>

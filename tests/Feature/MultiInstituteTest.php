@@ -257,4 +257,59 @@ class MultiInstituteTest extends TestCase
         $this->assertStringContainsString('Teacher/Staff', $body);
         $this->assertStringNotContainsString('Teacher B', $body);
     }
+
+    public function test_institute_users_and_menu_permissions(): void
+    {
+        // the institute creates a user with two menus; institute_id in the request is ignored
+        $this->actingAs($this->a);
+        $form = [
+            'institute_id' => $this->b->id, 'name' => 'Office Clerk', 'email' => 'clerk@test.local', 'status' => 'active',
+            'password' => 'abc123', 'password_confirmation' => 'abc123',
+        ];
+        $this->post('/institute-users', $form + ['permissions' => ['teachers', 'bogus']])->assertSessionHasErrors('permissions.1');
+        $this->post('/institute-users', $form + ['permissions' => ['teachers', 'attendance.logs']])->assertRedirect(route('institute-users.index'));
+        $clerk = User::where('email', 'clerk@test.local')->firstOrFail();
+        $this->assertSame('inst_user', $clerk->role);
+        $this->assertSame($this->a->id, (int) $clerk->institute_id);
+        $this->assertSame(['attendance.logs', 'teachers'], $clerk->permissions);
+
+        // another institute cannot see or edit it
+        $this->actingAs($this->b);
+        $this->get('/institute-users/' . $clerk->id . '/edit')->assertNotFound();
+
+        // the clerk: own institute's data, only the permitted menus
+        Auth::logout();
+        $this->post('/admin-login', ['email' => 'clerk@test.local', 'password' => 'abc123']);
+        $this->assertAuthenticatedAs($clerk);
+        $this->assertSame($this->a->id, authInstituteId());
+        $this->get('/dashboard')->assertRedirect(route('attendance.logs')); // no dashboard permission → first menu
+        $this->get('/teachers')->assertOk()->assertSee('Teacher A')->assertDontSee('Teacher B')
+            ->assertSee('Teachers/Staff')->assertDontSee('Departments')->assertDontSee('Institute Users');
+        $this->get('/attendance-logs')->assertOk()->assertSee('Alpha High School');
+        $this->get('/students')->assertRedirect(route('permission-denied'));
+        $this->get('/teacher-profiles')->assertRedirect(route('permission-denied'));
+        $this->get('/institute-users')->assertRedirect(route('permission-denied'));
+        $this->get('/institutes')->assertRedirect(route('permission-denied'));
+        $this->post('/device-push/student', ['scope' => 'all'])->assertRedirect(route('permission-denied'));
+        $this->getJson('/attendance-board/data')->assertForbidden();
+        $this->get('/profile')->assertOk();
+        $this->assertSame(1, Teacher::count());
+
+        // institute deactivated → the clerk is logged out and cannot log in again
+        $this->a->update(['status' => 'inactive']);
+        $this->get('/teachers')->assertRedirect(route('home'));
+        $this->assertGuest();
+        $this->post('/admin-login', ['email' => 'clerk@test.local', 'password' => 'abc123']);
+        $this->assertGuest();
+
+        // the super admin manages users of any institute; an institute with users is not deleted
+        $this->a->update(['status' => 'active']);
+        $this->actingAs($this->admin);
+        $this->get('/institute-users')->assertOk()->assertSee('Office Clerk');
+        $this->put('/institute-users/' . $clerk->id, ['permissions' => ['dashboard']] + $form + ['institute_id' => $this->a->id])
+            ->assertRedirect(route('institute-users.index'));
+        $this->assertSame(['dashboard'], $clerk->fresh()->permissions);
+        $this->delete('/institutes/' . $this->a->id);
+        $this->assertTrue(User::whereKey($this->a->id)->exists());
+    }
 }

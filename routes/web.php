@@ -29,7 +29,9 @@ Route::view('/', 'auth.admin_login')->name('home');
 Route::post('admin-login', AdminLogin::class)->middleware('throttle:admin-login')->name('admin-login');
 Route::view('permission-denied', 'permission_denied')->name('permission-denied');
 
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'permission'])->group(function () {
+    // Institute users (role inst_user): managed by the institute (and the super admin)
+    Route::resource('institute-users', \App\Http\Controllers\InstituteUserController::class)->except('show');
     // ===================================================================
     // ONLY FOR ADMIN ROUTES
     // ===================================================================

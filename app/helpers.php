@@ -404,7 +404,49 @@ if (!function_exists('authInstituteId')) {
     function authInstituteId(): ?int
     {
         $u = Auth::user();
-        return ($u !== null && ($u->role ?? null) === 'institute') ? (int) $u->id : null;
+        if ($u === null) {
+            return null;
+        }
+        if (($u->role ?? null) === 'institute') {
+            return (int) $u->id;
+        }
+        if (($u->role ?? null) === 'inst_user') {
+            // an institute user works inside its institute; -1 (matches nothing) if it has none
+            return $u->institute_id ? (int) $u->institute_id : -1;
+        }
+        return null;
+    }
+}
+
+if (!function_exists('authInstitute')) {
+    /** The logged-in institute account (also for an inst_user), or null for the super admin. */
+    function authInstitute(): ?\App\Models\User
+    {
+        static $cache = [];
+        $id = authInstituteId();
+        if (! $id) {
+            return null;
+        }
+        return $cache[$id] ??= \App\Models\User::institutes()->find($id);
+    }
+}
+
+if (!function_exists('userCan')) {
+    /**
+     * May the logged-in user open this menu (App\Support\Permissions key)?
+     * Admin and institute: always; inst_user: only its permissions.
+     */
+    function userCan(string $key): bool
+    {
+        $u = Auth::user();
+        return $u !== null && $u->hasPermission($key);
+    }
+}
+
+if (!function_exists('isInstUser')) {
+    function isInstUser(): bool
+    {
+        return (Auth::user()->role ?? null) === 'inst_user';
     }
 }
 

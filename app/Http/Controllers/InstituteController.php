@@ -32,6 +32,7 @@ class InstituteController extends Controller
                 'teachers'          => fn ($q) => $q->withoutGlobalScopes()->whereNull('deleted_at'),
                 'students'          => fn ($q) => $q->withoutGlobalScopes()->whereNull('deleted_at'),
                 'instituteDevices'  => fn ($q) => $q->withoutGlobalScopes()->whereNull('deleted_at'),
+                'instUsers',
             ])
             ->orderBy('name')
             ->paginate(20);
@@ -82,11 +83,12 @@ class InstituteController extends Controller
 
         $used = Teacher::withoutGlobalScopes()->where('institute_id', $institute->id)->exists()
             || Student::withoutGlobalScopes()->where('institute_id', $institute->id)->exists()
-            || Device::withoutGlobalScopes()->where('institute_id', $institute->id)->whereNull('deleted_at')->exists();
+            || Device::withoutGlobalScopes()->where('institute_id', $institute->id)->whereNull('deleted_at')->exists()
+            || $institute->instUsers()->exists();
 
         if ($used) {
             return redirect()->route('institutes.index')->with(dangerMessage('danger',
-                'Cannot delete: this institute still has teachers/staff, students or devices. Set it to Inactive instead (it can no longer log in).'));
+                'Cannot delete: this institute still has teachers/staff, students, devices or users. Set it to Inactive instead (it can no longer log in).'));
         }
 
         $institute->deleted_by = authUser()->id;
