@@ -2,263 +2,276 @@
 @section('title', 'Dashboard')
 
 @push('css')
-<link rel="stylesheet" href="{{ asset('assets/css/attendance-board.css') }}?v={{ @filemtime(public_path('assets/css/attendance-board.css')) }}">
 <style>
-/* ═══════════════════════════════════════════════
-   PREMIUM DASHBOARD DESIGN
-═══════════════════════════════════════════════ */
+    /* ═══ Live attendance dashboard (one institute) ═══ */
+    .ld { background: #fff; border-radius: 14px; border: 1px solid #e5e7eb; padding: 16px 18px; box-shadow: 0 6px 24px rgba(15, 23, 42, .06); }
+    .ld-head { display: flex; align-items: center; gap: 14px; border-bottom: 2px solid #1e1b4b; padding-bottom: 10px; margin-bottom: 12px; }
+    .ld-logo { width: 110px; height: 64px; display: flex; align-items: center; justify-content: flex-start; flex: 0 0 110px; }
+    .ld-logo img { max-width: 74px; max-height: 64px; object-fit: contain; }
+    .ld-title { flex: 1; min-width: 0; text-align: center; }
+    .ld-name { font-size: 26px; font-weight: 700; color: #111827; line-height: 1.2; }
+    .ld-addr { color: #4b5563; font-size: 13px; }
+    .ld-clock { flex: 0 0 110px; white-space: nowrap; text-align: right; font-weight: 700; color: #4338ca; font-size: 15px; font-variant-numeric: tabular-nums; }
 
-/* ── Stat Cards ── */
-.dash-stat-card {
-    border-radius: 18px;
-    padding: 22px 24px;
-    color: #fff;
-    position: relative;
-    overflow: hidden;
-    border: none;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.12);
-    transition: transform .25s ease, box-shadow .25s ease;
-    min-height: 130px;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-}
-.dash-stat-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 16px 40px rgba(0,0,0,0.18);
-}
-.dash-stat-card .card-glow {
-    position: absolute;
-    width: 180px; height: 180px;
-    border-radius: 50%;
-    top: -60px; right: -60px;
-    background: rgba(255,255,255,0.12);
-    pointer-events: none;
-}
-.dash-stat-card .card-glow-2 {
-    position: absolute;
-    width: 100px; height: 100px;
-    border-radius: 50%;
-    bottom: -40px; left: 20px;
-    background: rgba(255,255,255,0.07);
-    pointer-events: none;
-}
-.dash-stat-card .stat-label {
-    font-size: 11px; font-weight: 700;
-    letter-spacing: 1.5px; text-transform: uppercase;
-    opacity: .85;
-}
-.dash-stat-card .stat-value {
-    font-size: 44px; font-weight: 800; line-height: 1;
-    margin: 6px 0 4px;
-    font-variant-numeric: tabular-nums;
-}
-.dash-stat-card .stat-sub {
-    font-size: 12px; opacity: .78;
-    display: flex; align-items: center; gap: 5px;
-}
-.dash-stat-card .stat-icon {
-    position: absolute; right: 22px; bottom: 18px;
-    font-size: 56px; opacity: .15;
-}
-.stat-card-blue   { background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); }
-.stat-card-green  { background: linear-gradient(135deg, #059669 0%, #0891b2 100%); }
-.stat-card-amber  { background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%); }
-.stat-card-rose   { background: linear-gradient(135deg, #dc2626 0%, #e11d48 100%); }
+    .ld-grid { display: grid; grid-template-columns: 220px minmax(0, 1fr) 190px; gap: 16px; }
+    .ld-label { font-weight: 800; font-size: 17px; letter-spacing: .5px; color: #111827; text-transform: uppercase; }
+    .ld-label.absent { color: #b91c1c; text-align: center; }
+    .ld-label.present { color: #047857; }
 
-/* ── Section Headers ── */
-.section-pill {
-    display: inline-flex; align-items: center; gap: 8px;
-    background: linear-gradient(90deg,rgba(99,102,241,.12),rgba(139,92,246,.08));
-    border: 1px solid rgba(99,102,241,.2);
-    border-radius: 30px; padding: 5px 14px; font-size: 13px;
-    font-weight: 700; color: #4f46e5; margin-bottom: 16px;
-}
+    /* left: report */
+    .ld-date { font-weight: 700; margin-bottom: 18px; }
+    .ld-date span { color: #4338ca; }
+    .ld-stat { display: flex; justify-content: space-between; align-items: center; padding: 9px 12px; border-radius: 10px;
+        margin-bottom: 8px; font-weight: 600; font-size: 14px; background: #f8fafc; border: 1px solid #eef2f7; }
+    .ld-stat b { font-size: 20px; font-variant-numeric: tabular-nums; }
+    .ld-stat.present b { color: #047857; } .ld-stat.absent b { color: #b91c1c; }
+    .ld-stat.late b { color: #d97706; } .ld-stat.leave b { color: #6b7280; } .ld-stat.pct b { color: #4338ca; }
+    .ld-bar { height: 8px; border-radius: 6px; background: #fee2e2; overflow: hidden; margin-top: 4px; }
+    .ld-bar > div { height: 100%; background: linear-gradient(90deg, #10b981, #059669); transition: width .6s ease; }
 
-/* ── Today Attendance Table ── */
-.att-table thead th {
-    background: linear-gradient(90deg,#4f46e5,#6366f1);
-    color: #fff; font-size: 12px; font-weight: 700;
-    letter-spacing: .5px; padding: 10px 12px; border: none;
-}
-.att-table tbody tr { transition: background .12s ease; }
-.att-table tbody tr:hover td { background: rgba(99,102,241,.05); }
-.att-table td { padding: 9px 12px; font-size: .88em; vertical-align: middle; border-bottom: 1px solid #f1f5f9; }
-.att-badge-student { background:#ede9fe; color:#7c3aed; font-size:.75em; padding:2px 8px; border-radius:10px; font-weight:600; }
-.att-badge-teacher { background:#d1fae5; color:#065f46; font-size:.75em; padding:2px 8px; border-radius:10px; font-weight:600; }
-.att-badge-other   { background:#f1f5f9; color:#64748b; font-size:.75em; padding:2px 8px; border-radius:10px; font-weight:600; }
-.att-id { font-family:monospace; font-size:.82em; color:#6366f1; background:#eef2ff; padding:1px 6px; border-radius:4px; }
-.att-late    { color: #dc2626; font-weight: 700; }
-.att-normal  { color: #059669; font-weight: 600; }
-.att-punch   { font-weight:600; color:#4f46e5; }
+    /* centre: spotlight of absent people */
+    .ld-spot { border: 2px solid #1e1b4b; border-radius: 12px; height: 380px; display: flex; flex-direction: column;
+        align-items: center; justify-content: center; text-align: center; padding: 16px; position: relative; overflow: hidden;
+        background: radial-gradient(circle at 50% 30%, #fef2f2, #fff 70%); }
+    .ld-spot-photo { width: 190px; height: 210px; border-radius: 12px; object-fit: cover; border: 4px solid #fecaca;
+        box-shadow: 0 10px 30px rgba(185, 28, 28, .18); background: #f3f4f6; }
+    .ld-spot-initial { width: 190px; height: 210px; border-radius: 12px; display: flex; align-items: center; justify-content: center;
+        font-size: 90px; font-weight: 800; color: #b91c1c; background: #fee2e2; border: 4px solid #fecaca; }
+    .ld-spot-name { font-size: 24px; font-weight: 800; margin-top: 12px; color: #111827; max-width: 100%; }
+    .ld-spot-sub { color: #6b7280; font-size: 14px; }
+    .ld-spot-tag { display: inline-block; margin-top: 6px; padding: 2px 12px; border-radius: 20px; background: #b91c1c; color: #fff; font-size: 12px; font-weight: 700; }
+    .ld-spot-tag.upcoming { background: #0284c7; }
+    .ld-spot-count { position: absolute; right: 12px; bottom: 8px; font-size: 12px; color: #9ca3af; }
+    .ld-spot-inner { transition: opacity .45s ease, transform .45s ease; }
+    .ld-spot-inner.fade { opacity: 0; transform: scale(.97); }
+    .ld-spot-ok { color: #047857; font-size: 22px; font-weight: 700; }
+    .ld-spot-ok i { font-size: 60px; display: block; margin-bottom: 10px; }
+
+    /* person card (absent column + present row) */
+    .ld-card { width: 150px; border: 1px solid #d1d5db; border-radius: 10px; padding: 8px; background: #fff; display: flex; gap: 8px;
+        align-items: center; flex: 0 0 auto; }
+    .ld-card img, .ld-card .ini { width: 44px; height: 52px; border-radius: 6px; object-fit: cover; flex: 0 0 44px; }
+    .ld-card .ini { display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 20px; background: #eef2ff; color: #4338ca; }
+    .ld-card .nm { font-weight: 700; font-size: 12px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ld-card .tm { font-size: 11px; color: #4b5563; white-space: nowrap; }
+    .ld-card .tm b { color: #111827; } .ld-card .late { color: #dc2626 !important; }
+    .ld-card.absent { border-color: #fecaca; background: #fff7f7; } .ld-card.absent .ini { background: #fee2e2; color: #b91c1c; }
+    .ld-card.present { border-color: #a7f3d0; background: #f6fffb; } .ld-card.present .ini { background: #d1fae5; color: #047857; }
+    .ld-card > div { min-width: 0; }
+
+    /* right: absent list scrolling up */
+    .ld-vwin { height: 380px; overflow: hidden; position: relative; }
+    .ld-vtrack { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+    .ld-vtrack.run { animation: ld-up var(--dur, 30s) linear infinite; }
+    @keyframes ld-up { from { transform: translateY(0); } to { transform: translateY(-50%); } }
+
+    /* bottom: present list scrolling left */
+    .ld-present { display: flex; align-items: center; gap: 14px; margin-top: 16px; border-top: 1px dashed #d1d5db; padding-top: 14px; }
+    .ld-hwin { flex: 1; min-width: 0; overflow: hidden; }
+    .ld-htrack { display: flex; gap: 10px; width: max-content; }
+    .ld-htrack.run { animation: ld-left var(--dur, 30s) linear infinite; }
+    @keyframes ld-left { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+    .ld-vwin:hover .run, .ld-hwin:hover .run { animation-play-state: paused; }
+    .ld-empty { color: #9ca3af; font-size: 13px; padding: 12px; text-align: center; }
+
+    @media (max-width: 991px) {
+        .ld-grid { grid-template-columns: 1fr; }
+        .ld-vwin { height: 220px; }
+        .ld-spot { height: 320px; }
+    }
 </style>
 @endpush
 
 @section('content')
-
-    {{-- Institute: super admin may pick one (empty = all); an institute sees only itself --}}
-    <div class="d-flex justify-content-between align-items-center flex-wrap mb-3">
-        <h4 class="mb-2"><i class="fas fa-university mr-2 text-muted"></i>{{ schoolInfo(selectedInstituteId())->name }}
-            @if (isSuperAdmin() && ! selectedInstituteId())<span class="badge badge-warning ml-1" style="font-size:.55em">All Institutes</span>@endif
-        </h4>
-        @if (isSuperAdmin())
-            <form method="GET" action="{{ route('dashboard') }}" style="min-width:280px" class="mb-2">
+    @if (isSuperAdmin())
+        <div class="d-flex justify-content-between align-items-center flex-wrap mb-3">
+            <h4 class="mb-2"><i class="fas fa-tv mr-2 text-muted"></i>Live Attendance Dashboard</h4>
+            <form method="GET" action="{{ route('dashboard') }}" style="min-width:300px" class="mb-2">
                 @include('partials.institute_select', ['autoSubmit' => true])
             </form>
-        @endif
-    </div>
+        </div>
+    @endif
 
-    {{-- ═══════════════════════════════════════════
-         STAT CARDS ROW
-    ═══════════════════════════════════════════ --}}
-    <div class="row mb-4">
+    @if (! $institute)
+        {{-- super admin: empty until an institute is chosen --}}
+        <div class="ld text-center py-5">
+            <i class="fas fa-university fa-3x text-muted mb-3" style="opacity:.35"></i>
+            <h5 class="text-muted mb-1">Select an institute</h5>
+            <p class="text-muted mb-0">Choose an institute from the dropdown above to see its live attendance dashboard.</p>
+        </div>
+    @else
+        <div class="ld" id="liveDash"
+             data-url="{{ route('attendance-board.data', ['institute_id' => $institute]) }}"
+             data-refresh-ms="60000" data-spot-ms="5000">
 
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="dash-stat-card stat-card-blue">
-                <div class="card-glow"></div><div class="card-glow-2"></div>
-                <div class="stat-label"><i class="fas fa-users mr-1"></i>Total Students</div>
-                <div class="stat-value">{{ number_format($total_students ?? 0) }}</div>
-                <div class="stat-sub"><i class="fas fa-circle" style="font-size:7px;color:#a5b4fc"></i> Active Students</div>
-                <i class="fas fa-user-graduate stat-icon"></i>
+            {{-- ── Letterhead ── --}}
+            <div class="ld-head">
+                <div class="ld-logo">
+                    @if ($school->logo_url)<img src="{{ $school->logo_url }}" alt="">@else<i class="fas fa-school fa-2x text-muted"></i>@endif
+                </div>
+                <div class="ld-title">
+                    <div class="ld-name fit-one-line">{{ $school->name }}</div>
+                    @if ($school->address)<div class="ld-addr">{{ $school->address }}</div>@endif
+                </div>
+                <div class="ld-clock" data-ld="clock">--:--</div>
+            </div>
+
+            <div class="ld-grid">
+                {{-- ── Left: date + report ── --}}
+                <div>
+                    <div class="ld-date">Date : <span data-ld="date">{{ now()->format('d M Y, l') }}</span></div>
+                    <div class="ld-label mb-2">Report</div>
+                    <div class="ld-stat present">Total Present <b data-ld="present">0</b></div>
+                    <div class="ld-stat absent">Total Absent <b data-ld="absent">0</b></div>
+                    <div class="ld-stat late">Total Late <b data-ld="late">0</b></div>
+                    <div class="ld-stat leave" title="No leave module yet">Total Leave <b data-ld="leave">-</b></div>
+                    <div class="ld-stat pct">Percentage <b data-ld="pct">0%</b></div>
+                    <div class="ld-bar"><div data-ld="bar" style="width:0%"></div></div>
+                    <div class="small text-muted mt-2">
+                        Teachers/Staff: <b data-ld="total">0</b> &middot; <span data-ld="updated">loading…</span>
+                    </div>
+                </div>
+
+                {{-- ── Centre: absent spotlight ── --}}
+                <div>
+                    <div class="ld-label absent mb-2">Absent</div>
+                    <div class="ld-spot" data-ld="spot">
+                        <div class="ld-spot-inner" data-ld="spot-inner"><div class="ld-empty">Loading…</div></div>
+                        <div class="ld-spot-count" data-ld="spot-count"></div>
+                    </div>
+                </div>
+
+                {{-- ── Right: absent list, scrolling up ── --}}
+                <div>
+                    <div class="ld-label absent mb-2">Absent <i class="fas fa-arrow-up small"></i></div>
+                    <div class="ld-vwin"><div class="ld-vtrack" data-ld="absent-track"></div></div>
+                </div>
+            </div>
+
+            {{-- ── Bottom: present list, scrolling left ── --}}
+            <div class="ld-present">
+                <div class="ld-label present" style="flex:0 0 auto">Present <i class="fas fa-arrow-left small"></i></div>
+                <div class="ld-hwin"><div class="ld-htrack" data-ld="present-track"></div></div>
             </div>
         </div>
-
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="dash-stat-card stat-card-green">
-                <div class="card-glow"></div><div class="card-glow-2"></div>
-                <div class="stat-label"><i class="fas fa-chalkboard-teacher mr-1"></i>Total Teachers/Staff</div>
-                <div class="stat-value">{{ number_format($total_teachers ?? 0) }}</div>
-                <div class="stat-sub"><i class="fas fa-circle" style="font-size:7px;color:#6ee7b7"></i> Active Teachers/Staff</div>
-                <i class="fas fa-chalkboard-teacher stat-icon"></i>
-            </div>
-        </div>
-
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="dash-stat-card stat-card-amber">
-                <div class="card-glow"></div><div class="card-glow-2"></div>
-                <div class="stat-label"><i class="fas fa-fingerprint mr-1"></i>Active Devices</div>
-                <div class="stat-value">{{ number_format($total_devices ?? 0) }}</div>
-                <div class="stat-sub"><i class="fas fa-circle" style="font-size:7px;color:#fde68a"></i> ZkTeco Devices</div>
-                <i class="fas fa-microchip stat-icon"></i>
-            </div>
-        </div>
-
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="dash-stat-card stat-card-rose">
-                <div class="card-glow"></div><div class="card-glow-2"></div>
-                <div class="stat-label"><i class="fas fa-check-circle mr-1"></i>Today Present</div>
-                <div class="stat-value">{{ number_format($today_present ?? 0) }}</div>
-                <div class="stat-sub"><i class="fas fa-circle" style="font-size:7px;color:#fda4af"></i> Unique Persons Today</div>
-                <i class="fas fa-user-check stat-icon"></i>
-            </div>
-        </div>
-
-    </div>
-
-
-    {{-- Teacher/Staff status board (shared: attendance/board/_board) --}}
-    @include('attendance.board._board', [
-        'theme' => 'dark',
-        'link'  => ['url' => route('attendance-board'), 'icon' => 'fas fa-external-link-alt', 'title' => 'Open full-page board', 'blank' => true],
-    ])
-
-    {{-- ═══════════════════════════════════════════
-         TODAY'S ATTENDANCE (latest 10)
-    ═══════════════════════════════════════════ --}}
-    <div class="card admin-card">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="card-title mb-0">
-                <i class="fas fa-list-alt mr-2"></i>Today's Attendance
-                <small class="text-muted ml-1" style="font-size:13px">{{ \Carbon\Carbon::today()->format('d M, Y') }}</small>
-            </h5>
-            <a href="{{ route('attendance.logs') }}" class="btn btn-primary-admin btn-sm text-white">
-                View All Logs <i class="fas fa-arrow-right ml-1"></i>
-            </a>
-        </div>
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table att-table mb-0">
-                    <thead>
-                        <tr>
-                            <th class="text-center" style="width:45px">#</th>
-                            <th>Type</th>
-                            <th>ID</th>
-                            <th>Name</th>
-                            <th>Department</th>
-                            <th class="text-center">In Time</th>
-                            <th class="text-center">Out Time</th>
-                            <th class="text-center">Work Hours</th>
-                            <th class="text-center">Punches</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @php $hm = fn ($m) => \App\Services\AttendanceReportService::minutesToHm((int) $m); @endphp
-                        @forelse($today_logs as $row)
-                            <tr>
-                                <td class="text-center text-muted">{{ $loop->iteration }}</td>
-                                <td>
-                                    @if($row->user_type === 'student')
-                                        <span class="att-badge-student"><i class="fas fa-user-graduate mr-1"></i>Student</span>
-                                    @elseif($row->user_type === 'teacher')
-                                        <span class="att-badge-teacher"><i class="fas fa-chalkboard-teacher mr-1"></i>Teacher/Staff</span>
-                                    @else
-                                        <span class="att-badge-other">Unknown</span>
-                                    @endif
-                                </td>
-                                <td><span class="att-id">{{ $row->user_no }}</span></td>
-                                <td class="fw-semibold">{{ $row->name }}</td>
-                                <td>{{ $row->department ?? '-' }}</td>
-                                <td class="text-center">
-                                    @if($row->in_time)
-                                        <span class="{{ $row->is_late ? 'att-late' : 'att-normal' }}">
-                                            <i class="fas fa-sign-in-alt mr-1" style="font-size:.8em"></i>{{ \App\Services\AttendanceReportService::clock($row->in_time, $row->att_date) }}
-                                        </span>
-                                        @if($row->is_late)
-                                            <br><small class="text-danger" style="font-size:.72em">Late {{ $hm($row->late_minutes) }}</small>
-                                        @endif
-                                    @else
-                                        <span class="text-muted font-weight-bold">-</span>
-                                        <br><small class="text-danger" style="font-size:.72em">Missing in</small>
-                                    @endif
-                                </td>
-                                <td class="text-center">
-                                    @if($row->out_time)
-                                        <span class="{{ $row->is_early_out ? 'att-late' : 'att-normal' }}">
-                                            <i class="fas fa-sign-out-alt mr-1" style="font-size:.8em"></i>{{ \App\Services\AttendanceReportService::clock($row->out_time, $row->att_date) }}
-                                        </span>
-                                        @if($row->is_early_out)
-                                            <br><small class="text-danger" style="font-size:.72em">Early Out</small>
-                                        @endif
-                                    @else
-                                        <span class="text-muted font-weight-bold">-</span>
-                                    @endif
-                                </td>
-                                <td class="text-center">
-                                    @if($row->in_time && $row->out_time)
-                                        <span style="font-weight:600;color:#059669">{{ $hm($row->work_minutes) }}</span>
-                                    @else
-                                        <span class="text-muted font-weight-bold">-</span>
-                                    @endif
-                                </td>
-                                <td class="text-center"><span class="att-punch">{{ $row->punches }}</span></td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="9" class="text-center py-5 text-muted">
-                                    <i class="fas fa-inbox fa-3x d-block mb-3 text-muted" style="opacity:.35"></i>
-                                    No attendance records for today yet.
-                                    <br><small>Records appear automatically when students/teachers scan their fingerprint.</small>
-                                </td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
+    @endif
 @endsection
 
 @push('js')
-<script src="{{ asset('assets/js/attendance-board.js') }}?v={{ @filemtime(public_path('assets/js/attendance-board.js')) }}"></script>
+<script>
+(function () {
+    const root = document.getElementById('liveDash');
+    if (!root) return;
+
+    const $ = k => root.querySelector('[data-ld="' + k + '"]');
+    const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
+    const SEC_PER_CARD = 3;   // marquee speed: seconds each card takes to pass
+    let absent = [], spotIdx = 0, spotTimer = null, lastSig = '';
+
+    // ── clock ──
+    function tick() {
+        const d = new Date();
+        $('clock').textContent = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    }
+    tick(); setInterval(tick, 1000);
+
+    function photo(t, cls) {
+        return t.image
+            ? `<img src="${esc(t.image)}" alt="" class="${cls || ''}" loading="lazy">`
+            : `<div class="${cls ? cls.replace('photo', 'initial') : 'ini'}">${esc(t.initial)}</div>`;
+    }
+    function card(t, kind) {
+        const inT  = t.in_time ? `<span class="${t.status === 'late' ? 'late' : ''}">${esc(t.in_time)}</span>` : '-';
+        const outT = t.out_time ? esc(t.out_time) : '-';
+        return `<div class="ld-card ${kind}" title="${esc(t.name)}${t.designation ? ' · ' + esc(t.designation) : ''}">
+                    ${photo(t)}
+                    <div><div class="nm">${esc(t.name)}</div>
+                    <div class="tm">In: <b>${inT}</b></div><div class="tm">Out: <b>${outT}</b></div></div>
+                </div>`;
+    }
+
+    // Seamless marquee: content is doubled and moved by half its length.
+    function marquee(track, items, kind, win, vertical) {
+        if (!items.length) {
+            track.classList.remove('run');
+            track.innerHTML = `<div class="ld-empty">${kind === 'absent' ? 'No absentees' : 'No one present yet'}</div>`;
+            return;
+        }
+        const html = items.map(t => card(t, kind)).join('');
+        track.classList.remove('run');
+        track.innerHTML = html;
+        const overflow = vertical ? track.scrollHeight > win.clientHeight : track.scrollWidth > win.clientWidth;
+        if (overflow) {
+            track.innerHTML = html + html;
+            track.style.setProperty('--dur', Math.max(12, items.length * SEC_PER_CARD) + 's');
+            track.classList.add('run');
+        }
+    }
+
+    // ── centre spotlight: one absent person at a time ──
+    function showSpot() {
+        const inner = $('spot-inner');
+        if (!absent.length) {
+            inner.innerHTML = `<div class="ld-spot-ok"><i class="fas fa-award"></i>No absentees today<br><small class="text-muted">Full attendance!</small></div>`;
+            $('spot-count').textContent = '';
+            return;
+        }
+        spotIdx = spotIdx % absent.length;
+        const t = absent[spotIdx];
+        inner.classList.add('fade');
+        setTimeout(() => {
+            inner.innerHTML = `
+                ${t.image ? `<img src="${esc(t.image)}" alt="" class="ld-spot-photo">` : `<div class="ld-spot-initial">${esc(t.initial)}</div>`}
+                <div class="ld-spot-name fit-one-line">${esc(t.name)}</div>
+                <div class="ld-spot-sub">${esc([t.designation, t.department].filter(Boolean).join(' · '))}</div>
+                <div class="ld-spot-sub">ID: ${esc(t.teacher_no)}${t.shift_in ? ' · Shift ' + esc(t.shift_in) + ' - ' + esc(t.shift_out || '') : ''}</div>
+                <span class="ld-spot-tag ${t.status === 'upcoming' ? 'upcoming' : ''}">${t.status === 'upcoming' ? 'Shift not started' : 'Absent'}</span>`;
+            inner.classList.remove('fade');
+            $('spot-count').textContent = (spotIdx + 1) + ' / ' + absent.length;
+            if (window.fitOneLine) window.fitOneLine();
+            spotIdx++;
+        }, 300);
+    }
+
+    function load() {
+        return fetch(root.dataset.url + '&_=' + Date.now(), { headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }, cache: 'no-store' })
+            .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+            .then(data => {
+                const s = data.summary || {};
+                const list = data.teachers || [];
+                const counted = Math.max(0, (s.total || 0) - (s.upcoming || 0)); // shift not started yet → not counted
+                const pct = counted ? Math.round((s.present || 0) / counted * 1000) / 10 : 0;
+
+                $('date').textContent = data.date || '';
+                $('present').textContent = s.present || 0;
+                $('absent').textContent = s.absent || 0;
+                $('late').textContent = s.late || 0;
+                $('pct').textContent = pct + '%';
+                $('bar').style.width = pct + '%';
+                $('total').textContent = s.total || 0;
+                $('updated').textContent = 'updated ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                const sig = JSON.stringify(list);
+                if (sig === lastSig) return; // nothing changed: keep the marquees running smoothly
+                lastSig = sig;
+
+                // present: arrival order (as sent); absent: absent first, then shift-not-started
+                const present = list.filter(t => t.status === 'late' || t.status === 'on_time');
+                absent = list.filter(t => t.status === 'absent').concat(list.filter(t => t.status === 'upcoming'));
+
+                marquee($('present-track'), present, 'present', root.querySelector('.ld-hwin'), false);
+                marquee($('absent-track'), absent, 'absent', root.querySelector('.ld-vwin'), true);
+
+                clearInterval(spotTimer);
+                spotIdx = 0;
+                showSpot();
+                spotTimer = setInterval(showSpot, +root.dataset.spotMs || 5000);
+            })
+            .catch(() => { $('updated').textContent = 'connection problem, retrying…'; });
+    }
+
+    load();
+    setInterval(load, +root.dataset.refreshMs || 60000);
+})();
+</script>
 @endpush

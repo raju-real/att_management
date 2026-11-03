@@ -669,3 +669,18 @@ if (!function_exists('isEarlyOut')) {
 
 
 
+
+if (!function_exists('fitFontSize')) {
+    /**
+     * Largest font size (pt) at which $text stays on ONE line in a box
+     * $widthMm wide — for PDF letterheads (mPDF cannot measure for us).
+     * Bold sans glyphs average ~0.62 em; 1 pt = 0.3528 mm.
+     * Web pages use the .fit-one-line class (layouts/app) instead.
+     */
+    function fitFontSize(?string $text, float $maxPt, float $widthMm, float $minPt = 5): float
+    {
+        $len = max(1, mb_strlen(trim((string) $text)));
+        $fit = $widthMm / ($len * 0.62 * 0.3528);
+        return round(max($minPt, min($maxPt, $fit)), 1);
+    }
+}

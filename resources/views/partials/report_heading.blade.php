@@ -16,8 +16,8 @@
                     <i class="fas fa-university fa-2x text-muted"></i>
                 @endif
             </div>
-            <div class="flex-grow-1 text-center">
-                <div style="font-size:1.25rem;font-weight:600;line-height:1.2">{{ $school->name }}</div>
+            <div class="flex-grow-1 text-center" style="min-width:0">
+                <div class="fit-one-line" style="font-size:1.25rem;font-weight:600;line-height:1.2">{{ $school->name }}</div>
                 @if ($school->address)<div class="text-muted small">{{ $school->address }}</div>@endif
                 @if ($school->contact_line)<div class="text-muted" style="font-size:.75rem">{{ $school->contact_line }}</div>@endif
                 <div class="mt-1" style="font-weight:600">

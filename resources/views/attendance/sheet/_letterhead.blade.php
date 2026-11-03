@@ -12,6 +12,15 @@
     $xlsx   = $mode === 'xlsx';
     $cell   = 'padding:2px 6px;';
 @endphp
+@if($xlsx)
+{{-- Excel: each line spans the whole sheet width, so a long name stays on one line (logo is a drawing) --}}
+@php $span = 9 + count($sheet['days']); @endphp
+<table>
+    <tr><td colspan="{{ $span }}" style="text-align:center;font-size:16;font-weight:bold;">{{ $school->name }}</td></tr>
+    <tr><td colspan="{{ $span }}" style="text-align:center;color:#333;">{{ $school->address }}</td></tr>
+    <tr><td colspan="{{ $span }}" style="text-align:center;color:#555;font-size:9;">{{ $school->contact_line }}</td></tr>
+</table>
+@else
 <table style="width:100%;border-collapse:collapse;margin-bottom:4px;">
     <tr>
         <td style="width:18%;vertical-align:middle;{{ $cell }}" rowspan="3">
@@ -19,16 +28,17 @@
                 <img src="{{ $school->logo_url }}" alt="" style="height:64px;max-width:130px;">
             @endif
         </td>
-        <td style="width:64%;text-align:center;{{ $cell }}font-size:{{ $xlsx ? '16' : '22px' }};font-weight:bold;">{{ $school->name }}</td>
+        <td style="width:64%;text-align:center;{{ $cell }}font-weight:bold;max-width:0;"><div class="fit-one-line" style="font-size:22px;">{{ $school->name }}</div></td>
         <td style="width:18%;" rowspan="3"></td>
     </tr>
     <tr>
         <td style="text-align:center;{{ $cell }}color:#333;">{{ $school->address }}</td>
     </tr>
     <tr>
-        <td style="text-align:center;{{ $cell }}color:#555;font-size:{{ $xlsx ? '9' : '12px' }};">{{ $school->contact_line }}</td>
+        <td style="text-align:center;{{ $cell }}color:#555;font-size:12px;">{{ $school->contact_line }}</td>
     </tr>
 </table>
+@endif
 <table style="width:100%;border-collapse:collapse;border-top:2px solid #1e1b4b;margin-bottom:6px;">
     <tr>
         <td colspan="4" style="text-align:center;padding:6px 0 2px;font-size:{{ $xlsx ? '13' : '16px' }};font-weight:bold;letter-spacing:.5px;">

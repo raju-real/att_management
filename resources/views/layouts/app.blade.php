@@ -255,6 +255,25 @@
     <script src="{{ asset('assets/common/datetimepicker/js/custom_picker.js') }}"></script>
     <script src="{{ asset('assets/js/custom.js') }}"></script>
     <script>
+        // .fit-one-line: shrink the font until the text fits on one line (long institute names in headings).
+        function fitOneLine() {
+            document.querySelectorAll('.fit-one-line').forEach(function (el) {
+                el.style.whiteSpace = 'nowrap';
+                el.style.overflow = 'hidden';
+                if (!el.dataset.maxFont) el.dataset.maxFont = parseFloat(getComputedStyle(el).fontSize);
+                var size = +el.dataset.maxFont;
+                el.style.fontSize = size + 'px';
+                while (el.scrollWidth > el.clientWidth + 1 && size > 10) {
+                    size -= 0.5;
+                    el.style.fontSize = size + 'px';
+                }
+            });
+        }
+        window.fitOneLine = fitOneLine;
+        window.addEventListener('load', fitOneLine);
+        window.addEventListener('resize', fitOneLine);
+        document.addEventListener('DOMContentLoaded', fitOneLine);
+
         // Institute dropdowns (partials/institute_select): searchable; locked for institute users.
         if ($.fn.select2) {
             $('.institute-select2').each(function () {

@@ -44,7 +44,8 @@
     <table class="lh">
         <tr>
             <td style="width:18%;" rowspan="3">@if($school->logo_path)<img src="{{ $school->logo_path }}" style="height:52px;">@endif</td>
-            <td style="width:64%;" class="sn">{{ $school->name }}</td>
+            {{-- font shrinks so a long institute name stays on one line (64% of the page width) --}}
+            <td style="width:64%;white-space:nowrap;font-size:{{ fitFontSize($school->name, 16, ($sheet['day_count'] > 31 ? 408 : 285) * 0.62) }}pt;" class="sn">{{ $school->name }}</td>
             <td style="width:18%;" rowspan="3"></td>
         </tr>
         <tr><td class="ad">{{ $school->address }}</td></tr>

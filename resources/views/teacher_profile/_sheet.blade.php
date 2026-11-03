@@ -46,7 +46,8 @@
         <tr>
             <td style="width:20%;">@if($logo)<img src="{{ $logo }}" style="height:{{ $pdf ? '50px' : '70px' }};max-width:120px;">@endif</td>
             <td style="width:56%;">
-                <div class="sn">{{ $school->name }}</div>
+                {{-- one line: PDF font is sized to the cell, the web page shrinks it with .fit-one-line --}}
+                <div class="sn {{ $pdf ? '' : 'fit-one-line' }}" style="white-space:nowrap;{{ $pdf ? 'font-size:' . fitFontSize($school->name, 16, 100) . 'pt;' : '' }}">{{ $school->name }}</div>
                 @if($school->address)<div class="ad">{{ $school->address }}</div>@endif
                 @if($school->contact_line)<div class="ct">{{ $school->contact_line }}</div>@endif
                 <table class="ti"><tr><td>Teacher/Staff Profile</td></tr></table>

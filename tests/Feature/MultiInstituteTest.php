@@ -229,6 +229,14 @@ class MultiInstituteTest extends TestCase
             $this->assertSame(200, $this->get($url)->status(), $url);
         }
 
+        // dashboard: admin sees nothing until an institute is chosen; an institute sees its own
+        $this->get('/dashboard')->assertSee('Select an institute')->assertDontSee('id="liveDash"', false);
+        $this->get('/dashboard?institute_id=' . $this->a->id)->assertSee('Alpha High School')->assertSee('id="liveDash"', false);
+        $this->actingAs($this->a);
+        $this->get('/dashboard?institute_id=' . $this->b->id)->assertSee('Alpha High School')->assertDontSee('Beta College')->assertSee('id="liveDash"', false);
+        $this->getJson('/attendance-board/data?institute_id=' . $this->b->id)->assertJsonPath('teachers.0.name', 'Teacher A')->assertJsonCount(1, 'teachers');
+        $this->actingAs($this->admin);
+
         // headings carry the institute name
         $this->actingAs($this->a);
         $this->get('/attendance-logs?from_date=' . $day . '&to_date=' . $day)->assertSee('Alpha High School')->assertSee('Teacher A')->assertDontSee('Teacher B');
