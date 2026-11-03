@@ -27,7 +27,7 @@
                                 <td>
                                     <input type="text" class="form-control form-control-sm {{ hasError("$field.$i.$key") }}"
                                         name="{{ $field }}[{{ $i }}][{{ $key }}]" data-key="{{ $key }}"
-                                        value="{{ $row[$key] ?? '' }}" placeholder="{{ $label }}" {!! tooltip(e($label)) !!}>
+                                        value="{{ $row[$key] ?? '' }}" placeholder="{{ $label }}">
                                 </td>
                             @endforeach
                             <td class="text-center align-middle">

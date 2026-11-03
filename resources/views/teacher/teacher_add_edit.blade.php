@@ -115,7 +115,7 @@
                         <label class="form-label d-block">Photo</label>
                         <div class="teacher-img-zone" id="imgZone">
                             <input type="file" name="image" id="teacherImageInput"
-                                   accept="image/jpeg,image/png,image/jpg,image/gif,image/webp" {!! tooltip('Choose Photo') !!}>
+                                   accept="image/jpeg,image/png,image/jpg,image/gif,image/webp">
                             <div class="img-preview-wrap" id="imgPreviewWrap">
                                 @if(isset($teacher) && $teacher->image && file_exists($teacher->image))
                                     <img id="imgPreview" src="{{ asset($teacher->image) }}" alt="Photo">
@@ -161,7 +161,7 @@
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label class="form-label">Department {!! starSign() !!}</label>
-                                    <select name="department_id" id="departmentSelect" class="form-control {{ hasError('department_id') }}" {!! tooltip('Select Department') !!}>
+                                    <select name="department_id" id="departmentSelect" class="form-control {{ hasError('department_id') }}">
                                         <option value="">-- Select Department --</option>
                                         @foreach ($departments as $department)
                                             <option value="{{ $department->id }}" data-institute="{{ $department->institute_id }}"
@@ -184,7 +184,7 @@
                                     <label class="form-label">Name {!! starSign() !!}</label>
                                     <input type="text" name="name"
                                         value="{{ old('name') ?? request('name') ?? ($teacher->name ?? '') }}"
-                                        class="form-control {{ hasError('name') }}" placeholder="Full Name" {!! tooltip('Name') !!}>
+                                        class="form-control {{ hasError('name') }}" placeholder="Full Name">
                                     @error('name')
                                         {!! displayError($message) !!}
                                     @enderror
@@ -198,7 +198,7 @@
                                     <input type="text" name="teacher_no"
                                         value="{{ old('teacher_no') ?? request('pin') ?? ($teacher->teacher_no ?? \App\Models\Teacher::getTeacherNo()) }}"
                                         class="form-control {{ hasError('teacher_no') }}"
-                                        placeholder="PIN used on the fingerprint device" {!! tooltip('Device ID / Teacher-Staff No') !!}>
+                                        placeholder="PIN used on the fingerprint device">
                                     <small class="text-muted">
                                         Unique inside the institute. Set this to match a PIN already enrolled on the
                                         institute's device so it links up instead of creating a duplicate.
@@ -212,7 +212,7 @@
                                 <div class="form-group">
                                     <label class="form-label">Designation</label>
                                     <input type="text" name="designation" value="{{ $val('designation') }}"
-                                        class="form-control {{ hasError('designation') }}" placeholder="e.g. Assistant Teacher / Office Assistant" {!! tooltip('Designation') !!}>
+                                        class="form-control {{ hasError('designation') }}" placeholder="e.g. Assistant Teacher / Office Assistant">
                                     @error('designation')
                                         {!! displayError($message) !!}
                                     @enderror
@@ -222,7 +222,7 @@
                                 <div class="form-group">
                                     <label class="form-label">Mobile</label>
                                     <input type="text" name="mobile" value="{{ $val('mobile') }}"
-                                        class="form-control {{ hasError('mobile') }}" placeholder="Mobile Number" {!! tooltip('Mobile') !!}>
+                                        class="form-control {{ hasError('mobile') }}" placeholder="Mobile Number">
                                     @error('mobile')
                                         {!! displayError($message) !!}
                                     @enderror
@@ -232,7 +232,7 @@
                                 <div class="form-group">
                                     <label class="form-label">Email</label>
                                     <input type="text" name="email" value="{{ $val('email') }}"
-                                        class="form-control {{ hasError('email') }}" placeholder="Email Address" {!! tooltip('Email') !!}>
+                                        class="form-control {{ hasError('email') }}" placeholder="Email Address">
                                     @error('email')
                                         {!! displayError($message) !!}
                                     @enderror
@@ -254,14 +254,14 @@
                     <div class="col-md-4">
                         <div class="form-group">
                             <label class="form-label">Date of Birth</label>
-                            <input type="date" name="date_of_birth" value="{{ $dateVal('date_of_birth') }}" class="form-control {{ hasError('date_of_birth') }}" placeholder="YYYY-MM-DD" {!! tooltip('Date of Birth') !!}>
+                            <input type="date" name="date_of_birth" value="{{ $dateVal('date_of_birth') }}" class="form-control {{ hasError('date_of_birth') }}" placeholder="YYYY-MM-DD">
                             @error('date_of_birth') {!! displayError($message) !!} @enderror
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="form-group">
                             <label class="form-label">Gender</label>
-                            <select name="gender" class="form-control {{ hasError('gender') }}" {!! tooltip('Select Gender') !!}>
+                            <select name="gender" class="form-control {{ hasError('gender') }}">
                                 <option value="">-- Select --</option>
                                 @foreach (\App\Models\Teacher::GENDERS as $g)
                                     <option value="{{ $g }}" {{ $val('gender') === $g ? 'selected' : '' }}>{{ $g }}</option>
@@ -273,7 +273,7 @@
                     <div class="col-md-4">
                         <div class="form-group">
                             <label class="form-label">Blood Group</label>
-                            <select name="blood_group" class="form-control {{ hasError('blood_group') }}" {!! tooltip('Select Blood Group') !!}>
+                            <select name="blood_group" class="form-control {{ hasError('blood_group') }}">
                                 <option value="">-- Select --</option>
                                 @foreach (\App\Models\Teacher::BLOOD_GROUPS as $bg)
                                     <option value="{{ $bg }}" {{ $val('blood_group') === $bg ? 'selected' : '' }}>{{ $bg }}</option>
@@ -286,7 +286,7 @@
                         <div class="form-group">
                             <label class="form-label">Religion</label>
                             <input type="text" name="religion" value="{{ $val('religion') }}" list="religionList"
-                                class="form-control {{ hasError('religion') }}" placeholder="Enter religion" {!! tooltip('Religion') !!}>
+                                class="form-control {{ hasError('religion') }}" placeholder="Enter religion">
                             <datalist id="religionList">
                                 @foreach (\App\Models\Teacher::RELIGIONS as $r)
                                     <option value="{{ $r }}">
@@ -299,14 +299,14 @@
                         <div class="form-group">
                             <label class="form-label">Subject <small class="text-muted">(subject teacher of)</small></label>
                             <input type="text" name="subject" value="{{ $val('subject') }}" class="form-control {{ hasError('subject') }}"
-                                placeholder="e.g. Mathematics" {!! tooltip('Subject') !!}>
+                                placeholder="e.g. Mathematics">
                             @error('subject') {!! displayError($message) !!} @enderror
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="form-group">
                             <label class="form-label">Present Address</label>
-                            <textarea name="present_address" rows="2" class="form-control {{ hasError('present_address') }}" placeholder="Enter present Address" {!! tooltip('Present Address') !!}>{{ $val('present_address') }}</textarea>
+                            <textarea name="present_address" rows="2" class="form-control {{ hasError('present_address') }}" placeholder="Enter present Address">{{ $val('present_address') }}</textarea>
                             @error('present_address') {!! displayError($message) !!} @enderror
                         </div>
                     </div>
@@ -314,7 +314,7 @@
                         <div class="form-group">
                             <label class="form-label">Permanent Address
                                 <a href="javascript:void(0)" class="small ml-1" id="copyAddress">(same as present)</a></label>
-                            <textarea name="permanent_address" rows="2" class="form-control {{ hasError('permanent_address') }}" placeholder="Enter permanent Address" {!! tooltip('Permanent Address') !!}>{{ $val('permanent_address') }}</textarea>
+                            <textarea name="permanent_address" rows="2" class="form-control {{ hasError('permanent_address') }}" placeholder="Enter permanent Address">{{ $val('permanent_address') }}</textarea>
                             @error('permanent_address') {!! displayError($message) !!} @enderror
                         </div>
                     </div>
@@ -340,35 +340,35 @@
                         <div class="form-group">
                             <label class="form-label">Advertisement Newspaper &amp; Date</label>
                             <input type="text" name="newspaper_ad" value="{{ $val('newspaper_ad') }}" class="form-control {{ hasError('newspaper_ad') }}"
-                                placeholder="e.g. Daily Ittefaq, 12-01-2015" {!! tooltip('Advertisement Newspaper & Date') !!}>
+                                placeholder="e.g. Daily Ittefaq, 12-01-2015">
                             @error('newspaper_ad') {!! displayError($message) !!} @enderror
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="form-group">
                             <label class="form-label">Joining Date of this Institution</label>
-                            <input type="date" name="joining_date" value="{{ $dateVal('joining_date') }}" class="form-control {{ hasError('joining_date') }}" placeholder="YYYY-MM-DD" {!! tooltip('Joining Date of this Institution') !!}>
+                            <input type="date" name="joining_date" value="{{ $dateVal('joining_date') }}" class="form-control {{ hasError('joining_date') }}" placeholder="YYYY-MM-DD">
                             @error('joining_date') {!! displayError($message) !!} @enderror
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="form-group">
                             <label class="form-label">Joining Post</label>
-                            <input type="text" name="joining_post" value="{{ $val('joining_post') }}" class="form-control {{ hasError('joining_post') }}" placeholder="Enter joining Post" {!! tooltip('Joining Post') !!}>
+                            <input type="text" name="joining_post" value="{{ $val('joining_post') }}" class="form-control {{ hasError('joining_post') }}" placeholder="Enter joining Post">
                             @error('joining_post') {!! displayError($message) !!} @enderror
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="form-group">
                             <label class="form-label">Time Scale</label>
-                            <input type="text" name="time_scale" value="{{ $val('time_scale') }}" class="form-control {{ hasError('time_scale') }}" placeholder="Enter time Scale" {!! tooltip('Time Scale') !!}>
+                            <input type="text" name="time_scale" value="{{ $val('time_scale') }}" class="form-control {{ hasError('time_scale') }}" placeholder="Enter time Scale">
                             @error('time_scale') {!! displayError($message) !!} @enderror
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div class="form-group">
                             <label class="form-label">M.P.O / Index Number</label>
-                            <input type="text" name="mpo_index" value="{{ $val('mpo_index') }}" class="form-control {{ hasError('mpo_index') }}" placeholder="Enter M.P.O / Index Number" {!! tooltip('M.P.O / Index Number') !!}>
+                            <input type="text" name="mpo_index" value="{{ $val('mpo_index') }}" class="form-control {{ hasError('mpo_index') }}" placeholder="Enter M.P.O / Index Number">
                             @error('mpo_index') {!! displayError($message) !!} @enderror
                         </div>
                     </div>

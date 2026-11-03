@@ -47,19 +47,19 @@
                 <div class="col-lg-4 col-md-4 col-6">
                     <div class="form-group">
                         <label class="form-label">From Date</label>
-                        <input type="text" name="from_date" class="form-control flat_datepicker" value="{{ $from_date }}" autocomplete="off" placeholder="YYYY-MM-DD" {!! tooltip('From Date') !!}>
+                        <input type="text" name="from_date" class="form-control flat_datepicker" value="{{ $from_date }}" autocomplete="off" placeholder="YYYY-MM-DD">
                     </div>
                 </div>
                 <div class="col-lg-4 col-md-4 col-6">
                     <div class="form-group">
                         <label class="form-label">To Date</label>
-                        <input type="text" name="to_date" class="form-control flat_datepicker" value="{{ $to_date }}" autocomplete="off" placeholder="YYYY-MM-DD" {!! tooltip('To Date') !!}>
+                        <input type="text" name="to_date" class="form-control flat_datepicker" value="{{ $to_date }}" autocomplete="off" placeholder="YYYY-MM-DD">
                     </div>
                 </div>
                 <div class="col-lg-4 col-md-4 col-6">
                     <div class="form-group">
                         <label class="form-label">User Type</label>
-                        <select name="user_type" class="form-control" {!! tooltip('Select User Type') !!}>
+                        <select name="user_type" class="form-control">
                             <option value="">All</option>
                             <option value="teacher" {{ request('user_type') === 'teacher' ? 'selected' : '' }}>Teacher/Staff</option>
                             <option value="student" {{ request('user_type') === 'student' ? 'selected' : '' }}>Student</option>
@@ -69,7 +69,7 @@
                 <div class="col-lg-4 col-md-6 col-6">
                     <div class="form-group">
                         <label class="form-label">Teacher/Staff</label>
-                        <select name="teacher_no" class="form-control select2-filter" {!! tooltip('Select Teacher/Staff') !!}>
+                        <select name="teacher_no" class="form-control select2-filter">
                             <option value="">All Teachers/Staff</option>
                             @foreach($teachers as $t)
                                 <option value="{{ $t->teacher_no }}" {{ (string) request('teacher_no') === (string) $t->teacher_no ? 'selected' : '' }}>
@@ -82,7 +82,7 @@
                 <div class="col-lg-4 col-md-6 col-6">
                     <div class="form-group">
                         <label class="form-label">Department</label>
-                        <select name="department_id" class="form-control" {!! tooltip('Select Department') !!}>
+                        <select name="department_id" class="form-control">
                             <option value="">All Departments</option>
                             @foreach($departments as $d)
                                 <option value="{{ $d->id }}" {{ (string) request('department_id') === (string) $d->id ? 'selected' : '' }}>{{ $d->name }}</option>
@@ -93,7 +93,7 @@
                 <div class="col-lg-4 col-md-4 col-6">
                     <div class="form-group">
                         <label class="form-label">Shift</label>
-                        <select name="shift_id" class="form-control" {!! tooltip('Select Shift') !!}>
+                        <select name="shift_id" class="form-control">
                             <option value="">All Shifts</option>
                             @foreach($shifts as $sh)
                                 <option value="{{ $sh->id }}" {{ (string) request('shift_id') === (string) $sh->id ? 'selected' : '' }}>
@@ -106,19 +106,19 @@
                 <div class="col-lg-4 col-md-4 col-6">
                     <div class="form-group">
                         <label class="form-label">ID / Student No</label>
-                        <input type="search" name="user_no" class="form-control" value="{{ request('user_no') }}" placeholder="101 / 10001" {!! tooltip('ID / Student No') !!}>
+                        <input type="search" name="user_no" class="form-control" value="{{ request('user_no') }}" placeholder="101 / 10001">
                     </div>
                 </div>
                 <div class="col-lg-4 col-md-4 col-6">
                     <div class="form-group">
                         <label class="form-label">Name</label>
-                        <input type="search" name="search" class="form-control" value="{{ request('search') }}" placeholder="Search name" {!! tooltip('Name') !!}>
+                        <input type="search" name="search" class="form-control" value="{{ request('search') }}" placeholder="Search name">
                     </div>
                 </div>
                 <div class="col-lg-4 col-md-4 col-6">
                     <div class="form-group">
                         <label class="form-label">Status</label>
-                        <select name="status" class="form-control" {!! tooltip('Select Status') !!}>
+                        <select name="status" class="form-control">
                             <option value="">All</option>
                             @foreach($statuses as $key => $label)
                                 <option value="{{ $key }}" {{ request('status') === $key ? 'selected' : '' }}>{{ $label }}</option>
@@ -129,7 +129,7 @@
                 <div class="col-lg-4 col-md-4 col-6">
                     <div class="form-group">
                         <label class="form-label">Sort By</label>
-                        <select name="sort" class="form-control" {!! tooltip('Select Sort By') !!}>
+                        <select name="sort" class="form-control">
                             <option value="date_desc" {{ request('sort', 'date_desc') === 'date_desc' ? 'selected' : '' }}>Newest date</option>
                             <option value="date_asc" {{ request('sort') === 'date_asc' ? 'selected' : '' }}>Oldest date</option>
                             <option value="in_asc" {{ request('sort') === 'in_asc' ? 'selected' : '' }}>Earliest in-time</option>
@@ -141,7 +141,7 @@
                 <div class="col-lg-4 col-md-4 col-6">
                     <div class="form-group">
                         <label class="form-label">Rows</label>
-                        <select name="per_page" class="form-control" {!! tooltip('Select Rows') !!}>
+                        <select name="per_page" class="form-control">
                             @foreach([25, 50, 100, 200] as $n)
                                 <option value="{{ $n }}" {{ (int) request('per_page', 50) === $n ? 'selected' : '' }}>{{ $n }}</option>
                             @endforeach

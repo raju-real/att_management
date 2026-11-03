@@ -12,7 +12,7 @@
                 <div class="modal-body">
                     <div class="form-group">
                         <label class="font-weight-bold">Select Device</label>
-                        <select name="device_id" class="form-control" {!! tooltip('Select Device') !!}>
+                        <select name="device_id" class="form-control">
                             <option value="">All Active Devices</option>
                             @foreach(\App\Models\Device::where('status', 'active')->get() as $dev)
                                 <option value="{{ $dev->id }}">{{ $dev->name }} ({{ $dev->serial_no }})
@@ -23,12 +23,12 @@
                     <div class="form-group">
                         <label class="font-weight-bold">From Date</label>
                         <input type="text" name="sync_from_date" class="form-control flat_datepicker"
-                            value="{{ \Carbon\Carbon::today()->toDateString() }}" placeholder="YYYY-MM-DD" {!! tooltip('From Date') !!}>
+                            value="{{ \Carbon\Carbon::today()->toDateString() }}" placeholder="YYYY-MM-DD">
                     </div>
                     <div class="form-group">
                         <label class="font-weight-bold">To Date</label>
                         <input type="text" name="sync_to_date" class="form-control flat_datepicker"
-                            value="{{ \Carbon\Carbon::today()->toDateString() }}" placeholder="YYYY-MM-DD" {!! tooltip('To Date') !!}>
+                            value="{{ \Carbon\Carbon::today()->toDateString() }}" placeholder="YYYY-MM-DD">
                     </div>
                     <div class="alert alert-info py-2 small mb-0">
                         <i class="fas fa-info-circle mr-1"></i>

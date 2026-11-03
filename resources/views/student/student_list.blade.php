@@ -61,7 +61,7 @@
                                 <div class="form-group">
                                     <label class="form-label">Name</label>
                                     <input type="search" name="name" class="form-control" value="{{ request('name') }}"
-                                        placeholder="Student Name" {!! tooltip('Name') !!}>
+                                        placeholder="Student Name">
                                 </div>
                             </div>
 
@@ -70,7 +70,7 @@
                                 <div class="form-group">
                                     <label class="form-label">Student ID</label>
                                     <input type="search" name="student_id" class="form-control"
-                                        value="{{ request('student_id') }}" placeholder="Student ID" {!! tooltip('Student ID') !!}>
+                                        value="{{ request('student_id') }}" placeholder="Student ID">
                                 </div>
                             </div>
 
@@ -79,7 +79,7 @@
                                 <div class="form-group">
                                     <label class="form-label">Device ID / Student No</label>
                                     <input type="search" name="student_no" class="form-control"
-                                        value="{{ request('student_no') }}" placeholder="Student No" {!! tooltip('Device ID / Student No') !!}>
+                                        value="{{ request('student_no') }}" placeholder="Student No">
                                 </div>
                             </div>
 
@@ -87,7 +87,7 @@
                             <div class="col-md-4">
                                 <div class="form-group">
                                     <label class="form-label">Class</label>
-                                    <select name="class" class="form-control" {!! tooltip('Select Class') !!}>
+                                    <select name="class" class="form-control">
                                         <option value="">All</option>
                                         @foreach (getClassList() as $className)
                                             @if ($className)

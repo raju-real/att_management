@@ -23,7 +23,7 @@
                             <div class="col-sm-4">
                                 <div class="input-group">
                                     <input type="number" name="late_fee" value="{{ $lateFee }}" class="form-control"
-                                        placeholder="Enter Late Fee" min="0" step="0.01" {!! tooltip('Late Fee') !!}>
+                                        placeholder="Enter Late Fee" min="0" step="0.01">
                                     <div class="input-group-append">
                                         <span class="input-group-text">Tk</span>
                                     </div>
@@ -41,7 +41,7 @@
                                     <div class="input-group">
                                         <input type="number" name="fees[{{ $class }}]"
                                             value="{{ $classFees[$class] ?? '' }}" class="form-control"
-                                            placeholder="Fee for {{ $class }}" min="0" step="0.01" {!! tooltip("Fee for " . e($class)) !!}>
+                                            placeholder="Fee for {{ $class }}" min="0" step="0.01">
                                         <div class="input-group-append">
                                             <span class="input-group-text">Tk</span>
                                         </div>

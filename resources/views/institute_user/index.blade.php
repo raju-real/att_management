@@ -23,7 +23,7 @@
                         @include('partials.institute_select', ['class' => 'form-control form-control-sm'])
                     </div>
                 @endif
-                <input type="search" name="search" value="{{ request('search') }}" class="form-control form-control-sm mr-1" placeholder="Name, email, mobile" {!! tooltip('Name, email, mobile') !!}>
+                <input type="search" name="search" value="{{ request('search') }}" class="form-control form-control-sm mr-1" placeholder="Name, email, mobile">
                 <button class="btn btn-sm btn-primary-admin text-white mr-1"><i class="fas fa-search"></i></button>
                 @if (request()->hasAny(['search', 'institute_id']))
                     <a href="{{ route('institute-users.index') }}" class="btn btn-sm btn-secondary"><i class="fas fa-undo"></i></a>

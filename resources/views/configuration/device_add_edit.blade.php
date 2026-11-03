@@ -73,7 +73,7 @@
                         <div class="form-group">
                             <label class="form-label">Name {!! starSign() !!}</label>
                             <input type="text" name="name" value="{{ old('name') ?? ($device->name ?? '') }}"
-                                class="form-control {{ hasError('name') }}" placeholder="Device Name" {!! tooltip('Name') !!}>
+                                class="form-control {{ hasError('name') }}" placeholder="Device Name">
                             @error('name')
                                 {!! displayError($message) !!}
                             @enderror
@@ -84,7 +84,7 @@
                             <label class="form-label">Serial No. {!! starSign() !!}</label>
                             <input type="text" name="serial_no"
                                 value="{{ old('serial_no') ?? ($device->serial_no ?? '') }}"
-                                class="form-control {{ hasError('serial_no') }}" placeholder="e.g. XXXXXXXXXXXX" {!! tooltip('Serial No.') !!}>
+                                class="form-control {{ hasError('serial_no') }}" placeholder="e.g. XXXXXXXXXXXX">
                             @error('serial_no')
                                 {!! displayError($message) !!}
                             @enderror
@@ -98,7 +98,7 @@
                             </label>
                             <input type="text" name="ip_address"
                                 value="{{ old('ip_address') ?? ($device->ip_address ?? '') }}"
-                                class="form-control {{ hasError('ip_address') }}" placeholder="e.g. 192.168.1.201" {!! tooltip('Device\'s Own IP Address') !!}>
+                                class="form-control {{ hasError('ip_address') }}" placeholder="e.g. 192.168.1.201">
                             {{-- <small class="text-muted">
                                 Copy this from the device's own screen (<span class="text-monospace">MENU → COMM → Ethernet</span>) —
                                 <strong>not</strong> an example from any guide, and not this server's own address.
@@ -115,7 +115,7 @@
                             <label class="form-label">Device Port</label>
                             <input type="number" name="device_port"
                                 value="{{ old('device_port') ?? ($device->device_port ?? '4370') }}"
-                                class="form-control {{ hasError('device_port') }}" placeholder="4370" {!! tooltip('Device Port') !!}>
+                                class="form-control {{ hasError('device_port') }}" placeholder="4370">
                             @error('device_port')
                                 {!! displayError($message) !!}
                             @enderror
@@ -125,7 +125,7 @@
                         <div class="form-group">
                             <label class="form-label">Communication Key (Comm Key)</label>
                             <input type="number" name="comm_key" value="{{ old('comm_key') ?? ($device->comm_key ?? '0') }}"
-                                class="form-control {{ hasError('comm_key') }}" placeholder="0" {!! tooltip('Communication Key') !!}>
+                                class="form-control {{ hasError('comm_key') }}" placeholder="0">
                             <small class="text-muted">Default: 0 | MENU → COMM → Comm Key</small>
                             @error('comm_key')
                                 {!! displayError($message) !!}
@@ -135,7 +135,7 @@
                     <div class="col-md-4">
                         <div class="form-group">
                             <label class="form-label">Device For {!! starSign() !!}</label>
-                            <select name="device_for" class="form-control {{ hasError('device_for') }}" {!! tooltip('Select Device For') !!}>
+                            <select name="device_for" class="form-control {{ hasError('device_for') }}">
                                 @foreach (getDeviceFor() as $device_for)
                                     <option value="{{ $device_for->value }}"
                                         {{ old('device_for') === $device_for->value || (isset($device) && $device->device_for === $device_for->value && empty(old('device_for'))) ? 'selected' : '' }}>
@@ -150,7 +150,7 @@
                     <div class="col-md-4">
                         <div class="form-group">
                             <label class="form-label">Status {!! starSign() !!}</label>
-                            <select name="status" class="form-control {{ hasError('status') }}" {!! tooltip('Select Status') !!}>
+                            <select name="status" class="form-control {{ hasError('status') }}">
                                 @foreach (getStatus() as $status)
                                     <option value="{{ $status->value }}"
                                         {{ old('status') === $status->value || (isset($device) && $device->status === $status->value && empty(old('status'))) ? 'selected' : '' }}>
@@ -181,7 +181,7 @@
                                             <input type="text" name="subnet_label"
                                                 value="{{ old('subnet_label') ?? ($device->subnet_label ?? '') }}"
                                                 class="form-control {{ hasError('subnet_label') }}"
-                                                placeholder="e.g. Building A / 192.168.0.0/24" {!! tooltip('Subnet / Building Label') !!}>
+                                                placeholder="e.g. Building A / 192.168.0.0/24">
                                             @error('subnet_label')
                                                 {!! displayError($message) !!}
                                             @enderror
@@ -193,7 +193,7 @@
                                             <input type="text" name="gateway_ip"
                                                 value="{{ old('gateway_ip') ?? ($device->gateway_ip ?? '') }}"
                                                 class="form-control {{ hasError('gateway_ip') }}"
-                                                placeholder="e.g. 192.168.0.1" {!! tooltip('Gateway IP for this Device') !!}>
+                                                placeholder="e.g. 192.168.0.1">
                                             <small class="text-muted">The router port on the device's own subnet that routes to this server.</small>
                                             @error('gateway_ip')
                                                 {!! displayError($message) !!}
@@ -206,7 +206,7 @@
                                             <input type="text" name="location_note"
                                                 value="{{ old('location_note') ?? ($device->location_note ?? '') }}"
                                                 class="form-control {{ hasError('location_note') }}"
-                                                placeholder="e.g. Main gate, 1st floor" {!! tooltip('Location Note') !!}>
+                                                placeholder="e.g. Main gate, 1st floor">
                                             @error('location_note')
                                                 {!! displayError($message) !!}
                                             @enderror

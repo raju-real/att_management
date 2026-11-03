@@ -64,7 +64,7 @@
                 <div class="form-group mb-2">
                     <label class="form-label">From Date</label>
                     <input type="text" name="from_date" class="form-control flat_datepicker {{ hasError('from_date') }}"
-                           value="{{ old('from_date', $sheet['from']) }}" autocomplete="off" placeholder="YYYY-MM-DD" {!! tooltip('From Date') !!}>
+                           value="{{ old('from_date', $sheet['from']) }}" autocomplete="off" placeholder="YYYY-MM-DD">
                     @error('from_date') {!! displayError($message) !!} @enderror
                 </div>
             </div>
@@ -73,14 +73,14 @@
                     <label class="form-label">To Date
                         <i class="fas fa-question-circle text-muted" {!! tooltip('Up to ' . \App\Services\MonthlySheetService::MAX_DAYS . ' days; each day is one column') !!}></i></label>
                     <input type="text" name="to_date" class="form-control flat_datepicker {{ hasError('to_date') }}"
-                           value="{{ old('to_date', $sheet['to']) }}" autocomplete="off" placeholder="YYYY-MM-DD" {!! tooltip('To Date') !!}>
+                           value="{{ old('to_date', $sheet['to']) }}" autocomplete="off" placeholder="YYYY-MM-DD">
                     @error('to_date') {!! displayError($message) !!} @enderror
                 </div>
             </div>
             <div class="col-lg-4 col-md-4 col-6">
                 <div class="form-group mb-2">
                     <label class="form-label">Department <small class="text-muted">(optional)</small></label>
-                    <select name="department_id" class="form-control" {!! tooltip('Select Department') !!}>
+                    <select name="department_id" class="form-control">
                         <option value="">All Departments</option>
                         @foreach($departments as $d)
                             <option value="{{ $d->id }}" {{ (string) request('department_id') === (string) $d->id ? 'selected' : '' }}>{{ $d->name }}</option>
@@ -91,7 +91,7 @@
             <div class="col-lg-4 col-md-4 col-6">
                 <div class="form-group mb-2">
                     <label class="form-label">Shift <small class="text-muted">(optional)</small></label>
-                    <select name="shift_id" class="form-control" {!! tooltip('Select Shift') !!}>
+                    <select name="shift_id" class="form-control">
                         <option value="">All Shifts</option>
                         @foreach($shifts as $sh)
                             <option value="{{ $sh->id }}" {{ (string) request('shift_id') === (string) $sh->id ? 'selected' : '' }}>

@@ -47,7 +47,7 @@
                         <div class="form-group">
                             <label class="form-label">Title {!! starSign() !!}</label>
                             <input type="text" name="title" value="{{ old('title') ?? ($shift->title ?? '') }}"
-                                class="form-control {{ hasError('title') }}" placeholder="e.g. Morning / Night Shift" {!! tooltip('Title') !!}>
+                                class="form-control {{ hasError('title') }}" placeholder="e.g. Morning / Night Shift">
                             @error('title')
                                 {!! displayError($message) !!}
                             @enderror
@@ -57,7 +57,7 @@
                         <div class="form-group">
                             <label class="form-label">In Time {!! starSign() !!}</label>
                             <input type="text" name="in_time" id="shIn" value="{{ $t('in_time') }}"
-                                class="form-control {{ hasError('in_time') }} flat_timepicker" placeholder="08:00 AM" {!! tooltip('In Time') !!}>
+                                class="form-control {{ hasError('in_time') }} flat_timepicker" placeholder="08:00 AM">
                             @error('in_time')
                                 {!! displayError($message) !!}
                             @enderror
@@ -68,7 +68,7 @@
                             <label class="form-label">Out Time {!! starSign() !!}
                                 <i class="fas fa-question-circle text-muted" {!! tooltip('Earlier than the in time = night shift ending the next day') !!}></i></label>
                             <input type="text" name="out_time" id="shOut" value="{{ $t('out_time') }}"
-                                class="form-control {{ hasError('out_time') }} flat_timepicker" placeholder="02:00 PM" {!! tooltip('Out Time') !!}>
+                                class="form-control {{ hasError('out_time') }} flat_timepicker" placeholder="02:00 PM">
                             @error('out_time')
                                 {!! displayError($message) !!}
                             @enderror
@@ -77,7 +77,7 @@
                     <div class="col-md-4">
                         <div class="form-group">
                             <label class="form-label">Status {!! starSign() !!}</label>
-                            <select name="status" class="form-control {{ hasError('status') }}" {!! tooltip('Select Status') !!}>
+                            <select name="status" class="form-control {{ hasError('status') }}">
                                 @foreach (getStatus() as $status)
                                     <option value="{{ $status->value }}"
                                         {{ (old('status') ?? ($shift->status ?? 'active')) === $status->value ? 'selected' : '' }}>
@@ -98,7 +98,7 @@
                             <label class="form-label">Late counts after
                                 <i class="fas fa-question-circle text-muted" {!! tooltip('First punch after this time = Late In. Empty = the in time (no grace). Late minutes are counted from the in time.') !!}></i></label>
                             <input type="text" name="late_count_time" id="shLate" value="{{ $t('late_count_time') }}"
-                                class="form-control {{ hasError('late_count_time') }} flat_timepicker" placeholder="Same as in time" {!! tooltip('Late counts after') !!}>
+                                class="form-control {{ hasError('late_count_time') }} flat_timepicker" placeholder="Same as in time">
                             @error('late_count_time')
                                 {!! displayError($message) !!}
                             @enderror
@@ -109,7 +109,7 @@
                             <label class="form-label">Early out counts before
                                 <i class="fas fa-question-circle text-muted" {!! tooltip('Last punch before this time = Early Out. Empty = the out time.') !!}></i></label>
                             <input type="text" name="early_out_count_time" id="shEarly" value="{{ $t('early_out_count_time') }}"
-                                class="form-control {{ hasError('early_out_count_time') }} flat_timepicker" placeholder="Same as out time" {!! tooltip('Early out counts before') !!}>
+                                class="form-control {{ hasError('early_out_count_time') }} flat_timepicker" placeholder="Same as out time">
                             @error('early_out_count_time')
                                 {!! displayError($message) !!}
                             @enderror
@@ -121,7 +121,7 @@
                                 <i class="fas fa-question-circle text-muted" {!! tooltip('How early a punch still belongs to this shift. Default 180 (3 h).') !!}></i></label>
                             <input type="number" min="0" max="720" name="punch_before_minutes" id="shBefore"
                                 value="{{ old('punch_before_minutes') ?? ($shift->punch_before_minutes ?? \App\Models\Shift::DEFAULT_PUNCH_BEFORE_MINUTES) }}"
-                                class="form-control {{ hasError('punch_before_minutes') }}" placeholder="Enter punches accepted before in" {!! tooltip('Punches accepted before in') !!}>
+                                class="form-control {{ hasError('punch_before_minutes') }}" placeholder="Enter punches accepted before in">
                             @error('punch_before_minutes')
                                 {!! displayError($message) !!}
                             @enderror
@@ -133,7 +133,7 @@
                                 <i class="fas fa-question-circle text-muted" {!! tooltip('How late an out punch still belongs to this shift. Default 360 (6 h).') !!}></i></label>
                             <input type="number" min="0" max="720" name="punch_after_minutes" id="shAfter"
                                 value="{{ old('punch_after_minutes') ?? ($shift->punch_after_minutes ?? \App\Models\Shift::DEFAULT_PUNCH_AFTER_MINUTES) }}"
-                                class="form-control {{ hasError('punch_after_minutes') }}" placeholder="Enter punches accepted after out" {!! tooltip('Punches accepted after out') !!}>
+                                class="form-control {{ hasError('punch_after_minutes') }}" placeholder="Enter punches accepted after out">
                             @error('punch_after_minutes')
                                 {!! displayError($message) !!}
                             @enderror

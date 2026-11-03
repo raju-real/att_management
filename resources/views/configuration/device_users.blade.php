@@ -37,10 +37,10 @@
         <div class="card-body py-3">
             <form method="GET" action="{{ route('devices.users', $device->id) }}" class="row">
                 <div class="col-md-4 mb-2">
-                    <input type="search" name="search" value="{{ request('search') }}" class="form-control" placeholder="Search PIN or name" {!! tooltip('Search PIN or name') !!}>
+                    <input type="search" name="search" value="{{ request('search') }}" class="form-control" placeholder="Search PIN or name">
                 </div>
                 <div class="col-md-4 mb-2">
-                    <select name="status" class="form-control" {!! tooltip('Select Status') !!}>
+                    <select name="status" class="form-control">
                         <option value="">All users</option>
                         <option value="registered" {{ request('status') === 'registered' ? 'selected' : '' }}>Registered (teacher / student)</option>
                         <option value="unregistered" {{ request('status') === 'unregistered' ? 'selected' : '' }}>Not registered in the system</option>

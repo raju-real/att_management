@@ -73,27 +73,27 @@
                                 <div class="form-group">
                                     <label class="form-label">Name</label>
                                     <input type="search" name="name" class="form-control"
-                                           value="{{ request('name') }}" placeholder="Name" {!! tooltip('Name') !!}>
+                                           value="{{ request('name') }}" placeholder="Name">
                                 </div>
                             </div>
                             <div class="col-md-4">
                                 <div class="form-group">
                                     <label class="form-label">Device ID</label>
                                     <input type="search" name="teacher_no" class="form-control"
-                                           value="{{ request('teacher_no') }}" placeholder="Device ID / No" {!! tooltip('Device ID') !!}>
+                                           value="{{ request('teacher_no') }}" placeholder="Device ID / No">
                                 </div>
                             </div>
                             <div class="col-md-4">
                                 <div class="form-group">
                                     <label class="form-label">Designation</label>
                                     <input type="search" name="designation" class="form-control"
-                                           value="{{ request('designation') }}" placeholder="Designation" {!! tooltip('Designation') !!}>
+                                           value="{{ request('designation') }}" placeholder="Designation">
                                 </div>
                             </div>
                             <div class="col-md-4">
                                 <div class="form-group">
                                     <label class="form-label">Department</label>
-                                    <select name="department_id" class="form-control" {!! tooltip('Select Department') !!}>
+                                    <select name="department_id" class="form-control">
                                         <option value="">All</option>
                                         @foreach($departments as $d)
                                             <option value="{{ $d->id }}" {{ (string) request('department_id') === (string) $d->id ? 'selected' : '' }}>{{ $d->name }}</option>

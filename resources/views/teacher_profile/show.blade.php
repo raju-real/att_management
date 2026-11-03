@@ -18,7 +18,7 @@
         <div class="mb-2 d-flex align-items-center flex-wrap" style="gap:6px">
             <form method="GET" action="{{ route('teacher-profiles.show', $teacher->id) }}" class="d-flex align-items-center" style="gap:6px">
                 <label class="mb-0 text-muted small">Attendance year</label>
-                <select name="year" class="form-control form-control-sm" style="width:100px" onchange="this.form.submit()" {!! tooltip('Select Attendance year') !!}>
+                <select name="year" class="form-control form-control-sm" style="width:100px" onchange="this.form.submit()">
                     @for($y = now()->year; $y >= now()->year - 6; $y--)
                         <option value="{{ $y }}" {{ $year === $y ? 'selected' : '' }}>{{ $y }}</option>
                     @endfor
