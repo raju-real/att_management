@@ -16,6 +16,7 @@
     .ld-grid { display: grid; grid-template-columns: 220px minmax(0, 1fr) 240px; gap: 16px; }
     .ld-filter { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; margin-bottom: 12px; }
     .ld-filter select { width: 240px; }
+    .ld-filter .ld-person { width: 300px; }
     .ld-label { font-weight: 800; font-size: 17px; letter-spacing: .5px; color: #111827; text-transform: uppercase; }
     .ld-label.absent { color: #b91c1c; text-align: center; }
     .ld-label.present { color: #047857; }
@@ -32,13 +33,14 @@
     .ld-bar > div { height: 100%; background: linear-gradient(90deg, #10b981, #059669); transition: width .6s ease; }
 
     /* centre: spotlight of absent people */
-    .ld-spot { border: 2px solid #1e1b4b; border-radius: 12px; height: 540px; max-width: 460px; margin: 0 auto; display: flex; flex-direction: column;
-        align-items: center; justify-content: center; text-align: center; padding: 16px; position: relative; overflow: hidden;
+    /* standard box: sized by photo + name, normal padding */
+    .ld-spot { border: 2px solid #1e1b4b; border-radius: 12px; min-height: 420px; max-width: 400px; margin: 0 auto; display: flex; flex-direction: column;
+        align-items: center; justify-content: center; text-align: center; padding: 12px; position: relative; overflow: hidden;
         background: radial-gradient(circle at 50% 30%, #fef2f2, #fff 70%); }
-    .ld-spot-photo { width: 240px; height: 240px; border-radius: 12px; object-fit: cover; object-position: center top; border: 4px solid #fecaca;
+    .ld-spot-photo { width: 300px; height: 300px; border-radius: 12px; object-fit: cover; object-position: center top; border: 4px solid #fecaca;
         box-shadow: 0 10px 30px rgba(185, 28, 28, .18); background: #f3f4f6; }
-    .ld-spot-initial { width: 240px; height: 240px; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin: 0 auto;
-        font-size: 100px; font-weight: 800; color: #b91c1c; background: #fee2e2; border: 4px solid #fecaca; }
+    .ld-spot-initial { width: 300px; height: 300px; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin: 0 auto;
+        font-size: 120px; font-weight: 800; color: #b91c1c; background: #fee2e2; border: 4px solid #fecaca; }
     .ld-spot-name { font-size: 22px; font-weight: 800; margin-top: 12px; color: #111827; max-width: 100%; }
     .ld-spot-name a { color: inherit; text-decoration: none; border-bottom: 2px dashed #a5b4fc; }
     .ld-spot-name a:hover { color: #4338ca; }
@@ -48,7 +50,7 @@
     .ld-spot.present .ld-spot-photo { border-color: #a7f3d0; box-shadow: 0 10px 30px rgba(4, 120, 87, .18); }
     .ld-spot.present .ld-spot-initial { background: #d1fae5; color: #047857; border-color: #a7f3d0; }
     .ld-spot-tag.present { background: #047857; } .ld-spot-tag.late { background: #d97706; }
-    .ld-spot-back { position: absolute; left: 12px; top: 8px; font-size: 12px; color: #6b7280; cursor: pointer; display: none; }
+    .ld-spot-back { order: 2; margin-top: 6px; font-size: 12px; color: #6b7280; cursor: pointer; display: none; }
     .ld-spot-back:hover { color: #111827; }
     .ld-spot.pinned .ld-spot-back { display: block; }
     .ld-spot-sub { color: #6b7280; font-size: 14px; }
@@ -91,7 +93,7 @@
     @media (max-width: 991px) {
         .ld-grid { grid-template-columns: 1fr; }
         .ld-vwin { height: 300px; }
-        .ld-spot { height: 460px; }
+        .ld-spot { min-height: 0; }
     }
 </style>
 @endpush
@@ -131,6 +133,13 @@
                     <option value="">All Shifts</option>
                     @foreach ($shifts as $sh)
                         <option value="{{ $sh->id }}">{{ $sh->title }} ({{ \App\Services\AttendanceReportService::shiftClock($sh->in_time) }} - {{ \App\Services\AttendanceReportService::shiftClock($sh->out_time, $sh->in_time) }})</option>
+                    @endforeach
+                </select>
+                {{-- this institute's teachers/staff: picking one shows them in the centre --}}
+                <select class="form-control form-control-sm ld-person" data-ld="person" aria-label="Teacher/Staff">
+                    <option value="">All Teachers/Staff</option>
+                    @foreach ($teachers as $t)
+                        <option value="{{ $t->id }}">{{ $t->name }} ({{ $t->teacher_no }})</option>
                     @endforeach
                 </select>
             </div>
@@ -291,17 +300,39 @@
         spotTimer = setInterval(rotate, SPOT_MS);
     }
 
+    // show one person in the centre for a while, then back to the absent rotation
+    function pin(id) {
+        if (!people[id]) return false;
+        clearInterval(spotTimer);
+        clearTimeout(pinTimer);
+        render(people[id], true);
+        $('spot-count').textContent = '';
+        pinTimer = setTimeout(startRotation, PIN_MS);
+        return true;
+    }
+
     // click a card (present or absent) → show that person in the centre
     root.addEventListener('click', function (e) {
         const c = e.target.closest('.ld-card');
-        if (!c || !people[c.dataset.id]) return;
-        clearInterval(spotTimer);
-        clearTimeout(pinTimer);
-        render(people[c.dataset.id], true);
-        $('spot-count').textContent = '';
-        pinTimer = setTimeout(startRotation, PIN_MS); // back to the absent rotation after a while
+        if (c) pin(c.dataset.id);
     });
     $('spot-back').addEventListener('click', startRotation);
+
+    // Teacher/Staff dropdown (select2) → show that person in the centre.
+    // Not in the current department/shift filter? clear those filters first.
+    const person = $('person');
+    let pendingPin = null;
+    if (window.jQuery && jQuery.fn.select2) {
+        jQuery(person).select2({ width: '300px', placeholder: 'All Teachers/Staff', allowClear: true });
+    }
+    jQuery(person).on('change', function () {
+        const id = person.value;
+        if (!id) { startRotation(); return; }
+        if (!pin(id)) {
+            dept.value = ''; limitShifts(); shift.value = '';
+            pendingPin = id; lastSig = ''; load();
+        }
+    });
 
     // ── filters ──
     const dept = $('department'), shift = $('shift');
@@ -351,7 +382,8 @@
                 marquee($('present-track'), present, 'present', root.querySelector('.ld-hwin'), false);
                 marquee($('absent-track'), absent, 'absent', root.querySelector('.ld-vwin'), true);
 
-                if (!pinTimer) { spotIdx = 0; startRotation(); }
+                if (pendingPin) { pin(pendingPin); pendingPin = null; }
+                else if (!pinTimer) { spotIdx = 0; startRotation(); }
             })
             .catch(() => { $('updated').textContent = 'connection problem, retrying…'; });
     }

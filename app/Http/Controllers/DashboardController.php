@@ -24,6 +24,11 @@ class DashboardController extends Controller
         $departments = $institute ? \App\Models\Department::forInstitute($institute)->orderBy('name')->get(['id', 'name', 'shift_id']) : collect();
         $shifts      = $institute ? \App\Models\Shift::forInstitute($institute)->orderBy('in_time')->get(['id', 'title', 'in_time', 'out_time']) : collect();
 
-        return view('dashboard', compact('institute', 'school', 'departments', 'shifts'));
+        // teachers/staff of this institute for the select2 "show in the centre" dropdown
+        $teachers = $institute
+            ? \App\Models\Teacher::forInstitute($institute)->orderBy('name')->get(['id', 'name', 'teacher_no'])
+            : collect();
+
+        return view('dashboard', compact('institute', 'school', 'departments', 'shifts', 'teachers'));
     }
 }
