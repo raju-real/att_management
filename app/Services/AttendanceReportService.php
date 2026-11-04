@@ -107,6 +107,9 @@ class AttendanceReportService
     // use the site default in/out time; with no default, calendar dates.
 
     /** Default punch window when a shift (or the site default) has none. */
+    /** Reports list people by ID as a number (9, 10, 101), never by name. */
+    protected const NO_ORDER_R = 'CAST(r.user_no AS UNSIGNED), r.user_no';
+
     public const DEFAULT_BEFORE_MINUTES = 180;
     public const DEFAULT_AFTER_MINUTES  = 360;
 
@@ -364,13 +367,13 @@ class AttendanceReportService
     protected static function applyLogSort(Builder $q, string $sort): void
     {
         match ($sort) {
-            'date_asc'   => $q->orderBy('r.att_date')->orderBy('r.first_p'),
+            'date_asc'   => $q->orderBy('r.att_date')->orderByRaw(self::NO_ORDER_R),
             // earliest arrival relative to each person's own shift start
             'in_asc'     => $q->orderBy('r.att_date', 'desc')
                 ->orderByRaw('COALESCE(TIMESTAMPDIFF(SECOND, r.sched_in, r.first_p), TIME_TO_SEC(TIME(r.first_p)))'),
             'late_desc'  => $q->orderByDesc('late_minutes')->orderBy('r.att_date', 'desc'),
-            'name'       => $q->orderBy('r.name')->orderBy('r.att_date', 'desc'),
-            default      => $q->orderBy('r.att_date', 'desc')->orderBy('r.first_p'),
+            'user_no'    => $q->orderByRaw(self::NO_ORDER_R)->orderBy('r.att_date', 'desc'),
+            default      => $q->orderBy('r.att_date', 'desc')->orderByRaw(self::NO_ORDER_R),
         };
     }
 
@@ -413,7 +416,7 @@ class AttendanceReportService
         [$from, $to] = self::resolveRange($f, 'month');
 
         $q = self::summaryQuery($from, $to, $f);
-        self::applySummarySort($q, $f['sort'] ?? 'name');
+        self::applySummarySort($q, $f['sort'] ?? 'user_no');
 
         return $q->paginate($perPage)->withQueryString();
     }
@@ -423,7 +426,7 @@ class AttendanceReportService
         [$from, $to] = self::resolveRange($f, 'month');
 
         $q = self::summaryQuery($from, $to, $f);
-        self::applySummarySort($q, $f['sort'] ?? 'name');
+        self::applySummarySort($q, $f['sort'] ?? 'user_no');
 
         return $q->cursor();
     }
@@ -434,8 +437,7 @@ class AttendanceReportService
             'late_desc'    => $q->orderByDesc('late_days')->orderByDesc('late_minutes'),
             'hours_desc'   => $q->orderByDesc('work_minutes'),
             'present_desc' => $q->orderByDesc('present_days'),
-            'user_no'      => $q->orderByRaw('CAST(x.user_no AS UNSIGNED)'),
-            default        => $q->orderBy('x.user_type', 'desc')->orderBy('name'),
+            default        => $q->orderBy('x.user_type', 'desc')->orderByRaw('CAST(x.user_no AS UNSIGNED), x.user_no'),
         };
     }
 
@@ -488,7 +490,7 @@ class AttendanceReportService
 
     /**
      * Every teacher with today's (or $date's) status: late / on_time / absent,
-     * plus the early_out flag. Sorted: arrivals by in-time first, then absentees.
+     * plus the early_out flag. Sorted by teacher_no.
      *
      * This is the ONE data source for every attendance board (dashboard
      * board and the standalone /attendance-board page) — change the
@@ -581,11 +583,8 @@ class AttendanceReportService
                 'early_out'    => (bool) ($r->is_early_out ?? false),
                 'early_out_by' => $r && $r->is_early_out ? self::minutesToHm((int) $r->early_out_minutes) : null,
                 'work_hours'   => $r && $r->in_time && $r->out_time ? self::minutesToHm((int) $r->work_minutes) : null,
-                // arrivals first in order of arrival, then upcoming, then absent
-                'sort_key'     => $r ? '0' . str_pad((string) ((int) ($r->arrival_offset ?? 0) + 86400), 6, '0', STR_PAD_LEFT)
-                                     : ($status === 'upcoming' ? '1' : '2'),
             ];
-        })->sortBy([['sort_key', 'asc'], ['name', 'asc']])->values();
+        })->sort(fn ($a, $b) => strnatcmp((string) $a['teacher_no'], (string) $b['teacher_no']))->values();
 
         $summary = [
             'total'     => $list->count(),
@@ -600,7 +599,7 @@ class AttendanceReportService
         return [
             'date'     => Carbon::parse($date)->format('l, d M Y'),
             'summary'  => $summary,
-            'teachers' => $list->map(fn ($t) => collect($t)->except('sort_key'))->all(),
+            'teachers' => $list->all(),
         ];
     }
 

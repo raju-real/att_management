@@ -134,7 +134,7 @@
                             <option value="date_asc" {{ request('sort') === 'date_asc' ? 'selected' : '' }}>Oldest date</option>
                             <option value="in_asc" {{ request('sort') === 'in_asc' ? 'selected' : '' }}>Earliest in-time</option>
                             <option value="late_desc" {{ request('sort') === 'late_desc' ? 'selected' : '' }}>Most late</option>
-                            <option value="name" {{ request('sort') === 'name' ? 'selected' : '' }}>Name</option>
+                            <option value="user_no" {{ request('sort') === 'user_no' ? 'selected' : '' }}>ID</option>
                         </select>
                     </div>
                 </div>

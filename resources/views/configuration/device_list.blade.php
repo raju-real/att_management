@@ -42,11 +42,9 @@
             {{-- <a href="{{ route('devices.setup-guide') }}" class="btn btn-info text-white" {!! tooltip('Setup & Configuration Guide') !!}>
                 <i class="fas fa-book mr-1"></i> Setup Guide
             </a> --}}
-            @if (isSuperAdmin())
             <a href="{{ route('devices.create') }}" class="btn btn-primary-admin text-white" {!! tooltip('Add New Device') !!}>
                 <i class="fas fa-plus mr-1"></i> Add New
             </a>
-            @endif
         </div>
     </div>
 
@@ -127,11 +125,9 @@
                                 <td class="text-right text-nowrap" onclick="event.stopPropagation()">
                                     {{-- Inline quick links --}}
                                     <a href="{{ route('devices.show', $device->slug) }}" class="action-btn text-info" {!! tooltip('Details') !!}><i class="fas fa-eye"></i></a>
-                                    @if (isSuperAdmin())
                                     <a href="{{ route('devices.edit', $device->slug) }}" class="action-btn" {!! tooltip('Edit') !!}><i class="fas fa-edit"></i></a>
                                     <a href="javascript:void(0)" class="action-btn text-danger delete-data"
                                        data-id="delete-device-{{ $device->id }}" {!! tooltip('Delete') !!}><i class="fas fa-trash-alt"></i></a>
-                                    @endif
                                     <i class="fas fa-chevron-down text-muted ms-2" id="chevron-{{ $device->id }}" style="font-size:.75em;transition:transform .2s"></i>
 
                                     <form id="delete-device-{{ $device->id }}" action="{{ route('devices.destroy', $device->id) }}" method="POST">

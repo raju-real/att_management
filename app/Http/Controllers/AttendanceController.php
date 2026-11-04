@@ -393,7 +393,7 @@ class AttendanceController extends Controller
     protected function filterOptions(): array
     {
         return [
-            'teachers'    => Teacher::forInstitute(selectedInstituteId())->orderBy('name')->get(['teacher_no', 'name']),
+            'teachers'    => Teacher::forInstitute(selectedInstituteId())->orderByNo()->get(['teacher_no', 'name']),
             'departments' => Department::forInstitute(selectedInstituteId())->orderBy('name')->get(['id', 'name', 'shift_id']),
             'shifts'      => \App\Models\Shift::forInstitute(selectedInstituteId())->orderBy('in_time')->get(['id', 'title', 'in_time', 'out_time']),
             'statuses'    => Report::STATUSES,

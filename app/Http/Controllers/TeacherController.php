@@ -39,7 +39,7 @@ class TeacherController extends Controller
             $query->where('department_id', $request->department_id);
         }
 
-        $teachers    = $query->latest('teacher_no')->paginate(25);
+        $teachers    = $query->orderByNo()->paginate(25);
         $departments = Department::forInstitute(selectedInstituteId())->orderBy('name')->get(['id', 'name']);
         return view('teacher.teacher_list', compact('teachers', 'departments'));
     }

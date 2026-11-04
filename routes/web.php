@@ -48,14 +48,13 @@ Route::middleware(['auth', 'permission'])->group(function () {
     // Live push monitor (device check-ins + incoming punches)
     Route::get('devices-monitor', [\App\Http\Controllers\DeviceMonitorController::class, 'index'])->name('devices-monitor');
     Route::get('devices-monitor/data', [\App\Http\Controllers\DeviceMonitorController::class, 'data'])->name('devices-monitor.data');
-    // Devices: institutes can view their own devices; add/edit/delete is super admin only
-    // (a device decides which institute its punches belong to).
+    // Devices: an institute manages its own (DeviceController forces its institute_id);
+    // the super admin manages any. A device decides which institute its punches belong to.
+    Route::resource('devices', DeviceController::class);
     Route::middleware('admin')->group(function () {
-        Route::resource('devices', DeviceController::class)->except(['index', 'show']);
         // Institutes (users with role = institute)
         Route::resource('institutes', \App\Http\Controllers\InstituteController::class)->except('show');
     });
-    Route::resource('devices', DeviceController::class)->only(['index', 'show']);
     // Push / remove teachers or students on devices (single, selected or all; one device or all active)
     Route::post('device-push/{group}', [\App\Http\Controllers\DevicePushController::class, 'push'])
         ->whereIn('group', ['teacher', 'student'])->name('device-push');

@@ -375,7 +375,7 @@
 
                 people = {};
                 list.forEach(t => { people[t.id] = t; });
-                // present: arrival order (as sent); absent: absent first, then shift-not-started
+                // both lists keep the server's teacher_no order; absent: absent first, then shift-not-started
                 const present = list.filter(isPresent);
                 absent = list.filter(t => t.status === 'absent').concat(list.filter(t => t.status === 'upcoming'));
 

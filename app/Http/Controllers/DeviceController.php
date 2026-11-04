@@ -41,8 +41,11 @@ class DeviceController extends Controller
 
         // serial_no is UNIQUE in the database even for deleted devices, so
         // re-adding a previously deleted device restores that row instead of
-        // failing on the unique index.
-        $device = Device::onlyTrashed()->where('serial_no', trim($request->serial_no))->first() ?? new Device();
+        // failing on the unique index. The row may have been deleted by another
+        // institute, so this lookup is not limited to the logged-in institute.
+        $device = Device::withoutGlobalScope(\App\Models\Scopes\InstituteScope::class)->onlyTrashed()
+            ->where('serial_no', trim($request->serial_no))->first() ?? new Device();
+        $previousInstitute = $device->institute_id;
         if ($device->exists) {
             $device->restore();
             $device->deleted_by = null;
@@ -50,6 +53,12 @@ class DeviceController extends Controller
         $this->fillDevice($device, $request);
         $device->created_by = $device->created_by ?? Auth::id();
         $device->save();
+
+        // Same machine, new owner: the old institute's users and queued commands must not carry over.
+        if ($previousInstitute && (int) $previousInstitute !== (int) $device->institute_id) {
+            \App\Models\DeviceUser::withoutGlobalScope(\App\Models\Scopes\InstituteScope::class)->where('device_id', $device->id)->delete();
+            \App\Models\DeviceCommand::where('device_id', $device->id)->whereIn('status', ['pending', 'sent'])->delete();
+        }
 
         return redirect()->route('devices.index')->with(successMessage());
     }
@@ -63,9 +72,9 @@ class DeviceController extends Controller
 
     public function update(Request $request, $id)
     {
-        $this->validateDevice($request, $id);
+        $device = Device::findOrFail($id); // another institute's device → 404
+        $this->validateDevice($request, $device->id);
 
-        $device = Device::findOrFail($id);
         $this->fillDevice($device, $request);
         $device->updated_by = Auth::id();
         $device->save();
@@ -261,15 +270,17 @@ class DeviceController extends Controller
 
     protected function validateDevice(Request $request, $ignoreId = null): void
     {
+        // forced for institute users, chosen by the super admin
+        $institute = authInstituteId() ?? ($request->filled('institute_id') ? (int) $request->institute_id : null);
+
         $this->validate($request, [
             // every device belongs to an institute: its punches are saved for that institute
-            'institute_id' => [
-                'required',
-                Rule::exists('users', 'id')->where('role', 'institute')->whereNull('deleted_at'),
-            ],
+            'institute_id' => isSuperAdmin()
+                ? ['required', Rule::exists('users', 'id')->where('role', 'institute')->whereNull('deleted_at')]
+                : ['nullable'],
             'name' => [
                 'required', 'string', 'max:50',
-                Rule::unique('devices')->where('institute_id', $request->institute_id)->whereNull('deleted_at')->ignore($ignoreId),
+                Rule::unique('devices')->where('institute_id', $institute)->whereNull('deleted_at')->ignore($ignoreId),
             ],
             'serial_no' => [
                 'required', 'string', 'max:100', 'regex:/^[A-Za-z0-9_\-]+$/',
@@ -277,7 +288,8 @@ class DeviceController extends Controller
             ],
             'ip_address' => [
                 'nullable', 'ip', 'max:45',
-                Rule::unique('devices')->whereNull('deleted_at')->ignore($ignoreId),
+                // per institute: two schools can both use 192.168.1.201 on their own LAN
+                Rule::unique('devices')->where('institute_id', $institute)->whereNull('deleted_at')->ignore($ignoreId),
             ],
             'device_port'    => 'nullable|numeric|between:1,65535',
             'subnet_label'   => 'nullable|string|max:100',
@@ -298,7 +310,7 @@ class DeviceController extends Controller
 
     protected function fillDevice(Device $device, Request $request): void
     {
-        $device->institute_id  = (int) $request->institute_id;
+        $device->institute_id  = authInstituteId() ?? (int) $request->institute_id;
         $device->name          = $request->name;
         $device->slug          = Str::slug($request->serial_no);
         $device->serial_no     = trim($request->serial_no);

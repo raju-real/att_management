@@ -47,6 +47,13 @@ class Teacher extends Model
         return $out ?: null;
     }
 
+    /** Order by device ID as a number (9, 10, 101), not as text (10, 101, 9). */
+    public function scopeOrderByNo($query)
+    {
+        $no = $this->qualifyColumn('teacher_no');
+        return $query->orderByRaw("CAST({$no} AS UNSIGNED), {$no}");
+    }
+
     public function department()
     {
         return $this->belongsTo(Department::class);

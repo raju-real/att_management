@@ -116,8 +116,7 @@
                     <div class="form-group">
                         <label class="form-label">Sort By</label>
                         <select name="sort" class="form-control">
-                            <option value="name" {{ request('sort', 'name') === 'name' ? 'selected' : '' }}>Name</option>
-                            <option value="user_no" {{ request('sort') === 'user_no' ? 'selected' : '' }}>ID</option>
+                            <option value="user_no" {{ request('sort', 'user_no') === 'user_no' ? 'selected' : '' }}>ID</option>
                             <option value="late_desc" {{ request('sort') === 'late_desc' ? 'selected' : '' }}>Most late</option>
                             <option value="hours_desc" {{ request('sort') === 'hours_desc' ? 'selected' : '' }}>Most working hours</option>
                             <option value="present_desc" {{ request('sort') === 'present_desc' ? 'selected' : '' }}>Most present</option>

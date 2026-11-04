@@ -26,7 +26,7 @@ class DashboardController extends Controller
 
         // teachers/staff of this institute for the select2 "show in the centre" dropdown
         $teachers = $institute
-            ? \App\Models\Teacher::forInstitute($institute)->orderBy('name')->get(['id', 'name', 'teacher_no'])
+            ? \App\Models\Teacher::forInstitute($institute)->orderByNo()->get(['id', 'name', 'teacher_no'])
             : collect();
 
         return view('dashboard', compact('institute', 'school', 'departments', 'shifts', 'teachers'));

@@ -128,6 +128,21 @@
             margin-bottom: 0.5rem;
         }
 
+        .login-brand-logo {
+            display: inline-block;
+            background: #fff;
+            border-radius: 10px;
+            padding: 8px;
+            margin-bottom: 0.75rem;
+        }
+
+        .login-brand-logo img {
+            display: block;
+            max-height: 80px;
+            max-width: 200px;
+            object-fit: contain;
+        }
+
         .login-title {
             font-weight: 600;
             font-size: 1.8rem;
@@ -346,10 +361,17 @@
     <div class="login-card">
         <!-- Login Header -->
         <div class="login-header">
-            <div class="login-logo">
-                <i class="fas fa-chart-line"></i>
-            </div>
+            {{-- logo set by the super admin in Site Settings, under the name --}}
+            @php $loginLogo = !empty(siteSettings()->logo) && is_file(public_path(siteSettings()->logo)) ? siteSettings()->logo : null; @endphp
+            @unless ($loginLogo)
+                <div class="login-logo">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+            @endunless
             <h1 class="login-title">{{ siteSettings()->site_name ?? 'Attendance Management' }}</h1>
+            @if ($loginLogo)
+                <div class="login-brand-logo"><img src="{{ asset($loginLogo) }}" alt=""></div>
+            @endif
             <p class="login-subtitle">Sign in to access your dashboard</p>
         </div>
 

@@ -27,7 +27,7 @@ class TeacherProfileController extends Controller
                     ->orWhere('mobile', 'like', $s)->orWhere('designation', 'like', $s));
             })
             ->when($request->filled('department_id'), fn ($q) => $q->where('department_id', $request->department_id))
-            ->orderByRaw('CAST(teacher_no AS UNSIGNED), teacher_no')
+            ->orderByNo()
             ->paginate(30)
             ->withQueryString();
 

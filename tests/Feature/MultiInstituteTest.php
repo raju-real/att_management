@@ -141,7 +141,6 @@ class MultiInstituteTest extends TestCase
     {
         $this->actingAs($this->a);
         $this->get('/institutes')->assertRedirect(route('permission-denied'));
-        $this->get('/devices/create')->assertRedirect(route('permission-denied'));
         $this->get('/site-settings')->assertRedirect(route('permission-denied'));
         $this->get('/devices')->assertOk()->assertSee('Gate A')->assertDontSee('Gate B');
 
@@ -256,6 +255,103 @@ class MultiInstituteTest extends TestCase
         $this->assertStringContainsString('Alpha High School', $body);
         $this->assertStringContainsString('Teacher/Staff', $body);
         $this->assertStringNotContainsString('Teacher B', $body);
+    }
+
+    public function test_institute_manages_only_its_own_devices(): void
+    {
+        $form = ['status' => 'active', 'device_for' => 'teacher'];
+
+        // adding: stamped with its own institute, whatever the request says
+        $this->actingAs($this->a);
+        $this->get('/devices/create')->assertOk()->assertSee('Alpha High School');
+        $this->post('/devices', $form + ['institute_id' => $this->b->id, 'name' => 'Office', 'serial_no' => 'OWNSN1', 'ip_address' => '192.168.1.201'])
+            ->assertRedirect(route('devices.index'));
+        $own = Device::where('serial_no', 'OWNSN1')->firstOrFail();
+        $this->assertSame($this->a->id, (int) $own->institute_id);
+        $this->assertContains('OWNSN1', activeDeviceSerials());
+
+        // punches from it are accepted for this institute
+        $day = Carbon::today()->subDay()->format('Y-m-d');
+        $this->punch('OWNSN1', '101', "$day 08:05:00")->assertOk();
+        $this->assertSame(1, AttendanceLog::where('device_serial', 'OWNSN1')->where('institute_id', $this->a->id)->count());
+
+        // another institute's device: not reachable, and editing cannot move a device
+        $this->get('/devices/' . $this->dev['B']->slug . '/edit')->assertNotFound();
+        $this->put('/devices/' . $this->dev['B']->id, $form + ['name' => 'Stolen', 'serial_no' => $this->dev['B']->serial_no])->assertNotFound();
+        $this->delete('/devices/' . $this->dev['B']->id)->assertNotFound();
+        $this->put('/devices/' . $own->id, $form + ['institute_id' => $this->b->id, 'name' => 'Office 2', 'serial_no' => 'OWNSN1'])
+            ->assertRedirect(route('devices.index'));
+        $this->assertSame($this->a->id, (int) $own->fresh()->institute_id);
+
+        // a serial in use elsewhere is refused; the same LAN IP in another school is fine
+        $this->actingAs($this->b);
+        $this->post('/devices', $form + ['name' => 'Copy', 'serial_no' => 'OWNSN1'])->assertSessionHasErrors('serial_no');
+        $this->post('/devices', $form + ['name' => 'Lab', 'serial_no' => 'OWNSN2', 'ip_address' => '192.168.1.201'])->assertRedirect(route('devices.index'));
+        $this->assertSame($this->b->id, (int) Device::where('serial_no', 'OWNSN2')->value('institute_id'));
+
+        // deleted by one institute, added by another: the machine moves, its old users do not
+        $this->actingAs($this->a);
+        \App\Models\DeviceUser::create(['device_id' => $own->id, 'pin' => '555', 'name' => 'Old User', 'privilege' => 0, 'institute_id' => $this->a->id]);
+        $this->delete('/devices/' . $own->id)->assertRedirect(route('devices.index'));
+        $this->assertNotContains('OWNSN1', activeDeviceSerials());
+        $this->actingAs($this->b);
+        $this->post('/devices', $form + ['name' => 'Moved', 'serial_no' => 'OWNSN1'])->assertRedirect(route('devices.index'));
+        $this->assertSame($this->b->id, (int) Device::where('serial_no', 'OWNSN1')->value('institute_id'));
+        $this->assertSame(0, \App\Models\DeviceUser::withoutGlobalScopes()->where('device_id', $own->id)->count());
+
+        // a user of the institute with the Devices menu may manage them; without it, not
+        $clerk = $this->institute('Clerk', 'clerk2@test.local');
+        $clerk->forceFill(['role' => 'inst_user', 'institute_id' => $this->a->id, 'permissions' => ['devices']])->save();
+        $this->actingAs($clerk);
+        $this->get('/devices/create')->assertOk();
+        $clerk->forceFill(['permissions' => ['teachers']])->save();
+        $this->actingAs($clerk->fresh());
+        $this->get('/devices/create')->assertRedirect(route('permission-denied'));
+    }
+
+    public function test_teachers_are_ordered_by_number_not_name(): void
+    {
+        $dept = Department::where('institute_id', $this->a->id)->first();
+        foreach (['10' => 'Amy', '9' => 'Zed'] as $no => $name) { // names would give Amy, Teacher A, Zed
+            $t = new Teacher();
+            $t->institute_id = $this->a->id;
+            $t->teacher_no = (string) $no;
+            $t->name = $name;
+            $t->department_id = $dept->id;
+            $t->save();
+        }
+        $day = Carbon::today()->subDay()->format('Y-m-d');
+        foreach (['101' => '07:50:00', '10' => '08:30:00', '9' => '08:00:00'] as $no => $time) {
+            $this->punch($this->dev['A']->serial_no, (string) $no, "$day $time");
+        }
+
+        $this->actingAs($this->a);
+        $expected = ['9', '10', '101'];
+        $range = ['from_date' => $day, 'to_date' => $day];
+
+        $this->assertSame($expected, array_map(fn ($t) => $t['teacher_no'], Report::teacherBoard($day)['teachers']));
+        $this->assertSame($expected, Report::logs($range)->pluck('user_no')->all());
+        $this->assertSame($expected, Report::monthlySummary($range)->pluck('user_no')->all());
+        $this->assertSame($expected, array_column(MonthlySheetService::buildRange($day, $day)['sections'][0]['teachers'], 'no'));
+
+        // pages list them in the same order
+        foreach (['/teachers', '/teacher-profiles', '/dashboard', '/attendance-logs?from_date=' . $day . '&to_date=' . $day] as $url) {
+            $html = $this->get($url)->assertOk()->getContent();
+            $this->assertLessThan(strpos($html, 'Amy'), strpos($html, 'Zed'), $url);
+        }
+    }
+
+    public function test_login_page_shows_the_site_logo_under_the_name(): void
+    {
+        $logo = siteSettings()->logo ?? null;
+        $html = $this->get('/')->assertOk()->getContent();
+
+        if ($logo && is_file(public_path($logo))) {
+            $this->assertStringContainsString('login-brand-logo"><img src="' . asset($logo) . '"', $html);
+            $this->assertLessThan(strpos($html, 'login-brand-logo"><img'), strpos($html, 'class="login-title"'));
+        } else {
+            $this->assertStringNotContainsString('login-brand-logo"><img', $html);
+        }
     }
 
     public function test_institute_users_and_menu_permissions(): void
