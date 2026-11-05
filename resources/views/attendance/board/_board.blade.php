@@ -21,6 +21,7 @@
         'early_out' => ['Early Out', '#f59e0b', 'Last punch before the shift out-time'],
         'absent'    => ['Absent', '#64748b', 'No punch on this date'],
         'upcoming'  => ['Upcoming', '#38bdf8', 'Shift has not started yet (today only)'],
+        'holiday'   => ['Holiday', '#a78bfa', 'Weekly or office holiday of the institute'],
     ];
 @endphp
 <div class="tb-board {{ $theme === 'light' ? 'tb-light' : '' }}"

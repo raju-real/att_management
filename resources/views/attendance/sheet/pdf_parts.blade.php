@@ -58,7 +58,7 @@
             <td><b>Shift:</b> {{ $section['title'] }}@if($section['timing']) ({{ $section['timing'] }})@endif</td>
             <td>@if($sheet['filter_label'])<b>{{ \Illuminate\Support\Str::before($sheet['filter_label'], ':') }}:</b>{{ \Illuminate\Support\Str::after($sheet['filter_label'], ':') }}@endif</td>
             <td style="text-align:right;">@if($sheet['is_full_month'])<b>Month:</b> {{ $sheet['month_name'] }} {{ $sheet['year'] }} &nbsp;&nbsp;@endif<b>Period:</b> {{ $sheet['period_label'] }} ({{ $sheet['day_count'] }} days)</td>
-            <td style="text-align:right;width:16%;"><b>Working days:</b> {{ $sheet['working_days'] }}</td>
+            <td style="text-align:right;width:16%;"><b>Working days:</b> {{ $section['working_days'] ?? $sheet['working_days'] }}</td>
         </tr>
     </table>
 @elseif($part === 'table')
@@ -66,7 +66,7 @@
         <thead>
             <tr>
                 <th class="c-sl">SL<br>No</th><th class="c-id">ID<br>No</th><th class="l w">Teacher/Staff Name</th><th class="tt">Time<br>Table</th>
-                @foreach($sheet['days'] as $day)<th class="{{ $sheet['day_count'] >= 28 ? 'd' : '' }}{{ $day['holiday'] ? ' h' : '' }}">@if($day['month_mark'])<span class="mm">{{ $day['month_mark'] }}</span><br>@endif{{ $day['day'] }}<br>{{ $day['abbr'] }}</th>@endforeach
+                @foreach(($section['days'] ?? $sheet['days']) as $day)<th class="{{ $sheet['day_count'] >= 28 ? 'd' : '' }}{{ $day['holiday'] ? ' h' : '' }}">@if($day['month_mark'])<span class="mm">{{ $day['month_mark'] }}</span><br>@endif{{ $day['day'] }}<br>{{ $day['abbr'] }}</th>@endforeach
                 <th class="c-tot">Total<br>Present</th><th class="c-tot">Total<br>Absent</th><th class="c-tot">Total<br>Late</th><th class="c-tot">Over<br>Time</th><th class="c-pc">Attendance<br>Percentage %</th>
             </tr>
         </thead>
@@ -74,7 +74,7 @@
         @foreach($teachers as $t)
             <tr>
                 <td rowspan="2">{{ $t['sl'] }}</td><td rowspan="2">{{ $t['no'] }}</td><td rowspan="2" class="l">{{ $t['name'] }}</td><td class="tt">In Time</td>
-                @foreach($sheet['days'] as $d => $day)@php $c = $t['cells'][$d]; @endphp@if($c['type'] === 'present')<td class="{{ $c['late'] ? 'r' : '' }}{{ $day['holiday'] ? ' h' : '' }}">{{ $c['in'] }}</td>@elseif($c['type'] === 'absent')<td class="r">A</td>@elseif($c['type'] === 'holiday')<td class="h">H</td>@else<td></td>@endif @endforeach
+                @foreach(($section['days'] ?? $sheet['days']) as $d => $day)@php $c = $t['cells'][$d]; @endphp@if($c['type'] === 'present')<td class="{{ $c['late'] ? 'r' : '' }}{{ $day['holiday'] ? ' h' : '' }}">{{ $c['in'] }}</td>@elseif($c['type'] === 'absent')<td class="r">A</td>@elseif($c['type'] === 'holiday')<td class="h">H</td>@else<td></td>@endif @endforeach
                 <td rowspan="2" class="b">{{ $t['present'] }}</td>
                 <td rowspan="2" class="b{{ $t['absent'] ? ' r' : '' }}">{{ $t['absent'] }}</td>
                 <td rowspan="2" class="b{{ $t['late'] ? ' r' : '' }}">{{ $t['late'] }}</td>
@@ -83,14 +83,14 @@
             </tr>
             <tr>
                 <td class="tt">Out Time</td>
-                @foreach($sheet['days'] as $d => $day)@php $c = $t['cells'][$d]; @endphp@if($c['type'] === 'present')<td class="{{ $c['early_out'] ? 'r' : '' }}{{ $day['holiday'] ? ' h' : '' }}">{{ $c['out'] }}</td>@elseif($c['type'] === 'holiday')<td class="h"></td>@else<td></td>@endif @endforeach
+                @foreach(($section['days'] ?? $sheet['days']) as $d => $day)@php $c = $t['cells'][$d]; @endphp@if($c['type'] === 'present')<td class="{{ $c['early_out'] ? 'r' : '' }}{{ $day['holiday'] ? ' h' : '' }}">{{ $c['out'] }}</td>@elseif($c['type'] === 'holiday')<td class="h"></td>@else<td></td>@endif @endforeach
             </tr>
         @endforeach
         </tbody>
     </table>
 @elseif($part === 'legend')
     <div class="lg">A = Absent &nbsp;·&nbsp; H = Holiday &nbsp;·&nbsp; <span style="color:#dc2626;font-weight:bold;">Red</span> = Late in / Early out
-        &nbsp;·&nbsp; - = Missing punch &nbsp;·&nbsp; + = Next day (night shift) &nbsp;·&nbsp; Working days: {{ $sheet['working_days'] }}
+        &nbsp;·&nbsp; - = Missing punch &nbsp;·&nbsp; + = Next day (night shift) &nbsp;·&nbsp; Working days: {{ $section['working_days'] ?? $sheet['working_days'] }}
         &nbsp;·&nbsp; Over Time = worked after shift out time (h:mm)</div>
 @elseif($part === 'signatures')
     <table class="sg">

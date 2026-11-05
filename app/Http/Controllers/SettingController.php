@@ -2,24 +2,33 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
 class SettingController extends Controller
 {
+    /**
+     * Same page for everyone: the super admin edits the global Site Settings,
+     * an institute edits its own (name, contact, logo, default times, holidays).
+     */
     public function siteSettings()
     {
-        return view('site_settings');
+        $institute = $this->institute();
+
+        return view('site_settings', ['site' => $this->formValues($institute), 'isInstitute' => (bool) $institute]);
     }
 
     public function updateSiteSettings(Request $request)
     {
+        $institute = $this->institute();
+
         // office_holidays arrives as a JSON string from the date-chip picker.
         $holidays = json_decode((string) $request->input('office_holidays', '[]'), true);
         $request->merge(['office_holidays_list' => is_array($holidays) ? array_values(array_unique($holidays)) : null]);
 
         $validated = $request->validate([
-            'site_name'              => 'required|string|max:100',
+            'site_name'              => 'required|string|max:' . ($institute ? 191 : 100),
             'email'                  => 'nullable|email|max:100',
             'mobile'                 => ['nullable', 'string', 'max:20', 'regex:/^[0-9+\-\s()]{6,20}$/'],
             'in_time'                => 'nullable|date_format:H:i',
@@ -45,39 +54,95 @@ class SettingController extends Controller
         $holidays = $validated['office_holidays_list'] ?? [];
         sort($holidays);
 
-        // School logo (printed on reports). Kept unless replaced or removed.
-        $logo = siteSettings()->logo ?? null;
+        // Logo (printed on reports). Kept unless replaced or removed.
+        $logo = $institute ? $institute->logo : (siteSettings()->logo ?? null);
         if ($request->hasFile('logo') || $request->boolean('remove_logo')) {
             if ($logo && is_file(public_path($logo))) {
                 @unlink(public_path($logo));
             }
-            $logo = $request->hasFile('logo') ? uploadImage($request->file('logo'), 'site') : null;
+            $logo = $request->hasFile('logo') ? uploadImage($request->file('logo'), $institute ? 'institutes' : 'site') : null;
         }
 
-        try {
-            writeJsonSettings('site_setting.json', 'site_settings', [
-                'logo'            => $logo,
-                'site_name'       => trim($validated['site_name']),
-                'email'           => $validated['email'] ?? null,
-                'mobile'          => $validated['mobile'] ?? null,
-                // Printed on report letterheads (schoolInfo()).
-                'address'         => isset($validated['address']) ? trim($validated['address']) : null,
-                'eiin'            => isset($validated['eiin']) ? trim($validated['eiin']) : null,
-                'website'         => isset($validated['website']) ? trim($validated['website']) : null,
-                // Stored as H:i:s; the fallback standard for students and for
-                // teachers whose department has no shift.
-                'in_time'         => !empty($validated['in_time']) ? $validated['in_time'] . ':00' : null,
-                'out_time'        => !empty($validated['out_time']) ? $validated['out_time'] . ':00' : null,
-                'weekly_holidays' => array_values($validated['weekly_holidays'] ?? []),
+        $address = isset($validated['address']) ? trim($validated['address']) : null;
+        $eiin    = isset($validated['eiin']) ? trim($validated['eiin']) : null;
+        $website = isset($validated['website']) ? trim($validated['website']) : null;
+        // Stored as H:i:s; the fallback standard for students and for
+        // teachers whose department has no shift.
+        $inTime  = !empty($validated['in_time']) ? $validated['in_time'] . ':00' : null;
+        $outTime = !empty($validated['out_time']) ? $validated['out_time'] . ':00' : null;
+        $weekly  = array_values($validated['weekly_holidays'] ?? []);
+
+        if ($institute) {
+            $institute->name     = trim($validated['site_name']);
+            $institute->address  = $address;
+            $institute->eiin     = $eiin;
+            $institute->website  = $website;
+            $institute->logo     = $logo;
+            $institute->settings = array_merge((array) $institute->settings, [
+                'in_time'         => $inTime,
+                'out_time'        => $outTime,
+                'weekly_holidays' => $weekly,
                 'office_holidays' => $holidays,
+                // printed on reports; the login email (users.email) is not touched
+                'contact_email'   => $validated['email'] ?? null,
+                'contact_mobile'  => $validated['mobile'] ?? null,
             ]);
-        } catch (\Throwable $e) {
-            return back()->withInput()->with(dangerMessage('danger', $e->getMessage()));
+            $institute->save();
+        } else {
+            try {
+                writeJsonSettings('site_setting.json', 'site_settings', [
+                    'logo'            => $logo,
+                    'site_name'       => trim($validated['site_name']),
+                    'email'           => $validated['email'] ?? null,
+                    'mobile'          => $validated['mobile'] ?? null,
+                    // Printed on report letterheads (schoolInfo()).
+                    'address'         => $address,
+                    'eiin'            => $eiin,
+                    'website'         => $website,
+                    'in_time'         => $inTime,
+                    'out_time'        => $outTime,
+                    'weekly_holidays' => $weekly,
+                    'office_holidays' => $holidays,
+                ]);
+            } catch (\Throwable $e) {
+                return back()->withInput()->with(dangerMessage('danger', $e->getMessage()));
+            }
         }
 
         return redirect()
             ->route('site-settings')
-            ->with(infoMessage('info', 'Site settings updated successfully.'));
+            ->with(infoMessage('info', ($institute ? 'Institute' : 'Site') . ' settings updated successfully.'));
+    }
+
+    /** The logged-in institute (also for its users), or null for the super admin. */
+    protected function institute(): ?User
+    {
+        return authInstituteId() ? User::institutes()->findOrFail(authInstituteId()) : null;
+    }
+
+    /** What the form shows. An institute that never saved sees the global defaults for times and holidays. */
+    protected function formValues(?User $institute): object
+    {
+        if (! $institute) {
+            return siteSettings();
+        }
+
+        $own      = (array) $institute->settings;
+        $settings = instituteSettings($institute->id);
+
+        return (object) [
+            'site_name'       => $institute->name,
+            'email'           => array_key_exists('contact_email', $own) ? $own['contact_email'] : $institute->email,
+            'mobile'          => array_key_exists('contact_mobile', $own) ? $own['contact_mobile'] : $institute->mobile,
+            'address'         => $institute->address,
+            'eiin'            => $institute->eiin,
+            'website'         => $institute->website,
+            'logo'            => $institute->logo,
+            'in_time'         => $settings->in_time,
+            'out_time'        => $settings->out_time,
+            'weekly_holidays' => $settings->weekly_holidays,
+            'office_holidays' => $settings->office_holidays,
+        ];
     }
 
     public function feeSettings()

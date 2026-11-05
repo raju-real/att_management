@@ -46,8 +46,7 @@ class TeacherProfileService
             ->where('teacher_id', $teacher->id)
             ->keyBy('att_date');
 
-        $weekly  = collect(weeklyHolidays())->map(fn ($d) => strtolower($d));
-        $office  = collect(officeHolidays());
+        $holiday = holidayChecker($teacher->institute_id); // the teacher's own institute
         $joining = $teacher->joining_date ? Carbon::parse($teacher->joining_date)->startOfDay() : null;
 
         $months = [];
@@ -64,7 +63,7 @@ class TeacherProfileService
                 foreach (CarbonPeriod::create($mStart, $mEnd->min($today)) as $day) {
                     $date      = $day->toDateString();
                     $r         = $rows->get($date);
-                    $isHoliday = $weekly->contains(strtolower($day->format('l'))) || $office->contains($date);
+                    $isHoliday = $holiday($day);
                     $counts    = ! $isHoliday && (! $joining || $day->gte($joining));
 
                     if ($counts) {

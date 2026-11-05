@@ -52,27 +52,34 @@ class MonthlySheetService
         }
         $today = Carbon::today();
 
-        $weekly = collect(weeklyHolidays())->map(fn ($d) => strtolower($d));
-        $office = collect(officeHolidays());
+        $institute = Report::instituteFilter($filters); // forced for institute users
 
-        $days = [];
-        for ($d = $start->copy(); $d->lte($end); $d->addDay()) {
-            $days[$d->toDateString()] = [
-                'day'        => $d->day,
-                'date'       => $d->toDateString(),
-                'abbr'       => self::DAY_ABBR[$d->dayOfWeek],
-                // month name over the first column and every 1st, so a range
-                // across months stays readable
-                'month_mark' => ($d->equalTo($start) || $d->day === 1) ? $d->format('M') : null,
-                'holiday'    => $weekly->contains(strtolower($d->format('l'))) || $office->contains($d->toDateString()),
-                'future'     => $d->gt($today),
-            ];
-        }
-        $workingDays = collect($days)->filter(fn ($d) => !$d['holiday'] && !$d['future'])->count();
+        // Day columns follow an institute's own holidays, so with all institutes
+        // on one sheet every section gets its own.
+        $daysFor = function (?int $instituteId) use ($start, $end, $today) {
+            $isHoliday = holidayChecker($instituteId);
+            $days = [];
+            for ($d = $start->copy(); $d->lte($end); $d->addDay()) {
+                $days[$d->toDateString()] = [
+                    'day'        => $d->day,
+                    'date'       => $d->toDateString(),
+                    'abbr'       => self::DAY_ABBR[$d->dayOfWeek],
+                    // month name over the first column and every 1st, so a range
+                    // across months stays readable
+                    'month_mark' => ($d->equalTo($start) || $d->day === 1) ? $d->format('M') : null,
+                    'holiday'    => $isHoliday($d),
+                    'future'     => $d->gt($today),
+                ];
+            }
+            return $days;
+        };
+        $working = fn (array $days) => collect($days)->filter(fn ($d) => !$d['holiday'] && !$d['future'])->count();
+
+        $days = $daysFor($institute);
+        $workingDays = $working($days);
 
         $deptId  = !empty($filters['department_id']) ? (int) $filters['department_id'] : null;
         $shiftId = !empty($filters['shift_id']) ? (int) $filters['shift_id'] : null;
-        $institute = Report::instituteFilter($filters); // forced for institute users
 
         // Every teacher in scope (also those without any punch in the range).
         $teachers = Teacher::query()
@@ -100,7 +107,11 @@ class MonthlySheetService
         foreach ($teachers->groupBy(fn ($t) => (int) $t->institute_id . '|' . (int) ($t->shift_id ?? 0)) as $group) {
             $first = $group->first();
             $title = $first->shift_title ? $first->shift_title : 'No Shift Assigned';
+            $sectionDays = $institute ? $days : $daysFor($first->institute_id ? (int) $first->institute_id : null);
+            $sectionWorking = $working($sectionDays);
             $section = [
+                'days'         => $sectionDays,
+                'working_days' => $sectionWorking,
                 'title'  => $institute ? $title : ($first->institute_name ?: 'No Institute') . ' - ' . $title,
                 'timing' => $first->shift_in
                     ? Report::shiftClock($first->shift_in) . ' - ' . Report::shiftClock($first->shift_out, $first->shift_in)
@@ -109,7 +120,7 @@ class MonthlySheetService
             ];
 
             foreach ($group->values() as $i => $t) {
-                $section['teachers'][] = self::teacherLine($i + 1, $t, $days, $rows, $workingDays);
+                $section['teachers'][] = self::teacherLine($i + 1, $t, $sectionDays, $rows, $sectionWorking);
             }
             $sections[] = $section;
         }

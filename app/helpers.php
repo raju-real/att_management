@@ -490,10 +490,14 @@ if (!function_exists('schoolInfo')) {
         $instituteId = $instituteId ?? selectedInstituteId();
         $inst = $instituteId ? \App\Models\User::institutes()->find($instituteId) : null;
         $s    = siteSettings();
+        $own  = $inst ? (array) $inst->settings : [];
 
         $src = $inst ? (object) [
             'site_name' => $inst->name, 'address' => $inst->address, 'eiin' => $inst->eiin,
-            'mobile' => $inst->mobile, 'email' => $inst->email, 'website' => $inst->website,
+            // contact details from its settings; until saved, the login email / mobile
+            'mobile' => array_key_exists('contact_mobile', $own) ? $own['contact_mobile'] : $inst->mobile,
+            'email' => array_key_exists('contact_email', $own) ? $own['contact_email'] : $inst->email,
+            'website' => $inst->website,
             'logo' => $inst->logo ?: ($s->logo ?? null),
         ] : $s;
 
@@ -547,24 +551,56 @@ if (!function_exists('dayNameFromDate')) {
 
 
 if (!function_exists('weeklyHolidays')) {
-    function weeklyHolidays()
+    /** Weekly holidays of an institute (default: the logged-in one; super admin: global). */
+    function weeklyHolidays(?int $instituteId = null)
     {
-        $weeklyHolidays = [];
-        if (!empty(siteSettings()->weekly_holidays)) {
-            $weeklyHolidays = is_array(siteSettings()->weekly_holidays) ? siteSettings()->weekly_holidays : (array)siteSettings()->weekly_holidays;
-        }
-        return $weeklyHolidays;
+        return array_values((array) (instituteSettings($instituteId ?? authInstituteId())->weekly_holidays ?? []));
     }
 }
 
 if (!function_exists('officeHolidays')) {
-    function officeHolidays()
+    /** Office / government holidays of an institute (default: the logged-in one; super admin: global). */
+    function officeHolidays(?int $instituteId = null)
     {
-        $officeHolidays = [];
-        if (!empty(siteSettings()->office_holidays)) {
-            $officeHolidays = is_array(siteSettings()->office_holidays) ? siteSettings()->office_holidays : (array)siteSettings()->office_holidays;
+        return array_values((array) (instituteSettings($instituteId ?? authInstituteId())->office_holidays ?? []));
+    }
+}
+
+if (!function_exists('instituteSettings')) {
+    /**
+     * Default times and holidays that apply to an institute. A key the institute
+     * never saved falls back to the global Site Settings; a saved empty value
+     * stays empty (e.g. no weekly holiday). Null id = the global settings.
+     *
+     * @return object{in_time:?string, out_time:?string, weekly_holidays:mixed, office_holidays:mixed}
+     */
+    function instituteSettings(?int $instituteId = null, ?array $own = null): object
+    {
+        $global = siteSettings();
+        if ($own === null && $instituteId) {
+            $own = \App\Models\User::institutes()->whereKey($instituteId)->first(['id', 'settings'])?->settings;
         }
-        return $officeHolidays;
+        $own = (array) $own;
+
+        $out = [];
+        foreach (['in_time', 'out_time', 'weekly_holidays', 'office_holidays'] as $key) {
+            $out[$key] = array_key_exists($key, $own) ? $own[$key] : ($global->{$key} ?? null);
+        }
+        return (object) $out;
+    }
+}
+
+if (!function_exists('holidayChecker')) {
+    /** fn ($date): bool — is this date a weekly or office holiday of the institute? */
+    function holidayChecker(?int $instituteId = null): \Closure
+    {
+        $weekly = array_map('strtolower', weeklyHolidays($instituteId));
+        $office = officeHolidays($instituteId);
+
+        return function ($date) use ($weekly, $office): bool {
+            $day = $date instanceof \DateTimeInterface ? Carbon::instance($date) : Carbon::parse($date);
+            return in_array(strtolower($day->format('l')), $weekly, true) || in_array($day->toDateString(), $office, true);
+        };
     }
 }
 

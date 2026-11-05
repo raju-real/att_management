@@ -189,10 +189,10 @@
                                 href="{{ route('profile') }}">
                                 <i class="fas fa-user mr-2"></i> Profile
                             </a>
-                            @if (isSuperAdmin())
+                            @if (userCan('site-settings'))
                                 <a class="dropdown-item {{ request()->routeIs('site-settings') ? 'active' : '' }}"
                                     href="{{ route('site-settings') }}">
-                                    <i class="fas fa-sliders-h mr-2"></i> Site Settings
+                                    <i class="fas fa-sliders-h mr-2"></i> {{ isSuperAdmin() ? 'Site Settings' : 'Institute Settings' }}
                                 </a>
                             @endif
                             <div class="dropdown-divider"></div>
@@ -218,7 +218,7 @@
         <footer class="footer">
             <div class="footer-content">
                 <span class="text-muted">© {{ date('Y') }}
-                    {{ siteSettings()->site_name ?? 'Attendance Management' }}. All rights reserved.</span>
+                    {{ $brandName }}. All rights reserved.</span>
             </div>
         </footer>
     </div>

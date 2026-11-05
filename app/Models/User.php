@@ -39,6 +39,7 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
         'permissions'       => 'array', // inst_user menu keys (App\Support\Permissions)
+        'settings'          => 'array', // institute: own times, holidays, contact (instituteSettings())
     ];
 
     public function designation()

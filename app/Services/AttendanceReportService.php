@@ -119,8 +119,14 @@ class AttendanceReportService
      */
     protected static function punchQuery(string $from, string $to, array $f = []): Builder
     {
-        $stdIn   = self::standardExpr('sh.in_time', siteSettings()->in_time ?? null);
-        $stdOut  = self::standardExpr('sh.out_time', siteSettings()->out_time ?? null);
+        // Multi-institute: a device ID (teacher_no) is only unique inside one
+        // institute, so every join also matches the institute. Institute users
+        // are ALWAYS limited to their own institute here (raw queries are not
+        // covered by the Eloquent InstituteScope).
+        $institute = self::instituteFilter($f);
+
+        $stdIn   = self::defaultTimeExpr('sh.in_time', 'in_time', $institute);
+        $stdOut  = self::defaultTimeExpr('sh.out_time', 'out_time', $institute);
         $lateT   = "COALESCE(sh.late_count_time, {$stdIn})";
         $earlyT  = "COALESCE(sh.early_out_count_time, {$stdOut})";
         $beforeS = '(COALESCE(sh.punch_before_minutes, ' . self::DEFAULT_BEFORE_MINUTES . ') * 60)';
@@ -135,12 +141,6 @@ class AttendanceReportService
         // work-date range is applied in stage 2.
         $start = Carbon::parse($from)->subDay()->startOfDay()->format('Y-m-d H:i:s');
         $end   = Carbon::parse($to)->addDays(2)->startOfDay()->format('Y-m-d H:i:s');
-
-        // Multi-institute: a device ID (teacher_no) is only unique inside one
-        // institute, so every join also matches the institute. Institute users
-        // are ALWAYS limited to their own institute here (raw queries are not
-        // covered by the Eloquent InstituteScope).
-        $institute = self::instituteFilter($f);
 
         return DB::table('attendance_logs as al')
             ->leftJoin('teachers as t', function ($j) {
@@ -464,12 +464,12 @@ class AttendanceReportService
     }
 
     /**
-     * Working days in range (excludes weekly + office holidays and future days).
+     * Working days in range for an institute (excludes its weekly + office
+     * holidays and future days).
      */
-    public static function workingDays(string $from, string $to): int
+    public static function workingDays(string $from, string $to, ?int $instituteId = null): int
     {
-        $weekly = collect(weeklyHolidays())->map(fn ($d) => strtolower($d));
-        $office = collect(officeHolidays());
+        $isHoliday = holidayChecker($instituteId);
         $end    = Carbon::parse($to)->min(Carbon::today());
 
         if ($end->lt(Carbon::parse($from))) {
@@ -478,10 +478,9 @@ class AttendanceReportService
 
         $count = 0;
         foreach (CarbonPeriod::create($from, $end->toDateString()) as $day) {
-            if ($weekly->contains(strtolower($day->format('l'))) || $office->contains($day->toDateString())) {
-                continue;
+            if (! $isHoliday($day)) {
+                $count++;
             }
-            $count++;
         }
         return $count;
     }
@@ -512,7 +511,7 @@ class AttendanceReportService
             ->when($deptId, fn ($q) => $q->where('teachers.department_id', $deptId))
             ->when($shiftId, fn ($q) => $q->where('d.shift_id', $shiftId))
             ->get([
-                'teachers.id', 'teachers.name', 'teachers.teacher_no', 'teachers.image', 'teachers.designation',
+                'teachers.id', 'teachers.institute_id', 'teachers.name', 'teachers.teacher_no', 'teachers.image', 'teachers.designation',
                 'd.name as department', 'sh.title as shift_title', 'sh.in_time as shift_in', 'sh.out_time as shift_out',
                 'sh.punch_before_minutes as shift_before', 'sh.punch_after_minutes as shift_after',
             ]);
@@ -525,11 +524,15 @@ class AttendanceReportService
             'user_type' => 'teacher', 'department_id' => $deptId, 'shift_id' => $shiftId, 'institute_id' => $institute,
         ]))->get()->keyBy(fn ($r) => $r->teacher_id . '|' . $r->att_date);
 
-        $siteIn  = siteSettings()->in_time ?? null;
-        $siteOut = siteSettings()->out_time ?? null;
-        $fmt     = fn ($time) => $time ? Carbon::parse($time)->format('h:i A') : null;
+        $fmt = fn ($time) => $time ? Carbon::parse($time)->format('h:i A') : null;
 
-        $list = $teachers->map(function ($t) use ($rows, $fmt, $date, $isToday, $now, $siteIn, $siteOut) {
+        // each teacher follows their own institute's default times and holidays
+        $configs = [];
+        $list = $teachers->map(function ($t) use ($rows, $fmt, $date, $isToday, $now, &$configs) {
+            $iid = (int) $t->institute_id;
+            $cfg = $configs[$iid] ??= (object) ['settings' => instituteSettings($iid ?: null), 'isHoliday' => holidayChecker($iid ?: null)];
+            $siteIn  = $cfg->settings->in_time ?? null;
+            $siteOut = $cfg->settings->out_time ?? null;
             $stdIn  = $t->shift_in ?: ($siteIn ? Carbon::parse($siteIn)->format('H:i:s') : null);
             $stdOut = $t->shift_out ?: ($siteOut ? Carbon::parse($siteOut)->format('H:i:s') : null);
             $before = (int) ($t->shift_before ?? self::DEFAULT_BEFORE_MINUTES);
@@ -558,7 +561,8 @@ class AttendanceReportService
                 $status = $r->is_late ? 'late' : 'on_time';
             } else {
                 $schedIn = $stdIn ? Carbon::parse($workDate . ' ' . $stdIn) : null;
-                $status  = ($isToday && $schedIn && $now->lt($schedIn)) ? 'upcoming' : 'absent';
+                $status  = ($cfg->isHoliday)($workDate) ? 'holiday' // no duty, so not absent
+                    : (($isToday && $schedIn && $now->lt($schedIn)) ? 'upcoming' : 'absent');
             }
 
             $plus = fn ($dt) => $dt && Carbon::parse($dt)->toDateString() > $workDate ? ' +1' : '';
@@ -594,6 +598,7 @@ class AttendanceReportService
             'early_out' => $list->where('early_out', true)->count(),
             'absent'    => $list->where('status', 'absent')->count(),
             'upcoming'  => $list->where('status', 'upcoming')->count(),
+            'holiday'   => $list->where('status', 'holiday')->count(),
         ];
 
         return [
@@ -694,14 +699,44 @@ class AttendanceReportService
      */
     protected static function standardExpr(string $column, $siteValue): string
     {
-        if (empty($siteValue)) {
-            return $column;
+        $time = self::timeSql($siteValue);
+        return $time === 'NULL' ? $column : "COALESCE({$column}, {$time})";
+    }
+
+    /** A settings time as SQL ("NULL" when empty or invalid). */
+    protected static function timeSql($value): string
+    {
+        if (empty($value)) {
+            return 'NULL';
         }
         try {
-            $time = Carbon::parse($siteValue)->format('H:i:s');
+            return "CAST('" . Carbon::parse($value)->format('H:i:s') . "' AS TIME)";
         } catch (\Throwable) {
-            return $column;
+            return 'NULL';
         }
-        return "COALESCE({$column}, CAST('{$time}' AS TIME))";
+    }
+
+    /**
+     * The shift column, falling back to the default time of the punch's own
+     * institute. One institute: a single value; all institutes (super admin):
+     * a CASE per institute that saved its own settings, otherwise the global one.
+     */
+    protected static function defaultTimeExpr(string $column, string $key, ?int $institute): string
+    {
+        if ($institute) {
+            return self::standardExpr($column, instituteSettings($institute)->{$key});
+        }
+
+        $global = siteSettings()->{$key} ?? null;
+        $cases  = [];
+        foreach (\App\Models\User::institutes()->whereNotNull('settings')->get(['id', 'settings']) as $i) {
+            if (array_key_exists($key, (array) $i->settings)) {
+                $cases[] = 'WHEN ' . (int) $i->id . ' THEN ' . self::timeSql($i->settings[$key]);
+            }
+        }
+
+        return $cases
+            ? "COALESCE({$column}, CASE al.institute_id " . implode(' ', $cases) . ' ELSE ' . self::timeSql($global) . ' END)'
+            : self::standardExpr($column, $global);
     }
 }

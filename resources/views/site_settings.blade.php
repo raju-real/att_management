@@ -1,5 +1,5 @@
 @extends('layouts.app')
-@section('title','Update Site Settings')
+@section('title', $isInstitute ? 'Update Institute Settings' : 'Update Site Settings')
 
 @push('css')
     <style>
@@ -23,19 +23,19 @@
 @endpush
 
 @php
-    $siteIn  = old('in_time')  ?? (!empty(siteSettings()->in_time)  ? timeFormat(siteSettings()->in_time, 'H:i')  : '');
-    $siteOut = old('out_time') ?? (!empty(siteSettings()->out_time) ? timeFormat(siteSettings()->out_time, 'H:i') : '');
-    $selectedWeekly = old('weekly_holidays') ?? weeklyHolidays();
+    $siteIn  = old('in_time')  ?? (!empty($site->in_time)  ? timeFormat($site->in_time, 'H:i')  : '');
+    $siteOut = old('out_time') ?? (!empty($site->out_time) ? timeFormat($site->out_time, 'H:i') : '');
+    $selectedWeekly = old('weekly_holidays') ?? (array) ($site->weekly_holidays ?? []);
 @endphp
 
 @section('content')
     <div class="d-flex justify-content-between align-items-center mb-2">
-        <h3>Update Site Settings</h3>
+        <h3>{{ $isInstitute ? 'Update Institute Settings' : 'Update Site Settings' }}</h3>
     </div>
 
     <div class="card admin-card">
         <div class="card-header">
-            <h5 class="card-title"><i class="fas fa-sliders-h mr-2"></i> Site Information</h5>
+            <h5 class="card-title"><i class="fas fa-sliders-h mr-2"></i> {{ $isInstitute ? 'Institute' : 'Site' }} Information</h5>
         </div>
         <div class="card-body">
             <form action="{{ route('update-site-settings') }}" id="prevent-form" method="POST" enctype="multipart/form-data">
@@ -44,9 +44,9 @@
                 <div class="row">
                     <div class="col-md-4">
                         <div class="form-group">
-                            <label class="form-label">Site / School Name {!! starSign() !!}</label>
-                            <input type="text" name="site_name" maxlength="100"
-                                   value="{{ old('site_name') ?? siteSettings()->site_name ?? '' }}"
+                            <label class="form-label">{{ $isInstitute ? 'Institute Name' : 'Site / School Name' }} {!! starSign() !!}</label>
+                            <input type="text" name="site_name" maxlength="{{ $isInstitute ? 191 : 100 }}"
+                                   value="{{ old('site_name') ?? $site->site_name ?? '' }}"
                                    class="form-control {{ hasError('site_name') }}"
                                    placeholder="e.g. Demo High School">
                             <small class="text-muted">Shown in the menu bar, reports and the attendance board.</small>
@@ -57,8 +57,8 @@
                     </div>
                     <div class="col-md-4">
                         <div class="form-group">
-                            <label class="form-label">Email <small class="text-muted">(optional)</small></label>
-                            <input type="email" name="email" maxlength="100" value="{{ old('email') ?? siteSettings()->email ?? '' }}"
+                            <label class="form-label">Email <small class="text-muted">(optional{{ $isInstitute ? ', printed on reports; does not change your login email' : '' }})</small></label>
+                            <input type="email" name="email" maxlength="100" value="{{ old('email') ?? $site->email ?? '' }}"
                                    class="form-control {{ hasError('email') }}"
                                    placeholder="office@school.edu">
                             @error('email')
@@ -69,7 +69,7 @@
                     <div class="col-md-4">
                         <div class="form-group">
                             <label class="form-label">Mobile <small class="text-muted">(optional)</small></label>
-                            <input type="text" name="mobile" maxlength="20" value="{{ old('mobile') ?? siteSettings()->mobile ?? '' }}"
+                            <input type="text" name="mobile" maxlength="20" value="{{ old('mobile') ?? $site->mobile ?? '' }}"
                                    class="form-control {{ hasError('mobile') }}"
                                    placeholder="01XXXXXXXXX">
                             @error('mobile')
@@ -80,7 +80,7 @@
                     <div class="col-md-6">
                         <div class="form-group">
                             <label class="form-label">Address <small class="text-muted">(optional, printed under the school name on reports)</small></label>
-                            <input type="text" name="address" maxlength="255" value="{{ old('address') ?? siteSettings()->address ?? '' }}"
+                            <input type="text" name="address" maxlength="255" value="{{ old('address') ?? $site->address ?? '' }}"
                                    class="form-control {{ hasError('address') }}" placeholder="e.g. 12 College Road, Dhaka-1205">
                             @error('address')
                             {!! displayError($message) !!}
@@ -90,7 +90,7 @@
                     <div class="col-md-4">
                         <div class="form-group">
                             <label class="form-label">EIIN <small class="text-muted">(optional)</small></label>
-                            <input type="text" name="eiin" maxlength="30" value="{{ old('eiin') ?? siteSettings()->eiin ?? '' }}"
+                            <input type="text" name="eiin" maxlength="30" value="{{ old('eiin') ?? $site->eiin ?? '' }}"
                                    class="form-control {{ hasError('eiin') }}" placeholder="e.g. 108264">
                             @error('eiin')
                             {!! displayError($message) !!}
@@ -100,7 +100,7 @@
                     <div class="col-md-4">
                         <div class="form-group">
                             <label class="form-label">Website <small class="text-muted">(optional)</small></label>
-                            <input type="text" name="website" maxlength="100" value="{{ old('website') ?? siteSettings()->website ?? '' }}"
+                            <input type="text" name="website" maxlength="100" value="{{ old('website') ?? $site->website ?? '' }}"
                                    class="form-control {{ hasError('website') }}" placeholder="www.school.edu.bd">
                             @error('website')
                             {!! displayError($message) !!}
@@ -111,7 +111,7 @@
                         <div class="form-group">
                             <label class="form-label">School Logo <small class="text-muted">(optional, printed on reports; JPG/PNG/WEBP, max 1 MB)</small></label>
                             <div class="d-flex align-items-center" style="gap:12px">
-                                @php $siteLogo = siteSettings()->logo ?? null; @endphp
+                                @php $siteLogo = $site->logo ?? null; @endphp
                                 @if($siteLogo && is_file(public_path($siteLogo)))
                                     <img src="{{ asset($siteLogo) }}" alt="Logo" style="height:56px;max-width:120px;border:1px solid #e5e7eb;border-radius:8px;padding:3px;background:#fff">
                                 @endif
@@ -189,7 +189,7 @@
                             <input type="text" id="holiday_picker" class="form-control" placeholder="Click to add a holiday date" readonly>
                             <div id="holiday_tags" class="mt-2"></div>
                             <input type="hidden" name="office_holidays" id="office_holidays"
-                                   value="{{ old('office_holidays') ?? json_encode(array_values(officeHolidays())) }}">
+                                   value="{{ old('office_holidays') ?? json_encode(array_values((array) ($site->office_holidays ?? []))) }}">
                             @error('office_holidays_list')
                             {!! displayError($message) !!}
                             @enderror

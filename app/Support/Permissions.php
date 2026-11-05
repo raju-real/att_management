@@ -53,6 +53,9 @@ class Permissions
                 'routes' => ['shifts.*']],
             'departments'     => ['label' => 'Departments', 'icon' => 'fa-building',
                 'routes' => ['departments.*']],
+            // linked from the user dropdown, not this menu
+            'site-settings'   => ['label' => 'Institute Settings', 'icon' => 'fa-sliders-h', 'menu' => false,
+                'routes' => ['site-settings', 'update-site-settings']],
         ],
     ];
 

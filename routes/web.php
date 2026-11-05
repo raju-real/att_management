@@ -114,9 +114,12 @@ Route::middleware(['auth', 'permission'])->group(function () {
         Route::post('/commands/delete-user', 'deleteUserFromDevice')->name('commands.delete.user');      // DELETE USER FROM DEVICE
     });
     // Settings
-    Route::controller(SettingController::class)->middleware('admin')->group(function () {
+    // super admin: global settings; institute: its own (SettingController)
+    Route::controller(SettingController::class)->group(function () {
         Route::get('site-settings', 'siteSettings')->name('site-settings');
         Route::put('update-site-settings', 'updateSiteSettings')->name('update-site-settings');
+    });
+    Route::controller(SettingController::class)->middleware('admin')->group(function () {
         Route::get('fee-settings', 'feeSettings')->name('fee-settings');
         Route::put('update-fee-settings', 'updateFeeSettings')->name('update-fee-settings');
     });

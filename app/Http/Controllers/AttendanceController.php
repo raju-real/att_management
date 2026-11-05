@@ -159,10 +159,16 @@ class AttendanceController extends Controller
             $filters['month'] = Carbon::today()->format('Y-m');
         }
         [$from_date, $to_date] = Report::resolveRange($filters, 'month');
-        $working_days = Report::workingDays($from_date, $to_date);
+        $institute    = selectedInstituteId();
+        $working_days = Report::workingDays($from_date, $to_date, $institute);
+        // every institute has its own holidays, so absent days use the row's institute
+        $workingByInstitute = $institute
+            ? [$institute => $working_days]
+            : \App\Models\User::institutes()->pluck('id')
+                ->mapWithKeys(fn ($id) => [$id => Report::workingDays($from_date, $to_date, $id)])->all();
 
         if ($request->get('export') === 'csv') {
-            return $this->exportSummary($filters, $from_date, $to_date, $working_days);
+            return $this->exportSummary($filters, $from_date, $to_date, $working_days, $workingByInstitute);
         }
 
         $perPage = in_array((int) $request->per_page, [25, 50, 100, 200], true) ? (int) $request->per_page : 50;
@@ -171,11 +177,11 @@ class AttendanceController extends Controller
 
         return view('attendance.monthly_summary', array_merge(
             $this->filterOptions(),
-            compact('summary', 'totals', 'from_date', 'to_date', 'working_days')
+            compact('summary', 'totals', 'from_date', 'to_date', 'working_days', 'workingByInstitute')
         ));
     }
 
-    protected function exportSummary(array $filters, string $from, string $to, int $workingDays): StreamedResponse
+    protected function exportSummary(array $filters, string $from, string $to, int $workingDays, array $workingByInstitute): StreamedResponse
     {
         $rows = Report::monthlySummaryForExport($filters);
 
@@ -193,9 +199,9 @@ class AttendanceController extends Controller
                 $r->shift_title ?? ($r->std_in ? 'Default' : '-'),
                 Report::shiftClock($r->std_in),
                 Report::shiftClock($r->std_out, $r->std_in),
-                $workingDays,
+                $workingByInstitute[$r->institute_id] ?? $workingDays,
                 $r->present_days,
-                max(0, $workingDays - (int) $r->present_days),
+                max(0, ($workingByInstitute[$r->institute_id] ?? $workingDays) - (int) $r->present_days),
                 (int) $r->early_in_days,
                 (int) $r->late_days,
                 Report::minutesToHm((int) $r->late_minutes),
@@ -354,7 +360,7 @@ class AttendanceController extends Controller
                 }
                 $mpdf->WriteHTML($part('table', ['section' => $section, 'teachers' => $teachers]), $body);
             }
-            $mpdf->WriteHTML($part('legend'), $body);
+            $mpdf->WriteHTML($part('legend', ['section' => $section]), $body);
             // simpleTables ignores per-cell borders; the signature lines need them.
             $mpdf->simpleTables = false;
             $mpdf->WriteHTML($part('signatures'), $body);

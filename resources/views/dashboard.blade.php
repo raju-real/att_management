@@ -34,32 +34,34 @@
 
     /* centre: spotlight of absent people */
     /* standard box: sized by photo + name, normal padding */
-    .ld-spot { border: 2px solid #1e1b4b; border-radius: 12px; min-height: 420px; max-width: 400px; margin: 0 auto; display: flex; flex-direction: column;
-        align-items: center; justify-content: center; text-align: center; padding: 12px; position: relative; overflow: hidden;
+    .ld-spot { border: 2px solid #1e1b4b; border-radius: 12px; max-width: 480px; margin: 0 auto; display: flex; flex-direction: column;
+        align-items: center; justify-content: center; text-align: center; padding: 0; position: relative; overflow: hidden;
         background: radial-gradient(circle at 50% 30%, #fef2f2, #fff 70%); }
-    .ld-spot-photo { width: 300px; height: 300px; border-radius: 12px; object-fit: cover; object-position: center top; border: 4px solid #fecaca;
-        box-shadow: 0 10px 30px rgba(185, 28, 28, .18); background: #f3f4f6; }
-    .ld-spot-initial { width: 300px; height: 300px; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin: 0 auto;
-        font-size: 120px; font-weight: 800; color: #b91c1c; background: #fee2e2; border: 4px solid #fecaca; }
-    .ld-spot-name { font-size: 22px; font-weight: 800; margin-top: 12px; color: #111827; max-width: 100%; }
+    /* photo fills the box edge to edge */
+    .ld-spot-photo { display: block; width: 100%; aspect-ratio: 1 / 1; object-fit: cover; object-position: center top; background: #f3f4f6; }
+    .ld-spot-info { padding: 8px 12px 10px; }
+    .ld-spot-initial { width: 100%; aspect-ratio: 1 / 1; display: flex; align-items: center; justify-content: center;
+        font-size: 160px; font-weight: 800; color: #b91c1c; background: #fee2e2; }
+    .ld-spot-name { font-size: 22px; font-weight: 800; color: #111827; max-width: 100%; }
     .ld-spot-name a { color: inherit; text-decoration: none; border-bottom: 2px dashed #a5b4fc; }
     .ld-spot-name a:hover { color: #4338ca; }
     .ld-spot-time { margin-top: 6px; font-size: 14px; color: #374151; }
     .ld-spot-time b { color: #111827; }
     .ld-spot.present { background: radial-gradient(circle at 50% 30%, #ecfdf5, #fff 70%); }
-    .ld-spot.present .ld-spot-photo { border-color: #a7f3d0; box-shadow: 0 10px 30px rgba(4, 120, 87, .18); }
-    .ld-spot.present .ld-spot-initial { background: #d1fae5; color: #047857; border-color: #a7f3d0; }
+    .ld-spot.present .ld-spot-initial { background: #d1fae5; color: #047857; }
     .ld-spot-tag.present { background: #047857; } .ld-spot-tag.late { background: #d97706; }
-    .ld-spot-back { order: 2; margin-top: 6px; font-size: 12px; color: #6b7280; cursor: pointer; display: none; }
+    .ld-spot-back { order: 2; margin-bottom: 8px; font-size: 12px; color: #6b7280; cursor: pointer; display: none; }
     .ld-spot-back:hover { color: #111827; }
     .ld-spot.pinned .ld-spot-back { display: block; }
     .ld-spot-sub { color: #6b7280; font-size: 14px; }
     .ld-spot-tag { display: inline-block; margin-top: 6px; padding: 2px 12px; border-radius: 20px; background: #b91c1c; color: #fff; font-size: 12px; font-weight: 700; }
     .ld-spot-tag.upcoming { background: #0284c7; }
     .ld-spot-count { position: absolute; right: 12px; bottom: 8px; font-size: 12px; color: #9ca3af; }
-    .ld-spot-inner { transition: opacity .45s ease, transform .45s ease; }
+    .ld-spot-inner { width: 100%; transition: opacity .45s ease, transform .45s ease; }
     .ld-spot-inner.fade { opacity: 0; transform: scale(.97); }
-    .ld-spot-ok { color: #047857; font-size: 22px; font-weight: 700; }
+    .ld-spot-ok { color: #047857; font-size: 22px; font-weight: 700; padding: 90px 16px; }
+    .ld-spot-ok.holiday { color: #6d28d9; }
+    .ld-spot-tag.holiday { background: #6d28d9; }
     .ld-spot-ok i { font-size: 60px; display: block; margin-bottom: 10px; }
 
     /* person card (absent column + present row) */
@@ -76,7 +78,7 @@
     .ld-card > div { min-width: 0; width: 100%; }
 
     /* right: absent list scrolling up */
-    .ld-vwin { height: 540px; overflow: hidden; position: relative; }
+    .ld-vwin { height: 600px; overflow: hidden; position: relative; }
     .ld-vtrack { display: flex; flex-direction: column; align-items: center; gap: 10px; }
     .ld-vtrack.run { animation: ld-up var(--dur, 30s) linear infinite; }
     @keyframes ld-up { from { transform: translateY(0); } to { transform: translateY(-50%); } }
@@ -209,7 +211,7 @@
     const SEC_PER_CARD = 4;                       // marquee speed: seconds each card takes to pass
     const PIN_MS  = +root.dataset.pinMs || 30000; // a clicked person stays in the centre this long
     const SPOT_MS = +root.dataset.spotMs || 5000; // rotation of absentees in the centre
-    let absent = [], people = {}, spotIdx = 0, spotTimer = null, pinTimer = null, lastSig = '';
+    let holidayCount = 0, absent = [], people = {}, spotIdx = 0, spotTimer = null, pinTimer = null, lastSig = '';
 
     // ── clock ──
     function tick() {
@@ -252,6 +254,7 @@
         const spot  = $('spot'), inner = $('spot-inner');
         const here  = isPresent(t);
         const tag   = t.status === 'upcoming' ? ['upcoming', 'Shift not started']
+                    : t.status === 'holiday' ? ['holiday', 'Holiday']
                     : t.status === 'late' ? ['late', 'Late'] : here ? ['present', 'Present'] : ['', 'Absent'];
         const url   = root.dataset.profileUrl ? root.dataset.profileUrl.replace('__ID__', t.id) : '';
         const name  = url ? `<a href="${esc(url)}" target="_blank" rel="noopener" title="Open Teacher/Staff Profile in a new tab">${esc(t.name)} <i class="fas fa-external-link-alt" style="font-size:.55em"></i></a>` : esc(t.name);
@@ -259,18 +262,20 @@
 
         spot.classList.toggle('present', here);
         spot.classList.toggle('pinned', !!pinned);
-        $('spot-label').textContent = pinned ? (here ? 'Present' : 'Absent') : 'Absent';
+        $('spot-label').textContent = pinned ? (here ? 'Present' : t.status === 'holiday' ? 'Holiday' : 'Absent') : 'Absent';
         $('spot-label').style.color = here && pinned ? '#047857' : '';
 
         inner.classList.add('fade');
         setTimeout(() => {
             inner.innerHTML = `
                 ${t.image ? `<img src="${esc(t.image)}" alt="" class="ld-spot-photo">` : `<div class="ld-spot-initial">${esc(t.initial)}</div>`}
+                <div class="ld-spot-info">
                 <div class="ld-spot-name fit-one-line">${name}</div>
                 <div class="ld-spot-sub">${esc([t.designation, t.department].filter(Boolean).join(' · '))}</div>
                 <div class="ld-spot-sub">ID: ${esc(t.teacher_no)}${t.shift_in ? ' · Shift ' + esc(t.shift_in) + ' - ' + esc(t.shift_out || '') : ''}</div>
                 ${times}
-                <span class="ld-spot-tag ${tag[0]}">${tag[1]}</span>`;
+                <span class="ld-spot-tag ${tag[0]}">${tag[1]}</span>
+                </div>`;
             inner.classList.remove('fade');
             if (window.fitOneLine) window.fitOneLine();
         }, 250);
@@ -283,7 +288,9 @@
         $('spot-label').textContent = 'Absent';
         $('spot-label').style.color = '';
         if (!absent.length) {
-            $('spot-inner').innerHTML = `<div class="ld-spot-ok"><i class="fas fa-award"></i>No absentees today<br><small class="text-muted">Full attendance!</small></div>`;
+            $('spot-inner').innerHTML = holidayCount
+                ? `<div class="ld-spot-ok holiday"><i class="fas fa-umbrella-beach"></i>Holiday today</div>`
+                : `<div class="ld-spot-ok"><i class="fas fa-award"></i>No absentees today<br><small class="text-muted">Full attendance!</small></div>`;
             $('spot-count').textContent = '';
             return;
         }
@@ -357,7 +364,8 @@
             .then(data => {
                 const s = data.summary || {};
                 const list = data.teachers || [];
-                const counted = Math.max(0, (s.total || 0) - (s.upcoming || 0)); // shift not started yet → not counted
+                holidayCount = s.holiday || 0;
+                const counted = Math.max(0, (s.total || 0) - (s.upcoming || 0) - holidayCount); // not started yet / holiday → not counted
                 const pct = counted ? Math.round((s.present || 0) / counted * 1000) / 10 : 0;
 
                 $('date').textContent = data.date || '';

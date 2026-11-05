@@ -24,6 +24,7 @@
         late: 'No late arrivals. Everyone is on time!',
         early_out: 'Nobody left early.',
         absent: 'No absentees. Full attendance!',
+        holiday: 'No holiday today.',
         upcoming: 'No shifts waiting to start.',
         on_time: 'Nobody has arrived on time yet.',
         present: 'No one has punched in yet.',
@@ -46,6 +47,9 @@
             if (t.status === 'absent') {
                 time = 'Absent';
                 tag = `<span class="tb-tag">${t.shift_in ? 'Shift ' + esc(t.shift_in) : 'No punch'}</span>`;
+            } else if (t.status === 'holiday') {
+                time = 'Holiday';
+                tag = `<span class="tb-tag"><i class="fas fa-umbrella-beach mr-1"></i>Holiday</span>`;
             } else if (t.status === 'upcoming') {
                 time = 'Upcoming';
                 tag = `<span class="tb-tag"><i class="far fa-clock mr-1"></i>Starts ${esc(t.shift_in)}</span>`;
@@ -76,6 +80,7 @@
 
         const tags = [];
         if (t.status === 'absent') tags.push(`<span class="tb-tag">Absent</span>`);
+        if (t.status === 'holiday') tags.push(`<span class="tb-tag"><i class="fas fa-umbrella-beach mr-1"></i>Holiday</span>`);
         if (t.status === 'upcoming') tags.push(`<span class="tb-tag"><i class="far fa-clock mr-1"></i>Upcoming, starts ${esc(t.shift_in)}</span>`);
         if (t.missing_in) tags.push(`<span class="tb-tag t-early"><i class="fas fa-exclamation-triangle mr-1"></i>Missing In</span>`);
         else if (t.status === 'on_time') tags.push(`<span class="tb-tag"><i class="fas fa-check mr-1"></i>On Time</span>`);
@@ -275,7 +280,7 @@
                     const s = data.summary || {};
                     $('date-label').textContent = data.date;
                     setCount('all', s.total);
-                    ['present', 'on_time', 'late', 'early_out', 'absent', 'upcoming'].forEach(k => setCount(k, s[k]));
+                    ['present', 'on_time', 'late', 'early_out', 'absent', 'upcoming', 'holiday'].forEach(k => setCount(k, s[k]));
                     $('live').style.display = dateInput.value === todayStr() ? '' : 'none';
                     setUpdated(true);
 

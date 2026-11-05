@@ -29,7 +29,7 @@
             <th style="{{ $th }}">ID<br>No</th>
             <th style="{{ $th }}text-align:left;{{ $mode === 'pdf' ? 'width:30mm;' : 'min-width:150px;' }}">Teacher/Staff Name</th>
             <th style="{{ $th }}">Time<br>Table</th>
-            @foreach($sheet['days'] as $day)
+            @foreach(($section['days'] ?? $sheet['days']) as $day)
                 <th style="{{ $th }}{{ $dayW }}{{ $day['holiday'] ? $hol : '' }}">@if($day['month_mark'])<span style="font-size:85%;color:#4338ca;">{{ $day['month_mark'] }}</span><br>@endif{{ $day['day'] }}<br>{{ $day['abbr'] }}</th>
             @endforeach
             <th style="{{ $th }}">Total<br>Present</th>
@@ -47,7 +47,7 @@
                 <td style="{{ $td }}" rowspan="2">{{ $t['no'] }}</td>
                 <td style="{{ $td }}text-align:left;" rowspan="2">{{ $t['name'] }}</td>
                 <td style="{{ $td }}white-space:nowrap;">In Time</td>
-                @foreach($sheet['days'] as $d => $day)
+                @foreach(($section['days'] ?? $sheet['days']) as $d => $day)
                     @php $c = $t['cells'][$d]; @endphp
                     @if($c['type'] === 'present')
                         <td style="{{ $td }}{{ $c['late'] ? 'color:#dc2626;font-weight:bold;' : '' }}{{ $day['holiday'] ? $hol : '' }}">{{ $c['in'] }}</td>
@@ -68,7 +68,7 @@
             {{-- Out Time row --}}
             <tr>
                 <td style="{{ $td }}white-space:nowrap;">Out Time</td>
-                @foreach($sheet['days'] as $d => $day)
+                @foreach(($section['days'] ?? $sheet['days']) as $d => $day)
                     @php $c = $t['cells'][$d]; @endphp
                     @if($c['type'] === 'present')
                         <td style="{{ $td }}{{ $c['early_out'] ? 'color:#dc2626;font-weight:bold;' : '' }}{{ $day['holiday'] ? $hol : '' }}">{{ $c['out'] }}</td>
@@ -86,7 +86,7 @@
 </table>
 <div style="{{ $mode === 'pdf' ? 'font-size:7pt;' : 'font-size:11px;' }}color:#555;margin-top:4px;">
     A = Absent &nbsp;·&nbsp; H = Holiday &nbsp;·&nbsp; <span style="color:#dc2626;font-weight:bold;">Red</span> = Late in / Early out
-    &nbsp;·&nbsp; - = Missing punch &nbsp;·&nbsp; + = Next day (night shift) &nbsp;·&nbsp; Working days: {{ $sheet['working_days'] }}
+    &nbsp;·&nbsp; - = Missing punch &nbsp;·&nbsp; + = Next day (night shift) &nbsp;·&nbsp; Working days: {{ $section['working_days'] ?? $sheet['working_days'] }}
     &nbsp;·&nbsp; Over Time = worked after shift out time (h:mm)
 </div>
 

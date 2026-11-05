@@ -141,7 +141,7 @@ class MultiInstituteTest extends TestCase
     {
         $this->actingAs($this->a);
         $this->get('/institutes')->assertRedirect(route('permission-denied'));
-        $this->get('/site-settings')->assertRedirect(route('permission-denied'));
+        $this->get('/fee-settings')->assertRedirect(route('permission-denied'));
         $this->get('/devices')->assertOk()->assertSee('Gate A')->assertDontSee('Gate B');
 
         $teacherB = Teacher::withoutGlobalScopes()->where('institute_id', $this->b->id)->first();
@@ -352,6 +352,116 @@ class MultiInstituteTest extends TestCase
         } else {
             $this->assertStringNotContainsString('login-brand-logo"><img', $html);
         }
+    }
+
+    /** Save an institute's settings through its own form. */
+    protected function saveSettings(User $institute, array $values): void
+    {
+        $this->actingAs($institute);
+        $this->put('/update-site-settings', $values + ['site_name' => $institute->name])
+            ->assertRedirect(route('site-settings'))->assertSessionHasNoErrors();
+    }
+
+    public function test_each_institute_has_its_own_settings_and_holidays(): void
+    {
+        $globalFile = md5_file(jsonSettingsPath('site_setting.json'));
+        $untouched  = weeklyHolidays(); // Beta has saved nothing yet: global values
+
+        $this->saveSettings($this->a, [
+            'site_name' => 'Alpha Renamed', 'email' => 'office@alpha.test', 'mobile' => '01700000000', 'address' => 'New Road',
+            'in_time' => '09:00', 'out_time' => '15:00',
+            'weekly_holidays' => ['Sunday'], 'office_holidays' => json_encode(['2026-10-14']),
+        ]);
+
+        // saved on the institute only: global file and the other institute untouched, login unchanged
+        $this->assertSame($globalFile, md5_file(jsonSettingsPath('site_setting.json')));
+        $a = $this->a->fresh();
+        $this->assertSame('alpha@test.local', $a->email);
+        $this->assertSame('Alpha Renamed', $a->name);
+        $this->assertSame(['Sunday'], weeklyHolidays($a->id));
+        $this->assertSame(['2026-10-14'], officeHolidays($a->id));
+        $this->assertSame($untouched, weeklyHolidays($this->b->id));
+
+        // letterhead shows the contact email, the settings page its own values
+        $this->assertSame('office@alpha.test', schoolInfo($a->id)->email);
+        $this->get('/site-settings')->assertOk()->assertSee('Institute Settings')->assertSee('Alpha Renamed')->assertSee('office@alpha.test');
+
+        // Beta: Monday off. Week 11–17 Oct 2026 (Sun–Sat), Alpha also has Wed 14th off.
+        $this->saveSettings($this->b, ['weekly_holidays' => ['Monday'], 'in_time' => '07:30', 'office_holidays' => '[]']);
+        $this->assertSame(5, Report::workingDays('2026-10-11', '2026-10-17', $this->a->id));
+        $this->assertSame(6, Report::workingDays('2026-10-11', '2026-10-17', $this->b->id));
+
+        $dept = Department::where('institute_id', $this->a->id)->first();
+        $noShift = fn (int $institute) => tap(new Teacher(), function ($t) use ($institute) {
+            $t->institute_id = $institute;
+            $t->teacher_no = '200';
+            $t->name = "No shift {$institute}";
+            $t->department_id = 0;
+            $t->save();
+        });
+        $noShift($this->a->id);
+        $noShift($this->b->id);
+
+        // default times: each punch against its own institute, also on the all-institutes query
+        Auth::logout(); // devices are not logged in
+        $this->punch($this->dev['A']->serial_no, '200', '2026-10-13 08:30:00');
+        $this->punch($this->dev['B']->serial_no, '200', '2026-10-13 08:30:00');
+        $this->actingAs($this->admin);
+        $rows = Report::dailyQuery('2026-10-13', '2026-10-13', ['user_type' => 'teacher'])->get()->keyBy('institute_id');
+        $this->assertSame('09:00:00', $rows[$this->a->id]->std_in);
+        $this->assertSame(0, (int) $rows[$this->a->id]->is_late);
+        $this->assertSame('07:30:00', $rows[$this->b->id]->std_in);
+        $this->assertSame(1, (int) $rows[$this->b->id]->is_late);
+
+        // Month & Day sheet, all institutes: each section uses its own holidays
+        $sheet = MonthlySheetService::buildRange('2026-10-11', '2026-10-17');
+        $bySection = collect($sheet['sections'])->keyBy(fn ($s) => str_contains($s['title'], 'Renamed') ? 'a' : 'b');
+        $this->assertTrue($bySection['a']['days']['2026-10-11']['holiday']);   // Sunday: Alpha off
+        $this->assertFalse($bySection['b']['days']['2026-10-11']['holiday']);
+        $this->assertTrue($bySection['b']['days']['2026-10-12']['holiday']);   // Monday: Beta off
+        $this->assertTrue($bySection['a']['days']['2026-10-14']['holiday']);   // Alpha's office holiday
+        $this->assertSame(5, $bySection['a']['working_days']);
+        $this->assertSame(6, $bySection['b']['working_days']);
+        $this->assertSame('holiday', $bySection['a']['teachers'][0]['cells']['2026-10-11']['type']);
+        $this->assertSame('absent', $bySection['b']['teachers'][0]['cells']['2026-10-11']['type']);
+
+        // the same pages render for all institutes, and the PDF / CSV still build
+        $range = '?from_date=2026-10-11&to_date=2026-10-17';
+        $this->get('/attendance-monthly-summary' . $range)->assertOk()->assertSee('working days vary by institute');
+        $this->get('/attendance-monthly-summary' . $range . '&institute_id=' . $this->b->id)->assertOk()->assertSee('6 working day(s)');
+        $this->get('/attendance-monthly-summary' . $range . '&export=csv')->assertOk();
+        $this->assertStringStartsWith('%PDF', $this->get('/attendance-month-day-summary' . $range . '&export=pdf')->getContent());
+
+        // board and dashboard data: holiday is not absent; a punch on a holiday still counts as present
+        $board = Report::teacherBoard('2026-10-11');
+        $status = collect($board['teachers'])->groupBy(fn ($t) => $t['name'])->map(fn ($g) => $g[0]['status']);
+        $this->assertSame('holiday', $status['Teacher A']);
+        $this->assertSame('absent', $status['Teacher B']);
+        $this->punch($this->dev['A']->serial_no, '101', '2026-10-11 08:00:00');
+        $this->assertSame('on_time', collect(Report::teacherBoard('2026-10-11', ['institute_id' => $this->a->id])['teachers'])
+            ->firstWhere('name', 'Teacher A')['status']);
+
+        // profile counts the teacher's own institute
+        $teacherA = Teacher::where('institute_id', $this->a->id)->where('teacher_no', '101')->first();
+        $teacherB = Teacher::where('institute_id', $this->b->id)->where('teacher_no', '101')->first();
+        $this->assertNotSame(
+            \App\Services\TeacherProfileService::yearly($teacherA, 2026)['months'][10]['working'],
+            \App\Services\TeacherProfileService::yearly($teacherB, 2026)['months'][10]['working']
+        );
+
+        // the super admin's page edits the global settings, not an institute's
+        $this->get('/site-settings')->assertOk()->assertSee('Update Site Settings');
+
+        // an institute user needs the permission; never the fee settings
+        $clerk = $this->institute('Clerk', 'clerk3@test.local');
+        $clerk->forceFill(['role' => 'inst_user', 'institute_id' => $this->a->id, 'permissions' => ['teachers']])->save();
+        $this->actingAs($clerk);
+        $this->get('/site-settings')->assertRedirect(route('permission-denied'));
+        $this->put('/update-site-settings', ['site_name' => 'Hacked'])->assertRedirect(route('permission-denied'));
+        $clerk->forceFill(['permissions' => ['site-settings']])->save();
+        $this->actingAs($clerk->fresh());
+        $this->get('/site-settings')->assertOk()->assertSee('Alpha Renamed');
+        $this->get('/fee-settings')->assertRedirect(route('permission-denied'));
     }
 
     public function test_institute_users_and_menu_permissions(): void

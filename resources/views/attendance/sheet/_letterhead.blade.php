@@ -57,6 +57,6 @@
             @if($sheet['is_full_month'])<b>Month:</b> {{ $sheet['month_name'] }} {{ $sheet['year'] }} &nbsp;&nbsp;@endif
             <b>Period:</b> {{ $sheet['period_label'] }} ({{ $sheet['day_count'] }} days)
         </td>
-        <td style="{{ $cell }}text-align:right;width:16%;"><b>Working days:</b> {{ $sheet['working_days'] }}</td>
+        <td style="{{ $cell }}text-align:right;width:16%;"><b>Working days:</b> {{ $section['working_days'] ?? $sheet['working_days'] }}</td>
     </tr>
 </table>

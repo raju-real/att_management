@@ -12,6 +12,8 @@
     $month   = request('month', \Carbon\Carbon::parse($from_date)->format('Y-m'));
     $keep    = request()->except(['from_date', 'to_date', 'month', 'page', 'export']);
     $months  = collect(range(0, 5))->map(fn ($i) => $today->copy()->startOfMonth()->subMonthsNoOverflow($i));
+    // all institutes: each has its own holidays, so there is no single number
+    $wdLabel = selectedInstituteId() ? $working_days . ' working day(s)' : 'working days vary by institute';
     $typeLabels = ['teacher' => ['Teachers/Staff', 'fa-chalkboard-teacher', 'green'], 'student' => ['Students', 'fa-user-graduate', 'accent'], 'unknown' => ['Unknown', 'fa-question', 'amber']];
 @endphp
 
@@ -21,7 +23,7 @@
         <div class="mb-2 text-muted">
             <i class="far fa-calendar-alt mr-1"></i>
             {{ \Carbon\Carbon::parse($from_date)->format('d M Y') }} &ndash; {{ \Carbon\Carbon::parse($to_date)->format('d M Y') }}
-            &middot; <strong>{{ $working_days }}</strong> working day(s)
+            &middot; <strong>{{ $wdLabel }}</strong>
         </div>
     </div>
 
@@ -148,7 +150,7 @@
 
     @include('partials.report_heading', [
         'title'  => 'Monthly Attendance Summary',
-        'period' => \Carbon\Carbon::parse($from_date)->format('d M Y') . ' – ' . \Carbon\Carbon::parse($to_date)->format('d M Y') . ' · ' . $working_days . ' working day(s)',
+        'period' => \Carbon\Carbon::parse($from_date)->format('d M Y') . ' – ' . \Carbon\Carbon::parse($to_date)->format('d M Y') . ' · ' . $wdLabel,
     ])
 
     {{-- ── User type wise totals ── --}}
@@ -205,7 +207,7 @@
                     <tbody>
                         @forelse($summary as $row)
                             @php
-                                $absent  = max(0, $working_days - (int) $row->present_days);
+                                $absent  = max(0, ($workingByInstitute[$row->institute_id] ?? $working_days) - (int) $row->present_days);
                                 // offset from shift start, so it also works for night shifts (00:10 is late for 22:00)
                                 $avgLate = $row->std_in && $row->avg_in && ($off = \App\Models\Shift::secondsAfter($row->std_in, $row->avg_in)) > 0 && $off < 43200;
                             @endphp
