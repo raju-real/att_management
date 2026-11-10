@@ -112,7 +112,7 @@
                             <label class="form-label">School Logo <small class="text-muted">(optional, printed on reports; JPG/PNG/WEBP, max 1 MB)</small></label>
                             <div class="d-flex align-items-center" style="gap:12px">
                                 @php $siteLogo = $site->logo ?? null; @endphp
-                                @if($siteLogo && is_file(public_path($siteLogo)))
+                                @if($siteLogo && publicFilePath($siteLogo))
                                     <img src="{{ asset($siteLogo) }}" alt="Logo" style="height:56px;max-width:120px;border:1px solid #e5e7eb;border-radius:8px;padding:3px;background:#fff">
                                 @endif
                                 <div>

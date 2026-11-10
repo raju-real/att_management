@@ -9,7 +9,7 @@
 --}}
 @php
     $pdf   = $mode === 'pdf';
-    $logo  = $pdf ? $school->logo_path : $school->logo_url;
+    $logo  = $pdf ? $school->logo_pdf : $school->logo_url;
     $photo = $teacher->image && file_exists($teacher->image) ? ($pdf ? public_path($teacher->image) : asset($teacher->image)) : null;
     $d     = fn ($date) => $date ? \Carbon\Carbon::parse($date)->format('d-m-Y') : '';
     $v     = fn ($value) => filled($value) ? e($value) : '&nbsp;';

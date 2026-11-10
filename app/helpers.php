@@ -502,7 +502,8 @@ if (!function_exists('schoolInfo')) {
             'logo' => $inst->logo,
         ] : $s;
 
-        $logo = !empty($src->logo) && is_file(public_path($src->logo)) ? $src->logo : null;
+        $logoFile = !empty($src->logo) ? publicFilePath($src->logo) : null;
+        $logo     = $logoFile ? $src->logo : null;
 
         $contact = array_filter([
             !empty($src->eiin) ? 'EIIN: ' . $src->eiin : null,
@@ -518,11 +519,46 @@ if (!function_exists('schoolInfo')) {
             'phone'        => $src->mobile ?? null,
             'email'        => $src->email ?? null,
             'website'      => $src->website ?? null,
-            'logo_path'    => $logo ? public_path($logo) : null, // for PDF / Excel
+            'logo_path'    => $logoFile, // absolute file, for PDF / Excel
+            // embedded image data for mPDF: no file path / permission issue on any server
+            'logo_pdf'     => $logoFile && ($bin = @file_get_contents($logoFile)) !== false
+                ? 'data:' . (@mime_content_type($logoFile) ?: 'image/png') . ';base64,' . base64_encode($bin) : null,
             'logo_url'     => $logo ? asset($logo) : null,       // for web pages
             'contact_line' => implode('  |  ', $contact),
             'is_institute' => (bool) $inst,
         ];
+    }
+}
+
+if (!function_exists('publicFilePath')) {
+    /**
+     * Absolute path of an uploaded public file (e.g. "assets/files/images/institutes/x.png"), or null.
+     *
+     * Uploads are saved relative to the folder the site runs from, which on some servers
+     * (cPanel public_html, project root served directly) is not Laravel's public_path().
+     * So look in every place the file can be.
+     */
+    function publicFilePath(?string $relative): ?string
+    {
+        $relative = ltrim(str_replace('\\', '/', (string) $relative), '/');
+        if ($relative === '') {
+            return null;
+        }
+        $roots = array_filter([
+            public_path(),
+            getcwd() ?: null,
+            !empty($_SERVER['DOCUMENT_ROOT']) ? $_SERVER['DOCUMENT_ROOT'] : null,
+            !empty($_SERVER['SCRIPT_FILENAME']) ? dirname($_SERVER['SCRIPT_FILENAME']) : null,
+            base_path(),
+            dirname(base_path()) . DIRECTORY_SEPARATOR . 'public_html',
+        ]);
+        foreach (array_unique($roots) as $root) {
+            $file = rtrim($root, '/\\') . DIRECTORY_SEPARATOR . $relative;
+            if (is_file($file)) {
+                return realpath($file) ?: $file;
+            }
+        }
+        return null;
     }
 }
 

@@ -511,7 +511,7 @@ class MultiInstituteTest extends TestCase
 
         // super admin: nothing until an institute is chosen
         $this->actingAs($this->admin);
-        $this->get('/attendance-daily-report')->assertOk()->assertSee('Select an institute')->assertDontSee('Employee Report');
+        $this->get('/attendance-daily-report')->assertOk()->assertSee('Select an institute')->assertDontSee('Daily Reports</div>', false);
         $this->get('/attendance-daily-report?institute_id=' . $this->b->id . '&date=' . $day)->assertOk()->assertSee('Beta College')->assertDontSee('Office Staff');
 
         // institute user needs the menu permission
@@ -547,6 +547,25 @@ class MultiInstituteTest extends TestCase
             $this->assertStringContainsString(asset($logo), $sheet);
             if ($site) {
                 $this->assertStringNotContainsString(asset($site), $sheet);
+            }
+
+            // PDFs get the logo embedded as image data
+            $this->assertStringStartsWith('data:image/png;base64,', schoolInfo($this->a->id)->logo_pdf);
+            $pdf = $this->get('/attendance-daily-report?export=pdf&institute_id=' . $this->a->id)->assertOk()->getContent();
+            $this->assertStringContainsString('/Subtype /Image', $pdf);
+
+            // a server whose public_path() is not the folder the site runs from (cPanel public_html):
+            // the logo is still found, so reports keep it
+            $real = public_path();
+            $cwd  = getcwd();
+            try {
+                chdir($real);
+                $this->app->instance('path.public', sys_get_temp_dir());
+                $this->assertNotNull(schoolInfo($this->a->id)->logo_path);
+                $this->assertNotNull(schoolInfo($this->a->id)->logo_pdf);
+            } finally {
+                $this->app->instance('path.public', $real);
+                chdir($cwd);
             }
         } finally {
             @unlink(public_path($logo));

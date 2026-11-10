@@ -362,7 +362,7 @@
         <!-- Login Header -->
         <div class="login-header">
             {{-- logo set by the super admin in Site Settings, under the name --}}
-            @php $loginLogo = !empty(siteSettings()->logo) && is_file(public_path(siteSettings()->logo)) ? siteSettings()->logo : null; @endphp
+            @php $loginLogo = !empty(siteSettings()->logo) && publicFilePath(siteSettings()->logo) ? siteSettings()->logo : null; @endphp
             @unless ($loginLogo)
                 <div class="login-logo">
                     <i class="fas fa-chart-line"></i>

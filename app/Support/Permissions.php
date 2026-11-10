@@ -35,7 +35,7 @@ class Permissions
                 'routes' => ['attendance.monthly-summary', 'month-wise-user-summery']],
             'attendance.month-sheet'     => ['label' => 'Month & Day Wise Summary', 'icon' => 'fa-table',
                 'routes' => ['attendance.month-sheet']],
-            'attendance.daily-report'    => ['label' => 'Daily Report', 'icon' => 'fa-calendar-day',
+            'attendance.daily-report'    => ['label' => 'Daily Reports', 'icon' => 'fa-calendar-day',
                 'routes' => ['attendance.daily-report']],
             'teacher-profiles'           => ['label' => 'Teacher/Staff Profile', 'icon' => 'fa-id-card',
                 'routes' => ['teacher-profiles.*']],

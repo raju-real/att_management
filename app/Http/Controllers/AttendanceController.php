@@ -247,10 +247,10 @@ class AttendanceController extends Controller
                     $mpdf = $instance;
                 },
             ]);
-            $mpdf->SetTitle($school->name . ' - Daily Report - ' . $date);
+            $mpdf->SetTitle($school->name . ' - Daily Reports - ' . $date);
             $mpdf->SetAuthor($school->name);
             $mpdf->SetHTMLFooter('<table style="width:100%;font-size:7pt;color:#666;border-top:0.5px solid #999;"><tr>'
-                . '<td style="width:45%;">' . e($school->name) . ' &middot; Daily Report &middot; ' . e($report['date_label']) . '</td>'
+                . '<td style="width:45%;">' . e($school->name) . ' &middot; Daily Reports &middot; ' . e($report['date_label']) . '</td>'
                 . '<td style="width:35%;text-align:center;">Generated ' . now()->format('d M Y, h:i A') . (auth()->user() ? ' by ' . e(auth()->user()->name) : '') . '</td>'
                 . '<td style="width:20%;text-align:right;">Page {PAGENO} of {nbpg}</td></tr></table>');
             $mpdf->WriteHTML(view('attendance.daily._sheet', ['report' => $report, 'school' => $school, 'mode' => 'pdf'])->render());

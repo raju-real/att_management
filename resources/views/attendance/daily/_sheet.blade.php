@@ -7,7 +7,7 @@
 --}}
 @php
     $pdf  = $mode === 'pdf';
-    $logo = $pdf ? $school->logo_path : $school->logo_url;
+    $logo = $pdf ? $school->logo_pdf : $school->logo_url;
     $t    = $report['total'];
     $showUpcoming = $t['upcoming'] > 0;
     $showHoliday  = $t['holiday'] > 0;
@@ -22,7 +22,7 @@
     .dr .ct { text-align: center; color: #555; font-size: {{ $pdf ? '8pt' : '12px' }}; }
     .dr .ti { text-align: center; font-size: {{ $pdf ? '13pt' : '19px' }}; font-weight: bold; margin-top: 4px; }
     .dr .st { color: #dc2626; font-size: {{ $pdf ? '12pt' : '18px' }}; font-weight: bold; }
-    .dr .g th { border: 1px solid #333; background: #f3f4f6; padding: {{ $pdf ? '5px 4px' : '8px 6px' }}; text-align: center; }
+    .dr .g th { border: 1px solid #333; background: #f3f4f6; padding: {{ $pdf ? '5px 4px' : '8px 6px' }}; text-align: center; vertical-align: middle; font-size: {{ $pdf ? '8.5pt' : '13px' }}; font-weight: bold; line-height: 1.25; }
     .dr .g th.l, .dr .g td.l { text-align: left; }
     .dr .g td { border: 1px solid #555; padding: {{ $pdf ? '5px 4px' : '8px 6px' }}; text-align: center; }
     .dr .g tr.tot td { font-weight: bold; background: #f3f4f6; }
@@ -39,11 +39,11 @@
     <table class="hd">
         <tr>
             <td style="width:18%;">@if($logo)<img src="{{ $logo }}" style="height:{{ $pdf ? '62px' : '78px' }};max-width:130px;">@endif</td>
-            <td style="width:64%;">
+            <td style="width:64%;text-align:center;">
                 <div class="sn {{ $pdf ? '' : 'fit-one-line' }}">{{ $school->name }}</div>
                 @if($school->address)<div class="ad">{{ $school->address }}</div>@endif
                 @if($school->contact_line)<div class="ct">{{ $school->contact_line }}</div>@endif
-                <div class="ti">Employee Report</div>
+                <div class="ti">Daily Reports</div>
             </td>
             <td style="width:18%;"></td>
         </tr>
@@ -51,7 +51,7 @@
     <table style="margin:6px 0 8px;">
         <tr>
             <td style="width:30%;"></td>
-            <td style="width:40%;text-align:center;" class="st">Daily{{ $report['is_today'] ? ' / Today' : '' }} Report</td>
+            <td style="width:40%;text-align:center;" class="st">{{ $report['is_today'] ? 'Today' : '' }}</td>
             <td style="width:30%;text-align:right;font-weight:bold;">Date: {{ $report['date_label'] }}</td>
         </tr>
     </table>

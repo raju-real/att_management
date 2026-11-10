@@ -57,8 +57,8 @@ class SettingController extends Controller
         // Logo (printed on reports). Kept unless replaced or removed.
         $logo = $institute ? $institute->logo : (siteSettings()->logo ?? null);
         if ($request->hasFile('logo') || $request->boolean('remove_logo')) {
-            if ($logo && is_file(public_path($logo))) {
-                @unlink(public_path($logo));
+            if ($logo && ($old = publicFilePath($logo))) {
+                @unlink($old);
             }
             $logo = $request->hasFile('logo') ? uploadImage($request->file('logo'), $institute ? 'institutes' : 'site') : null;
         }

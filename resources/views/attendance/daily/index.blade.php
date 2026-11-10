@@ -1,5 +1,5 @@
 @extends('layouts.app')
-@section('title', 'Daily Report')
+@section('title', 'Daily Reports')
 
 @push('css')
 <style>
@@ -14,7 +14,7 @@
 
 @section('content')
     <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap no-print">
-        <h3 class="mb-2">Daily Report</h3>
+        <h3 class="mb-2">Daily Reports</h3>
         @if($report)
             <div class="mb-2 d-flex" style="gap:6px">
                 <a href="{{ route('attendance.daily-report', array_filter(['institute_id' => isSuperAdmin() ? $institute : null, 'date' => $date, 'export' => 'pdf'])) }}"

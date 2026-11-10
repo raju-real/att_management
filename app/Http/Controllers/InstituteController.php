@@ -133,7 +133,7 @@ class InstituteController extends Controller
             $institute->password_plain = '';
         }
 
-        $removeOld = fn () => $institute->logo && file_exists($institute->logo) ? @unlink($institute->logo) : null;
+        $removeOld = fn () => $institute->logo && ($old = publicFilePath($institute->logo)) ? @unlink($old) : null;
         if ($request->hasFile('logo')) {
             $removeOld();
             $institute->logo = uploadImage($request->file('logo'), 'institutes');

@@ -81,7 +81,7 @@
                             <label class="form-label">Logo <small class="text-muted">(jpg/png/webp, max 1MB)</small></label>
                             <input type="file" name="logo" accept="image/*" class="form-control {{ hasError('logo') }}">
                             @error('logo') {!! displayError($message) !!} @enderror
-                            @if(isset($institute) && $institute->logo && file_exists($institute->logo))
+                            @if(isset($institute) && $institute->logo && publicFilePath($institute->logo))
                                 <div class="mt-2 d-flex align-items-center">
                                     <img src="{{ asset($institute->logo) }}" alt="" style="height:50px" class="mr-3">
                                     <label class="mb-0"><input type="checkbox" name="remove_logo" value="1"> Remove logo</label>
