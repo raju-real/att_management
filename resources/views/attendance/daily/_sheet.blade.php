@@ -29,7 +29,7 @@
     .dr .r { color: #dc2626; font-weight: bold; }
     .dr .note { font-size: {{ $pdf ? '7.5pt' : '12px' }}; color: #666; margin-top: 4px; }
     .dr .hol { border: 1px solid #c4b5fd; background: #f5f3ff; color: #6d28d9; padding: 6px 10px; margin: 6px 0; font-weight: bold; text-align: center; }
-    .dr .sg { margin-top: {{ $pdf ? '45px' : '50px' }}; }
+    .dr .sg { margin-top: {{ $pdf ? '100px' : '90px' }}; } /* room to sign above the lines */
     .dr .sg td { text-align: center; font-size: {{ $pdf ? '9pt' : '13px' }}; }
     .dr .sg .ln { border-top: 1px solid #000; width: 26%; padding-top: 2px; }
 </style>

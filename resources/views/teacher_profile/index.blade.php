@@ -47,6 +47,8 @@
         </div>
     </div>
 
+    @include('partials.report_heading', ['title' => 'Teacher/Staff Profile'])
+
     <div class="card admin-card">
         <div class="card-header">
             <h5 class="card-title"><i class="fas fa-id-card mr-2"></i>Teachers/Staff <small class="text-muted">({{ $teachers->total() }})</small></h5>

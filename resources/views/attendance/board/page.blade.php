@@ -39,9 +39,14 @@
     <div class="container-fluid px-3 px-md-4">
         <header class="ab-top">
             <a class="ab-brand" href="{{ route('attendance-board') }}">
-                <div class="ab-crest"><i class="fas fa-school"></i></div>
+                @php $boardSchool = schoolInfo(authInstituteId()); @endphp
+                @if ($boardSchool->logo_url)
+                    <div class="ab-crest" style="background:#fff;padding:3px"><img src="{{ $boardSchool->logo_url }}" alt="" style="max-width:100%;max-height:100%;object-fit:contain"></div>
+                @else
+                    <div class="ab-crest"><i class="fas fa-school"></i></div>
+                @endif
                 <div>
-                    <div class="ab-school">{{ schoolInfo(authInstituteId())->name }}</div>
+                    <div class="ab-school">{{ $boardSchool->name }}</div>
                     <div class="ab-sub">Daily Attendance Monitor</div>
                 </div>
             </a>

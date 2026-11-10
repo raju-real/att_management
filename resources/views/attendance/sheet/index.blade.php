@@ -116,9 +116,12 @@
                 @include('attendance.sheet._section', ['sheet' => $sheet, 'section' => $section, 'mode' => 'web'])
             </div>
         @empty
-            <div class="text-center text-muted py-5">
-                <i class="fas fa-users fa-2x d-block mb-2" style="opacity:.3"></i>
-                No teachers/staff found for the selected filters.
+            <div class="ms-section">
+                @include('attendance.sheet._letterhead', ['sheet' => $sheet, 'section' => ['title' => 'All Shifts', 'timing' => null], 'mode' => 'web'])
+                <div class="text-center text-muted py-5">
+                    <i class="fas fa-users fa-2x d-block mb-2" style="opacity:.3"></i>
+                    No teachers/staff found for the selected filters.
+                </div>
             </div>
         @endforelse
     </div>

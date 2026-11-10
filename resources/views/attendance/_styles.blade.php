@@ -2,6 +2,9 @@
     .rpt-filter { background:#fff; border-radius:14px; border:1px solid #e5e7eb; box-shadow:0 2px 12px rgba(15,23,42,.04); }
     .rpt-filter .form-label { font-size:12px; font-weight:600; color:#475569; margin-bottom:4px; text-transform:uppercase; letter-spacing:.4px; }
     .rpt-filter .form-control { font-size:13px; border-radius:8px; }
+    /* select2 boxes the same size as the inputs above */
+    .rpt-filter .select2-container .select2-selection--single { font-size:13px; border-radius:8px; }
+    .rpt-filter .select2-container .select2-selection--multiple { border-radius:8px; }
     .rpt-chips { display:flex; flex-wrap:wrap; gap:6px; }
     .rpt-chip { font-size:12px; font-weight:600; padding:4px 12px; border-radius:20px; border:1px solid #c7d2fe; color:#4338ca; background:#eef2ff; text-decoration:none !important; transition:all .15s; }
     .rpt-chip:hover, .rpt-chip.active { background:#4f46e5; color:#fff; border-color:#4f46e5; }
