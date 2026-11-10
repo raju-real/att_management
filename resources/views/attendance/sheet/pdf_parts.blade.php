@@ -40,7 +40,7 @@
     .g .c-sl { width: 6mm; } .g .c-id { width: 11mm; } .g .c-tot { width: 13mm; } .g .c-pc { width: 17mm; }
     .ft { width: 100%; font-size: 7pt; color: #666; border-top: 0.5px solid #999; }
 @elseif($part === 'header')
-    @php $school = schoolInfo(); @endphp
+    @php $school = schoolInfo($sheet['institute_id'] ?? null); @endphp
     <table class="lh">
         <tr>
             <td style="width:18%;" rowspan="3">@if($school->logo_path)<img src="{{ $school->logo_path }}" style="height:52px;">@endif</td>
@@ -103,7 +103,7 @@
 @elseif($part === 'footer')
     <table class="ft">
         <tr>
-            <td style="width:40%;">{{ schoolInfo()->name }} &nbsp;·&nbsp; Teacher/Staff Attendance Report &nbsp;·&nbsp; {{ $sheet['period_label'] }}</td>
+            <td style="width:40%;">{{ schoolInfo($sheet['institute_id'] ?? null)->name }} &nbsp;·&nbsp; Teacher/Staff Attendance Report &nbsp;·&nbsp; {{ $sheet['period_label'] }}</td>
             <td style="width:35%;text-align:center;">Generated {{ now()->format('d M Y, h:i A') }}@if(auth()->user()) by {{ auth()->user()->name }}@endif</td>
             <td style="width:25%;text-align:right;">Page {PAGENO} of {nbpg}</td>
         </tr>

@@ -216,6 +216,54 @@ class AttendanceController extends Controller
         );
     }
 
+    // ───────────────────────────── Daily Report ─────────────────────────────
+
+    /**
+     * Department wise attendance of one institute on one date (default today).
+     * Super admin: chooses the institute (nothing is shown until then);
+     * institute users: always their own. ?export=pdf downloads it (A4).
+     */
+    public function dailyReport(Request $request)
+    {
+        $request->validate([
+            'institute_id' => ['nullable', 'integer'],
+            'date'         => ['nullable', 'date', 'before_or_equal:today'],
+        ], ['date.before_or_equal' => 'The date cannot be in the future.']);
+
+        $institute = selectedInstituteId(); // forced for institute users
+        if ($institute && ! \App\Models\User::institutes()->whereKey($institute)->exists()) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['institute_id' => 'Select a valid institute.']);
+        }
+        $date   = Carbon::parse($request->input('date', Carbon::today()->toDateString()))->toDateString();
+        $report = $institute ? \App\Services\DailyReportService::build($institute, $date) : null;
+        $school = $institute ? schoolInfo($institute) : null; // that institute's own name and logo
+
+        if ($report && $request->get('export') === 'pdf') {
+            $mpdf = null;
+            \niklasravnsborg\LaravelPdf\Facades\Pdf::loadHTML('', [
+                'format' => 'A4', 'margin_left' => 10, 'margin_right' => 10, 'margin_top' => 10, 'margin_bottom' => 14, 'margin_footer' => 6,
+                'tempDir' => tap(storage_path('app/mpdf'), fn ($p) => \Illuminate\Support\Facades\File::ensureDirectoryExists($p)),
+                'instanceConfigurator' => function ($instance) use (&$mpdf) {
+                    $mpdf = $instance;
+                },
+            ]);
+            $mpdf->SetTitle($school->name . ' - Daily Report - ' . $date);
+            $mpdf->SetAuthor($school->name);
+            $mpdf->SetHTMLFooter('<table style="width:100%;font-size:7pt;color:#666;border-top:0.5px solid #999;"><tr>'
+                . '<td style="width:45%;">' . e($school->name) . ' &middot; Daily Report &middot; ' . e($report['date_label']) . '</td>'
+                . '<td style="width:35%;text-align:center;">Generated ' . now()->format('d M Y, h:i A') . (auth()->user() ? ' by ' . e(auth()->user()->name) : '') . '</td>'
+                . '<td style="width:20%;text-align:right;">Page {PAGENO} of {nbpg}</td></tr></table>');
+            $mpdf->WriteHTML(view('attendance.daily._sheet', ['report' => $report, 'school' => $school, 'mode' => 'pdf'])->render());
+
+            return response($mpdf->Output('', \Mpdf\Output\Destination::STRING_RETURN), 200, [
+                'Content-Type'        => 'application/pdf',
+                'Content-Disposition' => 'inline; filename="daily_report_' . $date . '.pdf"',
+            ]);
+        }
+
+        return view('attendance.daily.index', compact('report', 'school', 'institute', 'date'));
+    }
+
     // ───────────────────────── Month & Day Wise Summary ─────────────────────────
 
     /**
@@ -333,8 +381,9 @@ class AttendanceController extends Controller
         $part = fn (string $name, array $data = []) => view('attendance.sheet.pdf_parts', $data + ['part' => $name, 'sheet' => $sheet])->render();
         $body = \Mpdf\HTMLParserMode::HTML_BODY;
 
-        $mpdf->SetTitle(schoolInfo()->name . " - Teacher/Staff Attendance Report ({$sheet['period_label']})");
-        $mpdf->SetAuthor(schoolInfo()->name);
+        $school = schoolInfo($sheet['institute_id']);
+        $mpdf->SetTitle($school->name . " - Teacher/Staff Attendance Report ({$sheet['period_label']})");
+        $mpdf->SetAuthor($school->name);
         $mpdf->WriteHTML($part('css'), \Mpdf\HTMLParserMode::HEADER_CSS);
         $mpdf->SetHTMLFooter($part('footer'));
 

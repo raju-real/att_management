@@ -464,6 +464,95 @@ class MultiInstituteTest extends TestCase
         $this->get('/fee-settings')->assertRedirect(route('permission-denied'));
     }
 
+    public function test_daily_report_is_department_wise_per_institute(): void
+    {
+        // Alpha: Science A (Teacher A #101) + a second department with two people
+        $shift = Shift::where('institute_id', $this->a->id)->first();
+        $office = Department::create(['institute_id' => $this->a->id, 'name' => 'Office Staff', 'shift_id' => $shift->id, 'status' => 'active']);
+        foreach (['301' => 'Clerk One', '302' => 'Clerk Two'] as $no => $name) {
+            $t = new Teacher();
+            $t->institute_id = $this->a->id;
+            $t->teacher_no = (string) $no;
+            $t->name = $name;
+            $t->department_id = $office->id;
+            $t->save();
+        }
+        // a past working day (Wed 21 Oct 2026; global weekly holidays are Fri/Sat)
+        $day = '2026-10-21';
+        $this->punch($this->dev['A']->serial_no, '101', "$day 08:25:00"); // late by 25 min (shift 08:00, late after 08:10)
+        $this->punch($this->dev['A']->serial_no, '301', "$day 07:55:00"); // on time; 302 absent
+        $this->punch($this->dev['B']->serial_no, '101', "$day 08:00:00"); // Beta's #101 must not count for Alpha
+
+        $r = \App\Services\DailyReportService::build($this->a->id, $day);
+        $rows = collect($r['rows'])->keyBy('department');
+        $this->assertSame(['Science A', 'Office Staff'], array_column($r['rows'], 'department'));
+        $this->assertSame(['employees' => 1, 'present' => 1, 'absent' => 0, 'late_present' => 1, 'late_time' => '0:25'],
+            array_intersect_key($rows['Science A'], array_flip(['employees', 'present', 'absent', 'late_present', 'late_time'])));
+        $this->assertSame(['employees' => 2, 'present' => 1, 'absent' => 1, 'late_present' => 0],
+            array_intersect_key($rows['Office Staff'], array_flip(['employees', 'present', 'absent', 'late_present'])));
+        $this->assertSame(3, $r['total']['employees']);
+        $this->assertSame(2, $r['total']['present']);
+        $this->assertSame(66.7, $r['total']['percent']);
+
+        // on the institute's own holiday nobody is absent
+        $this->saveSettings($this->a, ['office_holidays' => json_encode([$day])]);
+        $h = \App\Services\DailyReportService::build($this->a->id, $day);
+        $this->assertTrue($h['is_holiday']);
+        $this->assertSame(0, $h['total']['absent']);
+        $this->assertSame(1, $h['total']['holiday']);
+
+        // institute: no institute choice needed, always its own; today by default
+        $this->actingAs($this->a);
+        $this->get('/attendance-daily-report?institute_id=' . $this->b->id . '&date=' . $day)
+            ->assertOk()->assertSee('Office Staff')->assertSee('Alpha High School')->assertDontSee('Beta College');
+        $this->get('/attendance-daily-report')->assertOk()->assertSee(now()->format('d M Y'));
+        $this->get('/attendance-daily-report?date=2099-01-01')->assertSessionHasErrors('date');
+        $this->assertStringStartsWith('%PDF', $this->get('/attendance-daily-report?date=' . $day . '&export=pdf')->getContent());
+
+        // super admin: nothing until an institute is chosen
+        $this->actingAs($this->admin);
+        $this->get('/attendance-daily-report')->assertOk()->assertSee('Select an institute')->assertDontSee('Employee Report');
+        $this->get('/attendance-daily-report?institute_id=' . $this->b->id . '&date=' . $day)->assertOk()->assertSee('Beta College')->assertDontSee('Office Staff');
+
+        // institute user needs the menu permission
+        $clerk = $this->institute('Clerk', 'clerk4@test.local');
+        $clerk->forceFill(['role' => 'inst_user', 'institute_id' => $this->a->id, 'permissions' => ['teachers']])->save();
+        $this->actingAs($clerk);
+        $this->get('/attendance-daily-report')->assertRedirect(route('permission-denied'));
+    }
+
+    public function test_an_institute_never_shows_the_super_admin_logo(): void
+    {
+        // the institutes in this test have no logo of their own
+        $this->assertNull($this->a->logo);
+        $this->assertNull(schoolInfo($this->a->id)->logo_url);
+        $this->assertNull(schoolInfo($this->a->id)->logo_path);
+        // the global letterhead (no institute) still uses Site Settings
+        $site = siteSettings()->logo ?? null;
+        $this->assertSame($site && is_file(public_path($site)) ? asset($site) : null, schoolInfo()->logo_url);
+
+        // own logo when it has one
+        $logo = 'assets/files/images/institutes/test-logo-' . uniqid() . '.png';
+        @mkdir(public_path('assets/files/images/institutes'), 0777, true);
+        file_put_contents(public_path($logo), base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='));
+        try {
+            $this->a->forceFill(['logo' => $logo])->save();
+            $this->assertSame(asset($logo), schoolInfo($this->a->id)->logo_url);
+
+            // super admin with the institute selected: that institute's logo on the sheet and reports
+            $this->actingAs($this->admin);
+            $this->get('/attendance-logs?institute_id=' . $this->a->id)->assertSee(asset($logo), false);
+            $this->get('/attendance-daily-report?institute_id=' . $this->a->id)->assertSee(asset($logo), false);
+            $sheet = $this->get('/attendance-month-day-summary?institute_id=' . $this->a->id)->getContent();
+            $this->assertStringContainsString(asset($logo), $sheet);
+            if ($site) {
+                $this->assertStringNotContainsString(asset($site), $sheet);
+            }
+        } finally {
+            @unlink(public_path($logo));
+        }
+    }
+
     public function test_institute_users_and_menu_permissions(): void
     {
         // the institute creates a user with two menus; institute_id in the request is ignored

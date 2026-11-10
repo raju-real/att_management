@@ -40,6 +40,7 @@
     /* photo fills the box edge to edge */
     .ld-spot-photo { display: block; width: 100%; aspect-ratio: 1 / 1; object-fit: cover; object-position: center top; background: #f3f4f6; }
     .ld-spot-info { padding: 8px 12px 10px; }
+    .ld-spot-head { padding: 10px 12px 8px; }
     .ld-spot-initial { width: 100%; aspect-ratio: 1 / 1; display: flex; align-items: center; justify-content: center;
         font-size: 160px; font-weight: 800; color: #b91c1c; background: #fee2e2; }
     .ld-spot-name { font-size: 22px; font-weight: 800; color: #111827; max-width: 100%; }
@@ -176,7 +177,7 @@
 
                 {{-- ── Centre: absent spotlight ── --}}
                 <div>
-                    <div class="ld-label absent mb-2" data-ld="spot-label">Absent</div>
+                    <div class="ld-label mb-2" aria-hidden="true">&nbsp;</div>
                     <div class="ld-spot" data-ld="spot">
                         <span class="ld-spot-back" data-ld="spot-back"><i class="fas fa-undo mr-1"></i>back to rotation</span>
                         <div class="ld-spot-inner" data-ld="spot-inner"><div class="ld-empty">Loading…</div></div>
@@ -253,28 +254,22 @@
     function render(t, pinned) {
         const spot  = $('spot'), inner = $('spot-inner');
         const here  = isPresent(t);
-        const tag   = t.status === 'upcoming' ? ['upcoming', 'Shift not started']
-                    : t.status === 'holiday' ? ['holiday', 'Holiday']
-                    : t.status === 'late' ? ['late', 'Late'] : here ? ['present', 'Present'] : ['', 'Absent'];
         const url   = root.dataset.profileUrl ? root.dataset.profileUrl.replace('__ID__', t.id) : '';
         const name  = url ? `<a href="${esc(url)}" target="_blank" rel="noopener" title="Open Teacher/Staff Profile in a new tab">${esc(t.name)} <i class="fas fa-external-link-alt" style="font-size:.55em"></i></a>` : esc(t.name);
-        const times = here ? `<div class="ld-spot-time">In: <b>${esc(t.in_time || '-')}</b> &nbsp;·&nbsp; Out: <b>${esc(t.out_time || '-')}</b>${t.late_by ? ` &nbsp;·&nbsp; <span class="text-danger">late ${esc(t.late_by)}</span>` : ''}</div>` : '';
+        const late  = t.late_by ? ` <span class="text-danger">(late ${esc(t.late_by)})</span>` : '';
+        const times = `<div class="ld-spot-time">In: <b>${esc(t.in_time || '-')}</b>${late} &nbsp;·&nbsp; Out: <b>${esc(t.out_time || '-')}</b></div>`;
 
         spot.classList.toggle('present', here);
         spot.classList.toggle('pinned', !!pinned);
-        $('spot-label').textContent = pinned ? (here ? 'Present' : t.status === 'holiday' ? 'Holiday' : 'Absent') : 'Absent';
-        $('spot-label').style.color = here && pinned ? '#047857' : '';
 
         inner.classList.add('fade');
         setTimeout(() => {
             inner.innerHTML = `
+                <div class="ld-spot-head"><div class="ld-spot-name fit-one-line">${name}</div></div>
                 ${t.image ? `<img src="${esc(t.image)}" alt="" class="ld-spot-photo">` : `<div class="ld-spot-initial">${esc(t.initial)}</div>`}
                 <div class="ld-spot-info">
-                <div class="ld-spot-name fit-one-line">${name}</div>
-                <div class="ld-spot-sub">${esc([t.designation, t.department].filter(Boolean).join(' · '))}</div>
-                <div class="ld-spot-sub">ID: ${esc(t.teacher_no)}${t.shift_in ? ' · Shift ' + esc(t.shift_in) + ' - ' + esc(t.shift_out || '') : ''}</div>
+                <div class="ld-spot-sub">ID: <b>${esc(t.teacher_no)}</b>${t.shift_in ? ' &nbsp;·&nbsp; Shift: ' + esc(t.shift_in) + ' - ' + esc(t.shift_out || '') : ''}</div>
                 ${times}
-                <span class="ld-spot-tag ${tag[0]}">${tag[1]}</span>
                 </div>`;
             inner.classList.remove('fade');
             if (window.fitOneLine) window.fitOneLine();
@@ -285,8 +280,6 @@
         if (pinTimer) return; // someone is pinned
         const spot = $('spot');
         spot.classList.remove('pinned', 'present');
-        $('spot-label').textContent = 'Absent';
-        $('spot-label').style.color = '';
         if (!absent.length) {
             $('spot-inner').innerHTML = holidayCount
                 ? `<div class="ld-spot-ok holiday"><i class="fas fa-umbrella-beach"></i>Holiday today</div>`

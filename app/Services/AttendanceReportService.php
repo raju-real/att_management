@@ -511,7 +511,7 @@ class AttendanceReportService
             ->when($deptId, fn ($q) => $q->where('teachers.department_id', $deptId))
             ->when($shiftId, fn ($q) => $q->where('d.shift_id', $shiftId))
             ->get([
-                'teachers.id', 'teachers.institute_id', 'teachers.name', 'teachers.teacher_no', 'teachers.image', 'teachers.designation',
+                'teachers.id', 'teachers.institute_id', 'teachers.department_id', 'teachers.name', 'teachers.teacher_no', 'teachers.image', 'teachers.designation',
                 'd.name as department', 'sh.title as shift_title', 'sh.in_time as shift_in', 'sh.out_time as shift_out',
                 'sh.punch_before_minutes as shift_before', 'sh.punch_after_minutes as shift_after',
             ]);
@@ -573,6 +573,7 @@ class AttendanceReportService
                 'teacher_no'   => $t->teacher_no,
                 'designation'  => $t->designation,
                 'department'   => $t->department,
+                'department_id'=> (int) $t->department_id,
                 'image'        => ($t->image && file_exists($t->image)) ? asset($t->image) : null,
                 'initial'      => strtoupper(mb_substr($t->name ?? 'T', 0, 1)),
                 'shift_title'  => $t->shift_title,
@@ -584,6 +585,7 @@ class AttendanceReportService
                 'out_time'     => $r && $r->out_time ? $fmt($r->out_time) . $plus($r->out_time) : null,
                 'missing_in'   => (bool) ($r->missing_in ?? false),
                 'late_by'      => $r && $r->is_late ? self::minutesToHm((int) $r->late_minutes) : null,
+                'late_minutes' => $r && $r->is_late ? (int) $r->late_minutes : 0,
                 'early_out'    => (bool) ($r->is_early_out ?? false),
                 'early_out_by' => $r && $r->is_early_out ? self::minutesToHm((int) $r->early_out_minutes) : null,
                 'work_hours'   => $r && $r->in_time && $r->out_time ? self::minutesToHm((int) $r->work_minutes) : null,

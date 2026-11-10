@@ -95,6 +95,7 @@ Route::middleware(['auth', 'permission'])->group(function () {
         Route::get('attendance-logs', 'logs')->name('attendance.logs');
         Route::get('attendance-monthly-summary', 'monthlySummary')->name('attendance.monthly-summary');
         Route::get('attendance-month-day-summary', 'monthSheet')->name('attendance.month-sheet');
+        Route::get('attendance-daily-report', 'dailyReport')->name('attendance.daily-report');
         Route::get('attendance-unmatched', 'unmatched')->name('attendance.unmatched');
     });
     // Teacher/Staff profile (list → profile page / PDF with month-wise attendance)

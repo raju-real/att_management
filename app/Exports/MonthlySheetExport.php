@@ -37,7 +37,7 @@ class MonthlySheetExport implements FromView, WithTitle, WithEvents, WithDrawing
 
     public function drawings()
     {
-        $logo = schoolInfo()->logo_path;
+        $logo = schoolInfo($this->sheet['institute_id'] ?? null)->logo_path;
         if (!$logo) {
             return [];
         }
@@ -62,7 +62,7 @@ class MonthlySheetExport implements FromView, WithTitle, WithEvents, WithDrawing
                     ->setPaperSize($this->sheet['day_count'] > 31 ? PageSetup::PAPERSIZE_A3 : PageSetup::PAPERSIZE_A4)
                     ->setFitToWidth(1)
                     ->setFitToHeight(0);
-                $ws->getHeaderFooter()->setOddFooter('&L' . schoolInfo()->name . '&RPage &P of &N');
+                $ws->getHeaderFooter()->setOddFooter('&L' . schoolInfo($this->sheet['institute_id'] ?? null)->name . '&RPage &P of &N');
 
                 // Compact day columns, wider name column.
                 $ws->getColumnDimension('A')->setWidth(5);

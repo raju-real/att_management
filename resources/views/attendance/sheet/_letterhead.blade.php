@@ -8,7 +8,7 @@
     @param string $mode     'web' | 'xlsx'
 --}}
 @php
-    $school = schoolInfo();
+    $school = schoolInfo($sheet['institute_id'] ?? null);
     $xlsx   = $mode === 'xlsx';
     $cell   = 'padding:2px 6px;';
 @endphp

@@ -498,7 +498,8 @@ if (!function_exists('schoolInfo')) {
             'mobile' => array_key_exists('contact_mobile', $own) ? $own['contact_mobile'] : $inst->mobile,
             'email' => array_key_exists('contact_email', $own) ? $own['contact_email'] : $inst->email,
             'website' => $inst->website,
-            'logo' => $inst->logo ?: ($s->logo ?? null),
+            // its own logo only: no fallback to the super admin's Site Settings logo
+            'logo' => $inst->logo,
         ] : $s;
 
         $logo = !empty($src->logo) && is_file(public_path($src->logo)) ? $src->logo : null;
