@@ -4,17 +4,19 @@
 @push('css')
 <style>
     /* ═══ Live attendance dashboard (one institute) ═══ */
+    /* photo sizes follow the window height so the whole board fits without scrolling */
+    .ld { --card: clamp(96px, 17vh, 200px); --spot: clamp(170px, calc(100vh - 560px - var(--card)), 460px); }
     .ld { background: #fff; border-radius: 14px; border: 1px solid #e5e7eb; padding: 16px 18px; box-shadow: 0 6px 24px rgba(15, 23, 42, .06); }
-    .ld-head { display: flex; align-items: center; gap: 14px; border-bottom: 2px solid #1e1b4b; padding-bottom: 10px; margin-bottom: 12px; }
-    .ld-logo { width: 110px; height: 64px; display: flex; align-items: center; justify-content: flex-start; flex: 0 0 110px; }
-    .ld-logo img { max-width: 74px; max-height: 64px; object-fit: contain; }
+    .ld-head { display: flex; align-items: center; gap: 14px; border-bottom: 2px solid #1e1b4b; padding-bottom: 8px; margin-bottom: 10px; }
+    .ld-logo { width: 130px; height: 76px; display: flex; align-items: center; justify-content: flex-start; flex: 0 0 130px; }
+    .ld-logo img { max-width: 120px; max-height: 76px; object-fit: contain; }
     .ld-title { flex: 1; min-width: 0; text-align: center; }
-    .ld-name { font-size: 26px; font-weight: 700; color: #111827; line-height: 1.2; }
+    .ld-name { font-size: 34px; font-weight: 700; color: #111827; line-height: 1.2; }
     .ld-addr { color: #4b5563; font-size: 13px; }
-    .ld-clock { flex: 0 0 110px; white-space: nowrap; text-align: right; font-weight: 700; color: #4338ca; font-size: 15px; font-variant-numeric: tabular-nums; }
+    .ld-clock { flex: 0 0 130px; white-space: nowrap; text-align: right; font-weight: 700; color: #4338ca; font-size: 15px; font-variant-numeric: tabular-nums; }
 
     .ld-grid { display: grid; grid-template-columns: 220px minmax(0, 1fr) 240px; gap: 16px; }
-    .ld-filter { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; margin-bottom: 12px; }
+    .ld-filter { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; margin-bottom: 8px; }
     .ld-filter select { width: 240px; }
     .ld-filter .ld-person { width: 300px; }
     .ld-label { font-weight: 800; font-size: 17px; letter-spacing: .5px; color: #111827; text-transform: uppercase; }
@@ -22,7 +24,7 @@
     .ld-label.present { color: #047857; }
 
     /* left: report */
-    .ld-date { font-weight: 700; margin-bottom: 18px; }
+    .ld-date { font-weight: 700; margin-bottom: 12px; }
     .ld-date span { color: #4338ca; }
     .ld-stat { display: flex; justify-content: space-between; align-items: center; padding: 9px 12px; border-radius: 10px;
         margin-bottom: 8px; font-weight: 600; font-size: 14px; background: #f8fafc; border: 1px solid #eef2f7; }
@@ -34,15 +36,15 @@
 
     /* centre: spotlight of absent people */
     /* standard box: sized by photo + name, normal padding */
-    .ld-spot { border: 2px solid #1e1b4b; border-radius: 12px; max-width: 480px; margin: 0 auto; display: flex; flex-direction: column;
+    .ld-spot { border: 2px solid #1e1b4b; border-radius: 12px; width: min(100%, max(var(--spot), 340px)); margin: 0 auto; display: flex; flex-direction: column;
         align-items: center; justify-content: center; text-align: center; padding: 0; position: relative; overflow: hidden;
         background: radial-gradient(circle at 50% 30%, #fef2f2, #fff 70%); }
     /* photo fills the box edge to edge */
-    .ld-spot-photo { display: block; width: 100%; aspect-ratio: 1 / 1; object-fit: cover; object-position: center top; background: #f3f4f6; }
-    .ld-spot-info { padding: 8px 12px 10px; }
-    .ld-spot-head { padding: 10px 12px 8px; }
-    .ld-spot-initial { width: 100%; aspect-ratio: 1 / 1; display: flex; align-items: center; justify-content: center;
-        font-size: 160px; font-weight: 800; color: #b91c1c; background: #fee2e2; }
+    .ld-spot-photo { display: block; width: 100%; height: var(--spot); object-fit: cover; object-position: center top; background: #f3f4f6; }
+    .ld-spot-info { padding: 6px 12px 8px; }
+    .ld-spot-head { padding: 6px 12px 4px; }
+    .ld-spot-initial { width: 100%; height: var(--spot); display: flex; align-items: center; justify-content: center;
+        font-size: calc(var(--spot) * .4); font-weight: 800; color: #b91c1c; background: #fee2e2; }
     .ld-spot-name { font-size: 22px; font-weight: 800; color: #111827; max-width: 100%; }
     .ld-spot-name a { color: inherit; text-decoration: none; border-bottom: 2px dashed #a5b4fc; }
     .ld-spot-name a:hover { color: #4338ca; }
@@ -66,11 +68,11 @@
     .ld-spot-ok i { font-size: 60px; display: block; margin-bottom: 10px; }
 
     /* person card (absent column + present row) */
-    .ld-card { width: 220px; border: 1px solid #d1d5db; border-radius: 12px; padding: 10px; background: #fff; display: flex; flex-direction: column;
+    .ld-card { width: calc(var(--card) + 20px); border: 1px solid #d1d5db; border-radius: 12px; padding: 8px 10px; background: #fff; display: flex; flex-direction: column;
         align-items: center; text-align: center; gap: 6px; flex: 0 0 auto; cursor: pointer; transition: box-shadow .15s ease, transform .15s ease; }
     .ld-card:hover { box-shadow: 0 6px 18px rgba(15, 23, 42, .15); transform: translateY(-2px); }
-    .ld-card img, .ld-card .ini { width: 200px; height: 200px; border-radius: 10px; object-fit: cover; object-position: center top; flex: 0 0 200px; }
-    .ld-card .ini { display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 80px; background: #eef2ff; color: #4338ca; }
+    .ld-card img, .ld-card .ini { width: var(--card); height: var(--card); border-radius: 10px; object-fit: cover; object-position: center top; flex: 0 0 var(--card); }
+    .ld-card .ini { display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: calc(var(--card) * .4); background: #eef2ff; color: #4338ca; }
     .ld-card .nm { font-weight: 700; font-size: 15px; line-height: 1.25; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .ld-card .tm { font-size: 13px; color: #4b5563; white-space: nowrap; }
     .ld-card .tm b { color: #111827; } .ld-card .late { color: #dc2626 !important; }
@@ -79,19 +81,38 @@
     .ld-card > div { min-width: 0; width: 100%; }
 
     /* right: absent list scrolling up */
-    .ld-vwin { height: 600px; overflow: hidden; position: relative; }
+    .ld-vwin { height: calc(var(--spot) + 110px); overflow: hidden; position: relative; }
     .ld-vtrack { display: flex; flex-direction: column; align-items: center; gap: 10px; }
     .ld-vtrack.run { animation: ld-up var(--dur, 30s) linear infinite; }
     @keyframes ld-up { from { transform: translateY(0); } to { transform: translateY(-50%); } }
 
     /* bottom: present list scrolling left */
-    .ld-present { display: flex; align-items: center; gap: 14px; margin-top: 16px; border-top: 1px dashed #d1d5db; padding-top: 14px; }
+    .ld-present { display: flex; align-items: center; gap: 14px; margin-top: 10px; border-top: 1px dashed #d1d5db; padding-top: 10px; }
     .ld-hwin { flex: 1; min-width: 0; overflow: hidden; }
     .ld-htrack { display: flex; gap: 10px; width: max-content; }
     .ld-htrack.run { animation: ld-left var(--dur, 30s) linear infinite; }
     @keyframes ld-left { from { transform: translateX(0); } to { transform: translateX(-50%); } }
     .ld-vwin:hover .run, .ld-hwin:hover .run { animation-play-state: paused; }
     .ld-empty { color: #9ca3af; font-size: 13px; padding: 12px; text-align: center; }
+
+    /* short screens (laptops): tighter so the present row still shows without scrolling */
+    @media (max-height: 800px) {
+        .ld { --card: clamp(72px, 11.5vh, 120px); --spot: clamp(150px, calc(100vh - 470px - var(--card)), 300px); padding: 10px 14px; }
+        .ld-logo { height: 58px; } .ld-logo img { max-height: 58px; }
+        .ld-name { font-size: 28px; }
+        .ld-head { padding-bottom: 6px; margin-bottom: 8px; }
+        .ld-filter { margin-bottom: 4px; }
+        .ld-date { margin-bottom: 6px; }
+        .ld-label { font-size: 15px; }
+        .ld-stat { padding: 5px 10px; margin-bottom: 5px; font-size: 13px; }
+        .ld-stat b { font-size: 17px; }
+        .ld-card { padding: 6px 8px; gap: 3px; width: 150px; }
+        .ld-card .nm { font-size: 13px; } .ld-card .tm { font-size: 12px; }
+        .ld-spot-name { font-size: 19px; }
+        .ld-present { margin-top: 6px; padding-top: 6px; }
+        .ld-updated { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 11px; margin-top: 4px !important; }
+        .main-content { padding-top: 10px; padding-bottom: 6px; }
+    }
 
     @media (max-width: 991px) {
         .ld-grid { grid-template-columns: 1fr; }
@@ -103,9 +124,9 @@
 
 @section('content')
     @if (isSuperAdmin())
-        <div class="d-flex justify-content-between align-items-center flex-wrap mb-3">
-            <h4 class="mb-2"><i class="fas fa-tv mr-2 text-muted"></i>Live Attendance Dashboard</h4>
-            <form method="GET" action="{{ route('dashboard') }}" style="min-width:300px" class="mb-2">
+        <div class="d-flex justify-content-between align-items-center flex-wrap mb-2">
+            <h4 class="mb-1"><i class="fas fa-tv mr-2 text-muted"></i>Live Attendance Dashboard</h4>
+            <form method="GET" action="{{ route('dashboard') }}" style="min-width:300px" class="mb-1">
                 @include('partials.institute_select', ['autoSubmit' => true])
             </form>
         </div>
@@ -170,7 +191,7 @@
                     <div class="ld-stat leave" title="No leave module yet">Total Leave <b data-ld="leave">-</b></div>
                     <div class="ld-stat pct">Percentage <b data-ld="pct">0%</b></div>
                     <div class="ld-bar"><div data-ld="bar" style="width:0%"></div></div>
-                    <div class="small text-muted mt-2">
+                    <div class="small text-muted mt-2 ld-updated">
                         Teachers/Staff: <b data-ld="total">0</b> &middot; <span data-ld="updated">loading…</span>
                     </div>
                 </div>

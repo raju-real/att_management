@@ -48,6 +48,10 @@
             font-size: 15px;
             font-weight: 500;
         }
+        /* compact top bar */
+        .navbar-admin { padding-top: .3rem !important; padding-bottom: .3rem !important; }
+        .navbar-admin .navbar-brand { padding-top: 0; padding-bottom: 0; }
+        .navbar-admin .brand-logo { height: 40px; width: auto; max-width: 110px; object-fit: contain; }
         .navbar-admin .brand-name {
             font-size: 15px;
             line-height: 1.2;
@@ -59,7 +63,7 @@
             .navbar-admin .brand-name { font-size: 13px; max-width: 230px; }
         }
         .navbar-admin .nav-link {
-            padding: 0.8rem 1.2rem !important;
+            padding: 0.5rem 1rem !important;
             transition: all 0.3s ease;
         }
     </style>
@@ -81,8 +85,13 @@
             {{-- full name (no cut), in a smaller font so long institute names fit --}}
             @php $brandName = authInstitute()->name ?? (siteSettings()->site_name ?? 'Attendance Management'); @endphp
             <a class="navbar-brand d-flex align-items-center" href="{{ route('dashboard') }}" {!! tooltip(e($brandName)) !!}>
-                <i class="fas fa-chart-line"></i>
-                <span class="brand-name ml-1">{{ $brandName }}</span>
+                {{-- the super admin's (software) logo; the icon only when none is uploaded --}}
+                @if ($navLogo = siteLogoUrl())
+                    <img src="{{ $navLogo }}" alt="" class="brand-logo">
+                @else
+                    <i class="fas fa-chart-line"></i>
+                @endif
+                <span class="brand-name ml-2">{{ $brandName }}</span>
             </a>
 
             <!-- Mobile toggle button -->

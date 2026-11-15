@@ -545,14 +545,22 @@ class MultiInstituteTest extends TestCase
             $this->get('/attendance-daily-report?institute_id=' . $this->a->id)->assertSee(asset($logo), false);
             $sheet = $this->get('/attendance-month-day-summary?institute_id=' . $this->a->id)->getContent();
             $this->assertStringContainsString(asset($logo), $sheet);
-            if ($site) {
-                $this->assertStringNotContainsString(asset($site), $sheet);
+            if ($site && is_file(public_path($site))) {
+                // the super admin's logo only as the navbar icon, never on the report itself
+                $this->assertSame(1, substr_count($sheet, asset($site)));
+                $this->assertStringContainsString('class="brand-logo"', $sheet);
             }
 
             // PDFs get the logo embedded as image data
             $this->assertStringStartsWith('data:image/png;base64,', schoolInfo($this->a->id)->logo_pdf);
             $pdf = $this->get('/attendance-daily-report?export=pdf&institute_id=' . $this->a->id)->assertOk()->getContent();
             $this->assertStringContainsString('/Subtype /Image', $pdf);
+
+            // no Settings logo, but a profile picture: that picture is used as the logo
+            $this->a->forceFill(['logo' => null, 'image' => $logo])->save();
+            $this->assertSame(asset($logo), schoolInfo($this->a->id)->logo_url);
+            $this->assertNotNull(schoolInfo($this->a->id)->logo_pdf);
+            $this->a->forceFill(['logo' => $logo, 'image' => null])->save();
 
             // a server whose public_path() is not the folder the site runs from (cPanel public_html):
             // the logo is still found, so reports keep it

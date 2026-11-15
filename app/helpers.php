@@ -502,8 +502,9 @@ if (!function_exists('schoolInfo')) {
             'logo' => $inst->logo,
         ] : $s;
 
-        $logoFile = !empty($src->logo) ? publicFilePath($src->logo) : null;
-        $logo     = $logoFile ? $src->logo : null;
+        // Its Settings logo, else the picture uploaded on its Profile (many institutes put
+        // their logo there). Never the super admin's logo for an institute.
+        [$logo, $logoFile] = firstPublicImage($inst ? [$inst->logo, $inst->image] : [$s->logo ?? null]);
 
         $contact = array_filter([
             !empty($src->eiin) ? 'EIIN: ' . $src->eiin : null,
@@ -523,10 +524,42 @@ if (!function_exists('schoolInfo')) {
             // embedded image data for mPDF: no file path / permission issue on any server
             'logo_pdf'     => $logoFile && ($bin = @file_get_contents($logoFile)) !== false
                 ? 'data:' . (@mime_content_type($logoFile) ?: 'image/png') . ';base64,' . base64_encode($bin) : null,
-            'logo_url'     => $logo ? asset($logo) : null,       // for web pages
+            'logo_url'     => $logoFile ? asset($logo) : null,   // for web pages
             'contact_line' => implode('  |  ', $contact),
             'is_institute' => (bool) $inst,
         ];
+    }
+}
+
+if (!function_exists('firstPublicImage')) {
+    /**
+     * The first of these uploaded images that exists: [relative path, absolute file].
+     * When none is found on disk but one is set, [relative path, null] so a web page can
+     * still try its URL. Nothing set → [null, null].
+     */
+    function firstPublicImage(array $candidates): array
+    {
+        $candidates = array_values(array_filter($candidates, fn ($c) => is_string($c) && trim($c) !== ''));
+        foreach ($candidates as $c) {
+            if ($file = publicFilePath($c)) {
+                return [$c, $file];
+            }
+        }
+        return [$candidates[0] ?? null, null];
+    }
+}
+
+if (!function_exists('siteLogoUrl')) {
+    /** The super admin's logo (Site Settings, else the super admin's profile picture), or null. */
+    function siteLogoUrl(): ?string
+    {
+        static $url = false;
+        if ($url === false) {
+            $admin = \App\Models\User::where('role', \App\Models\User::ROLE_ADMIN)->orderBy('id')->first(['id', 'image']);
+            [$logo, $file] = firstPublicImage([siteSettings()->logo ?? null, $admin->image ?? null]);
+            $url = $file ? asset($logo) : null;
+        }
+        return $url;
     }
 }
 

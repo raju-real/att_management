@@ -3,6 +3,7 @@
 
 @push('css')
 <style>
+    .list-top-pager .pagination { margin: 0; }
     .teacher-avatar {
         width: 44px; height: 44px; border-radius: 50%;
         object-fit: cover; border: 2px solid rgba(99,102,241,.35);
@@ -123,8 +124,14 @@
     </div>
 
     <div class="card admin-card">
-        <div class="card-header">
-            <h5 class="card-title"><i class="fas fa-chalkboard-teacher mr-2"></i>Teacher/Staff List</h5>
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
+            <h5 class="card-title mb-0"><i class="fas fa-chalkboard-teacher mr-2"></i>Teacher/Staff List</h5>
+            {{-- the same page links at the top right too (the bottom ones stay) --}}
+            @if ($teachers->hasPages())
+                <div class="list-top-pager">
+                    {!! $teachers->appends(request()->all())->links('pagination::bootstrap-4') !!}
+                </div>
+            @endif
         </div>
         <div class="card-body">
             <div class="table-responsive">
