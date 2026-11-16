@@ -179,7 +179,7 @@
             </div>
 
             {{-- ── Letterhead ── --}}
-            <div class="ld-head">
+            {{-- <div class="ld-head">
                 <div class="ld-logo">
                     @if ($school->logo_url)<img src="{{ $school->logo_url }}" alt="">@else<i class="fas fa-school fa-2x text-muted"></i>@endif
                 </div>
@@ -188,7 +188,7 @@
                     @if ($school->address)<div class="ld-addr">{{ $school->address }}</div>@endif
                 </div>
                 <div class="ld-clock" data-ld="clock">--:--</div>
-            </div>
+            </div> --}}
 
             <div class="ld-grid">
                 {{-- ── Left: date + report ── --}}
