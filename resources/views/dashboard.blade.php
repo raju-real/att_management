@@ -5,7 +5,7 @@
 <style>
     /* ═══ Live attendance dashboard (one institute) ═══ */
     /* photo sizes follow the window height so the whole board fits without scrolling */
-    .ld { --card: clamp(96px, 17vh, 200px); --spot: clamp(240px, calc(100vh - 430px - var(--card)), 440px); }
+    .ld { --card: clamp(96px, 17vh, 200px); --row: clamp(300px, calc(100vh - 264px - var(--card)), 760px); }
     .ld { background: #fff; border-radius: 14px; border: 1px solid #e5e7eb; padding: 16px 18px; box-shadow: 0 6px 24px rgba(15, 23, 42, .06); }
     /* top row: logo + name on the left, filters on the right */
     .ld-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
@@ -40,40 +40,39 @@
     /* centre: spotlight of absent people */
     /* standard box: sized by photo + name, normal padding */
     /* simple grey frame; the name sits on its top border, the whole photo fills the box */
-    .ld-spot { border: 1px solid #9ca3af; border-radius: 10px; width: min(100%, 560px); margin: 14px auto 0; display: flex; flex-direction: column;
-        align-items: center; justify-content: center; text-align: center; padding: 0; position: relative; background: #fff; }
+    .ld-spot { border: 0; border-radius: 0; width: min(100%, 520px); height: var(--row); margin: 0 auto; display: flex; flex-direction: column;
+        align-items: center; justify-content: center; text-align: center; padding: 0; position: relative; background: transparent; }
     /* the whole photo, never cropped: as large as the box allows */
-    .ld-spot-photo { display: block; width: 100%; height: var(--spot); object-fit: contain; object-position: center; background: #f3f4f6; }
-    .ld-spot-photo-wrap { width: 100%; padding: 18px 10px 0; }
-    .ld-spot-frame { position: relative; overflow: hidden; border-radius: 6px; background: #f3f4f6; }
-    /* the same photo, blurred, fills the space beside a portrait photo */
-    .ld-spot-frame .ld-spot-bg { position: absolute; inset: -20px; background-size: cover; background-position: center; filter: blur(18px); opacity: .55; }
+    .ld-spot-photo { display: block; width: 100%; height: 100%; object-fit: contain; object-position: center; background: transparent; }
+    .ld-spot-photo-wrap { padding: 0; }
+    .ld-spot-frame { position: relative; overflow: hidden; border-radius: 6px; background: transparent; height: 100%; }
     .ld-spot-frame .ld-spot-photo { position: relative; background: transparent; }
     .ld-spot-photo-wrap .ld-spot-initial { border-radius: 6px; }
     /* one line under the photo: ID · shift · in · out */
-    .ld-spot-info { padding: 7px 10px 9px; width: 100%; font-size: 14px; color: #4b5563; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .ld-spot-info b { color: #111827; }
+    .ld-spot-body { flex: 1; min-height: 0; display: flex; width: 100%; }
     /* name on the top border, like a label */
-    .ld-spot-head { position: absolute; top: 0; left: 50%; transform: translate(-50%, -50%); max-width: calc(100% - 24px);
+    .ld-spot-head { position: static; transform: none; max-width: 100%; padding-bottom: 8px !important; margin: 0 auto;
         background: #fff; padding: 0 10px; line-height: 1.2; z-index: 2; white-space: nowrap; }
-    .ld-spot-initial { width: 100%; height: var(--spot); display: flex; align-items: center; justify-content: center;
-        font-size: calc(var(--spot) * .4); font-weight: 800; color: #b91c1c; background: #fee2e2; }
+    .ld-spot-initial { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
+        font-size: calc(var(--row) * .3); font-weight: 800; color: #b91c1c; background: #fee2e2; }
     .ld-spot-name { font-size: 22px; font-weight: 800; color: #111827; max-width: 100%; }
     .ld-spot-name a { color: inherit; text-decoration: none; border-bottom: 2px dashed #a5b4fc; }
     .ld-spot-name a:hover { color: #4338ca; }
     .ld-spot-time { margin-top: 6px; font-size: 14px; color: #374151; }
     .ld-spot-time b { color: #111827; }
-    .ld-spot.present { background: radial-gradient(circle at 50% 30%, #ecfdf5, #fff 70%); }
+    .ld-spot.present { background: transparent; }
     .ld-spot.present .ld-spot-initial { background: #d1fae5; color: #047857; }
     .ld-spot-tag.present { background: #047857; } .ld-spot-tag.late { background: #d97706; }
     .ld-spot-back { order: 2; margin: -2px 0 6px; font-size: 12px; color: #6b7280; cursor: pointer; display: none; }
     .ld-spot-back:hover { color: #111827; }
-    .ld-spot.pinned .ld-spot-back { display: block; }
+    .ld-spot .ld-spot-back, .ld-spot.pinned .ld-spot-back, .ld-spot-count { display: none !important; }
     .ld-spot-sub { color: #6b7280; font-size: 14px; }
     .ld-spot-tag { display: inline-block; margin-top: 6px; padding: 2px 12px; border-radius: 20px; background: #b91c1c; color: #fff; font-size: 12px; font-weight: 700; }
     .ld-spot-tag.upcoming { background: #0284c7; }
     .ld-spot-count { position: absolute; right: 16px; top: 22px; font-size: 12px; color: #6b7280; background: rgba(255,255,255,.85); padding: 0 6px; border-radius: 8px; z-index: 2; }
-    .ld-spot-inner { width: 100%; transition: opacity .45s ease, transform .45s ease; }
+    .ld-spot-inner { width: 100%; flex: 1; min-height: 0; display: flex; flex-direction: column; transition: opacity .45s ease, transform .45s ease; }
+    .ld-spot-inner > .ld-spot-ok, .ld-spot-inner > .ld-empty { margin: auto; }
+    .ld-spot-photo-wrap { flex: 1; min-height: 0; min-width: 0; }
     .ld-spot-inner.fade { opacity: 0; transform: scale(.97); }
     .ld-spot-ok { color: #047857; font-size: 22px; font-weight: 700; padding: 90px 16px; }
     .ld-spot-ok.holiday { color: #6d28d9; }
@@ -94,7 +93,7 @@
     .ld-card > div { min-width: 0; width: 100%; }
 
     /* right: absent list scrolling up */
-    .ld-vwin { height: calc(var(--spot) + 130px); overflow: hidden; position: relative; }
+    .ld-vwin { height: calc(var(--row) - 30px); overflow: hidden; position: relative; }
     .ld-vtrack { display: flex; flex-direction: column; align-items: center; gap: 10px; }
     .ld-vtrack.run { animation: ld-up var(--dur, 30s) linear infinite; }
     @keyframes ld-up { from { transform: translateY(0); } to { transform: translateY(-50%); } }
@@ -110,7 +109,7 @@
 
     /* short screens (laptops): tighter so the present row still shows without scrolling */
     @media (max-height: 800px) {
-        .ld { --card: clamp(72px, 11.5vh, 120px); --spot: clamp(170px, calc(100vh - 355px - var(--card)), 330px); padding: 10px 14px; }
+        .ld { --card: clamp(72px, 11.5vh, 120px); --row: clamp(260px, calc(100vh - 204px - var(--card)), 520px); padding: 10px 14px; }
         .ld-brand-logo { height: 40px; }
         .ld-name { font-size: 19px; }
         .ld-top { padding-bottom: 6px; margin-bottom: 6px; }
@@ -118,7 +117,7 @@
         .ld-label { font-size: 15px; }
         .ld-stat { padding: 5px 10px; margin-bottom: 5px; font-size: 13px; }
         .ld-stat b { font-size: 17px; }
-        .ld-card { padding: 6px 8px; gap: 3px; width: 150px; }
+        .ld-card { padding: 6px 8px; gap: 3px; width: 168px; }
         .ld-card .nm { font-size: 13px; } .ld-card .tm { font-size: 12px; }
         .ld-spot-name { font-size: 19px; }
         .ld-present { margin-top: 6px; padding-top: 6px; }
@@ -129,7 +128,7 @@
     @media (max-width: 991px) {
         .ld-grid { grid-template-columns: 1fr; }
         .ld-vwin { height: 300px; }
-        .ld-spot { min-height: 0; }
+        .ld-spot { min-height: 0; height: 420px; }
     }
 </style>
 @endpush
@@ -165,10 +164,10 @@
             <div class="ld-top">
             <div class="ld-brand">
                 @if ($school->logo_url)<img src="{{ $school->logo_url }}" alt="" class="ld-brand-logo">@else<i class="fas fa-school fa-2x text-muted"></i>@endif
-                <div class="ld-brand-text">
+                {{-- <div class="ld-brand-text">
                     <div class="ld-name fit-one-line">{{ $school->name }}</div>
                     @if ($school->address)<div class="ld-addr">{{ $school->address }}</div>@endif
-                </div>
+                </div> --}}
             </div>
             {{-- department / shift / person reload the data without a page refresh; the institute reloads the page --}}
             <div class="ld-filter">
@@ -215,7 +214,6 @@
 
                 {{-- ── Centre: absent spotlight ── --}}
                 <div>
-                    <div class="ld-label mb-2" aria-hidden="true">&nbsp;</div>
                     <div class="ld-spot" data-ld="spot">
                         <span class="ld-spot-back" data-ld="spot-back"><i class="fas fa-undo mr-1"></i>back to rotation</span>
                         <div class="ld-spot-inner" data-ld="spot-inner"><div class="ld-empty">Loading…</div></div>
@@ -294,11 +292,6 @@
         const here  = isPresent(t);
         const url   = root.dataset.profileUrl ? root.dataset.profileUrl.replace('__ID__', t.id) : '';
         const name  = url ? `<a href="${esc(url)}" target="_blank" rel="noopener" title="Open Teacher/Staff Profile in a new tab">${esc(t.name)} <i class="fas fa-external-link-alt" style="font-size:.55em"></i></a>` : esc(t.name);
-        const late  = t.late_by ? ` <span class="text-danger">(late ${esc(t.late_by)})</span>` : '';
-        // one line: ID · shift · in · out
-        const info  = `ID: <b>${esc(t.teacher_no)}</b>`
-            + (t.shift_in ? ` &nbsp;·&nbsp; Shift: ${esc(t.shift_in)} - ${esc(t.shift_out || '')}` : '')
-            + ` &nbsp;·&nbsp; In: <b>${esc(t.in_time || '-')}</b>${late} &nbsp;·&nbsp; Out: <b>${esc(t.out_time || '-')}</b>`;
 
         spot.classList.toggle('present', here);
         spot.classList.toggle('pinned', !!pinned);
@@ -307,14 +300,13 @@
         setTimeout(() => {
             inner.innerHTML = `
                 <div class="ld-spot-head"><div class="ld-spot-name fit-one-line">${name}</div></div>
-                <div class="ld-spot-photo-wrap">
-                    ${t.image
-                        ? `<div class="ld-spot-frame"><div class="ld-spot-bg"></div><img src="${esc(t.image)}" alt="" class="ld-spot-photo"></div>`
-                        : `<div class="ld-spot-initial">${esc(t.initial)}</div>`}
-                </div>
-                <div class="ld-spot-info">${info}</div>`;
-            const bg = inner.querySelector('.ld-spot-bg');
-            if (bg) bg.style.backgroundImage = 'url(' + JSON.stringify(t.image) + ')';
+                <div class="ld-spot-body">
+                    <div class="ld-spot-photo-wrap">
+                        ${t.image
+                            ? `<div class="ld-spot-frame"><img src="${esc(t.image)}" alt="" class="ld-spot-photo"></div>`
+                            : `<div class="ld-spot-initial">${esc(t.initial)}</div>`}
+                    </div>
+                </div>`;
             inner.classList.remove('fade');
             if (window.fitOneLine) window.fitOneLine();
         }, 250);
