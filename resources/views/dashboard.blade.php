@@ -5,20 +5,23 @@
 <style>
     /* ═══ Live attendance dashboard (one institute) ═══ */
     /* photo sizes follow the window height so the whole board fits without scrolling */
-    .ld { --card: clamp(96px, 17vh, 200px); --spot: clamp(220px, calc(100vh - 470px - var(--card)), 460px); }
+    .ld { --card: clamp(96px, 17vh, 200px); --spot: clamp(240px, calc(100vh - 430px - var(--card)), 440px); }
     .ld { background: #fff; border-radius: 14px; border: 1px solid #e5e7eb; padding: 16px 18px; box-shadow: 0 6px 24px rgba(15, 23, 42, .06); }
-    .ld-head { display: flex; align-items: center; gap: 14px; border-bottom: 2px solid #1e1b4b; padding-bottom: 8px; margin-bottom: 10px; }
-    .ld-logo { width: 130px; height: 76px; display: flex; align-items: center; justify-content: flex-start; flex: 0 0 130px; }
-    .ld-logo img { max-width: 120px; max-height: 76px; object-fit: contain; }
-    .ld-title { flex: 1; min-width: 0; text-align: center; }
-    .ld-name { font-size: 34px; font-weight: 700; color: #111827; line-height: 1.2; }
-    .ld-addr { color: #4b5563; font-size: 13px; }
-    .ld-clock { flex: 0 0 130px; white-space: nowrap; text-align: right; font-weight: 700; color: #4338ca; font-size: 15px; font-variant-numeric: tabular-nums; }
+    /* top row: logo + name on the left, filters on the right */
+    .ld-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+        border-bottom: 1px solid #e5e7eb; padding-bottom: 8px; margin-bottom: 10px; }
+    .ld-brand { display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1 1 280px; }
+    .ld-brand-logo { height: 48px; max-width: 90px; object-fit: contain; flex: 0 0 auto; }
+    .ld-brand-text { min-width: 0; }
+    .ld-name { font-size: 22px; font-weight: 700; color: #111827; line-height: 1.2; }
+    .ld-addr { color: #4b5563; font-size: 12px; }
+    .ld-clock { white-space: nowrap; font-weight: 700; color: #4338ca; font-size: 15px; font-variant-numeric: tabular-nums; margin-top: 2px; }
+    .ld-inst { margin: 0; width: 260px; }
 
     .ld-grid { display: grid; grid-template-columns: 220px minmax(0, 1fr) 240px; gap: 16px; }
-    .ld-filter { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; margin-bottom: 8px; }
-    .ld-filter select { width: 240px; }
-    .ld-filter .ld-person { width: 300px; }
+    .ld-filter { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; align-items: center; }
+    .ld-filter select { width: 200px; }
+    .ld-filter .ld-person { width: 260px; }
     .ld-label { font-weight: 800; font-size: 17px; letter-spacing: .5px; color: #111827; text-transform: uppercase; }
     .ld-label.absent { color: #b91c1c; text-align: center; }
     .ld-label.present { color: #047857; }
@@ -107,11 +110,10 @@
 
     /* short screens (laptops): tighter so the present row still shows without scrolling */
     @media (max-height: 800px) {
-        .ld { --card: clamp(72px, 11.5vh, 120px); --spot: clamp(160px, calc(100vh - 390px - var(--card)), 320px); padding: 10px 14px; }
-        .ld-logo { height: 58px; } .ld-logo img { max-height: 58px; }
-        .ld-name { font-size: 28px; }
-        .ld-head { padding-bottom: 6px; margin-bottom: 8px; }
-        .ld-filter { margin-bottom: 4px; }
+        .ld { --card: clamp(72px, 11.5vh, 120px); --spot: clamp(170px, calc(100vh - 355px - var(--card)), 330px); padding: 10px 14px; }
+        .ld-brand-logo { height: 40px; }
+        .ld-name { font-size: 19px; }
+        .ld-top { padding-bottom: 6px; margin-bottom: 6px; }
         .ld-date { margin-bottom: 6px; }
         .ld-label { font-size: 15px; }
         .ld-stat { padding: 5px 10px; margin-bottom: 5px; font-size: 13px; }
@@ -133,21 +135,25 @@
 @endpush
 
 @section('content')
-    @if (isSuperAdmin())
-        <div class="d-flex justify-content-between align-items-center flex-wrap mb-2">
-            <h4 class="mb-1"><i class="fas fa-tv mr-2 text-muted"></i>Live Attendance Dashboard</h4>
-            <form method="GET" action="{{ route('dashboard') }}" style="min-width:300px" class="mb-1">
-                @include('partials.institute_select', ['autoSubmit' => true])
-            </form>
-        </div>
-    @endif
+    {{-- super admin: the institute is picked in the filter row, beside Department --}}
+    @php
+        $instPicker = isSuperAdmin() ? view('partials.institute_select', ['autoSubmit' => true, 'class' => 'form-control form-control-sm', 'id' => 'ldInstitute'])->render() : '';
+    @endphp
 
     @if (! $institute)
         {{-- super admin: empty until an institute is chosen --}}
-        <div class="ld text-center py-5">
-            <i class="fas fa-university fa-3x text-muted mb-3" style="opacity:.35"></i>
-            <h5 class="text-muted mb-1">Select an institute</h5>
-            <p class="text-muted mb-0">Choose an institute from the dropdown above to see its live attendance dashboard.</p>
+        <div class="ld">
+            <div class="ld-top">
+                <div class="ld-brand"></div>
+                <div class="ld-filter">
+                    <form method="GET" action="{{ route('dashboard') }}" class="ld-inst">{!! $instPicker !!}</form>
+                </div>
+            </div>
+            <div class="text-center py-5">
+                <i class="fas fa-university fa-3x text-muted mb-3" style="opacity:.35"></i>
+                <h5 class="text-muted mb-1">Select an institute</h5>
+                <p class="text-muted mb-0">Choose an institute from the Institute dropdown to see its live attendance dashboard.</p>
+            </div>
         </div>
     @else
         <div class="ld" id="liveDash"
@@ -155,8 +161,20 @@
              data-profile-url="{{ userCan('teacher-profiles') ? route('teacher-profiles.show', '__ID__') : '' }}"
              data-refresh-ms="60000" data-spot-ms="5000" data-pin-ms="30000">
 
-            {{-- ── Filters: department and / or shift (data reloads without a page refresh) ── --}}
+            {{-- ── Top row: the school's logo + name on the left, filters on the right ── --}}
+            <div class="ld-top">
+            <div class="ld-brand">
+                @if ($school->logo_url)<img src="{{ $school->logo_url }}" alt="" class="ld-brand-logo">@else<i class="fas fa-school fa-2x text-muted"></i>@endif
+                <div class="ld-brand-text">
+                    <div class="ld-name fit-one-line">{{ $school->name }}</div>
+                    @if ($school->address)<div class="ld-addr">{{ $school->address }}</div>@endif
+                </div>
+            </div>
+            {{-- department / shift / person reload the data without a page refresh; the institute reloads the page --}}
             <div class="ld-filter">
+                @if (isSuperAdmin())
+                    <form method="GET" action="{{ route('dashboard') }}" class="ld-inst">{!! $instPicker !!}</form>
+                @endif
                 <select class="form-control form-control-sm" data-ld="department" aria-label="Department">
                     <option value="">All Departments</option>
                     @foreach ($departments as $d)
@@ -177,23 +195,12 @@
                     @endforeach
                 </select>
             </div>
-
-            {{-- ── Letterhead ── --}}
-            {{-- <div class="ld-head">
-                <div class="ld-logo">
-                    @if ($school->logo_url)<img src="{{ $school->logo_url }}" alt="">@else<i class="fas fa-school fa-2x text-muted"></i>@endif
-                </div>
-                <div class="ld-title">
-                    <div class="ld-name fit-one-line">{{ $school->name }}</div>
-                    @if ($school->address)<div class="ld-addr">{{ $school->address }}</div>@endif
-                </div>
-                <div class="ld-clock" data-ld="clock">--:--</div>
-            </div> --}}
+            </div>
 
             <div class="ld-grid">
                 {{-- ── Left: date + report ── --}}
                 <div>
-                    <div class="ld-date">Date : <span data-ld="date">{{ now()->format('d M Y, l') }}</span></div>
+                    <div class="ld-date">Date : <span data-ld="date">{{ now()->format('d M Y, l') }}</span><div class="ld-clock" data-ld="clock">--:--</div></div>
                     <div class="ld-label mb-2">Report</div>
                     <div class="ld-stat present">Total Present <b data-ld="present">0</b></div>
                     <div class="ld-stat absent">Total Absent <b data-ld="absent">0</b></div>
