@@ -5,7 +5,7 @@
 <style>
     /* ═══ Live attendance dashboard (one institute) ═══ */
     /* photo sizes follow the window height so the whole board fits without scrolling */
-    .ld { --card: clamp(96px, 17vh, 200px); --spot: clamp(170px, calc(100vh - 560px - var(--card)), 460px); }
+    .ld { --card: clamp(96px, 17vh, 200px); --spot: clamp(220px, calc(100vh - 470px - var(--card)), 460px); }
     .ld { background: #fff; border-radius: 14px; border: 1px solid #e5e7eb; padding: 16px 18px; box-shadow: 0 6px 24px rgba(15, 23, 42, .06); }
     .ld-head { display: flex; align-items: center; gap: 14px; border-bottom: 2px solid #1e1b4b; padding-bottom: 8px; margin-bottom: 10px; }
     .ld-logo { width: 130px; height: 76px; display: flex; align-items: center; justify-content: flex-start; flex: 0 0 130px; }
@@ -36,13 +36,23 @@
 
     /* centre: spotlight of absent people */
     /* standard box: sized by photo + name, normal padding */
-    .ld-spot { border: 2px solid #1e1b4b; border-radius: 12px; width: min(100%, max(var(--spot), 340px)); margin: 0 auto; display: flex; flex-direction: column;
-        align-items: center; justify-content: center; text-align: center; padding: 0; position: relative; overflow: hidden;
-        background: radial-gradient(circle at 50% 30%, #fef2f2, #fff 70%); }
-    /* photo fills the box edge to edge */
-    .ld-spot-photo { display: block; width: 100%; height: var(--spot); object-fit: cover; object-position: center top; background: #f3f4f6; }
-    .ld-spot-info { padding: 6px 12px 8px; }
-    .ld-spot-head { padding: 6px 12px 4px; }
+    /* simple grey frame; the name sits on its top border, the whole photo fills the box */
+    .ld-spot { border: 1px solid #9ca3af; border-radius: 10px; width: min(100%, 560px); margin: 14px auto 0; display: flex; flex-direction: column;
+        align-items: center; justify-content: center; text-align: center; padding: 0; position: relative; background: #fff; }
+    /* the whole photo, never cropped: as large as the box allows */
+    .ld-spot-photo { display: block; width: 100%; height: var(--spot); object-fit: contain; object-position: center; background: #f3f4f6; }
+    .ld-spot-photo-wrap { width: 100%; padding: 18px 10px 0; }
+    .ld-spot-frame { position: relative; overflow: hidden; border-radius: 6px; background: #f3f4f6; }
+    /* the same photo, blurred, fills the space beside a portrait photo */
+    .ld-spot-frame .ld-spot-bg { position: absolute; inset: -20px; background-size: cover; background-position: center; filter: blur(18px); opacity: .55; }
+    .ld-spot-frame .ld-spot-photo { position: relative; background: transparent; }
+    .ld-spot-photo-wrap .ld-spot-initial { border-radius: 6px; }
+    /* one line under the photo: ID · shift · in · out */
+    .ld-spot-info { padding: 7px 10px 9px; width: 100%; font-size: 14px; color: #4b5563; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ld-spot-info b { color: #111827; }
+    /* name on the top border, like a label */
+    .ld-spot-head { position: absolute; top: 0; left: 50%; transform: translate(-50%, -50%); max-width: calc(100% - 24px);
+        background: #fff; padding: 0 10px; line-height: 1.2; z-index: 2; white-space: nowrap; }
     .ld-spot-initial { width: 100%; height: var(--spot); display: flex; align-items: center; justify-content: center;
         font-size: calc(var(--spot) * .4); font-weight: 800; color: #b91c1c; background: #fee2e2; }
     .ld-spot-name { font-size: 22px; font-weight: 800; color: #111827; max-width: 100%; }
@@ -53,13 +63,13 @@
     .ld-spot.present { background: radial-gradient(circle at 50% 30%, #ecfdf5, #fff 70%); }
     .ld-spot.present .ld-spot-initial { background: #d1fae5; color: #047857; }
     .ld-spot-tag.present { background: #047857; } .ld-spot-tag.late { background: #d97706; }
-    .ld-spot-back { order: 2; margin-bottom: 8px; font-size: 12px; color: #6b7280; cursor: pointer; display: none; }
+    .ld-spot-back { order: 2; margin: -2px 0 6px; font-size: 12px; color: #6b7280; cursor: pointer; display: none; }
     .ld-spot-back:hover { color: #111827; }
     .ld-spot.pinned .ld-spot-back { display: block; }
     .ld-spot-sub { color: #6b7280; font-size: 14px; }
     .ld-spot-tag { display: inline-block; margin-top: 6px; padding: 2px 12px; border-radius: 20px; background: #b91c1c; color: #fff; font-size: 12px; font-weight: 700; }
     .ld-spot-tag.upcoming { background: #0284c7; }
-    .ld-spot-count { position: absolute; right: 12px; bottom: 8px; font-size: 12px; color: #9ca3af; }
+    .ld-spot-count { position: absolute; right: 16px; top: 22px; font-size: 12px; color: #6b7280; background: rgba(255,255,255,.85); padding: 0 6px; border-radius: 8px; z-index: 2; }
     .ld-spot-inner { width: 100%; transition: opacity .45s ease, transform .45s ease; }
     .ld-spot-inner.fade { opacity: 0; transform: scale(.97); }
     .ld-spot-ok { color: #047857; font-size: 22px; font-weight: 700; padding: 90px 16px; }
@@ -81,7 +91,7 @@
     .ld-card > div { min-width: 0; width: 100%; }
 
     /* right: absent list scrolling up */
-    .ld-vwin { height: calc(var(--spot) + 110px); overflow: hidden; position: relative; }
+    .ld-vwin { height: calc(var(--spot) + 130px); overflow: hidden; position: relative; }
     .ld-vtrack { display: flex; flex-direction: column; align-items: center; gap: 10px; }
     .ld-vtrack.run { animation: ld-up var(--dur, 30s) linear infinite; }
     @keyframes ld-up { from { transform: translateY(0); } to { transform: translateY(-50%); } }
@@ -97,7 +107,7 @@
 
     /* short screens (laptops): tighter so the present row still shows without scrolling */
     @media (max-height: 800px) {
-        .ld { --card: clamp(72px, 11.5vh, 120px); --spot: clamp(150px, calc(100vh - 470px - var(--card)), 300px); padding: 10px 14px; }
+        .ld { --card: clamp(72px, 11.5vh, 120px); --spot: clamp(160px, calc(100vh - 390px - var(--card)), 320px); padding: 10px 14px; }
         .ld-logo { height: 58px; } .ld-logo img { max-height: 58px; }
         .ld-name { font-size: 28px; }
         .ld-head { padding-bottom: 6px; margin-bottom: 8px; }
@@ -278,7 +288,10 @@
         const url   = root.dataset.profileUrl ? root.dataset.profileUrl.replace('__ID__', t.id) : '';
         const name  = url ? `<a href="${esc(url)}" target="_blank" rel="noopener" title="Open Teacher/Staff Profile in a new tab">${esc(t.name)} <i class="fas fa-external-link-alt" style="font-size:.55em"></i></a>` : esc(t.name);
         const late  = t.late_by ? ` <span class="text-danger">(late ${esc(t.late_by)})</span>` : '';
-        const times = `<div class="ld-spot-time">In: <b>${esc(t.in_time || '-')}</b>${late} &nbsp;·&nbsp; Out: <b>${esc(t.out_time || '-')}</b></div>`;
+        // one line: ID · shift · in · out
+        const info  = `ID: <b>${esc(t.teacher_no)}</b>`
+            + (t.shift_in ? ` &nbsp;·&nbsp; Shift: ${esc(t.shift_in)} - ${esc(t.shift_out || '')}` : '')
+            + ` &nbsp;·&nbsp; In: <b>${esc(t.in_time || '-')}</b>${late} &nbsp;·&nbsp; Out: <b>${esc(t.out_time || '-')}</b>`;
 
         spot.classList.toggle('present', here);
         spot.classList.toggle('pinned', !!pinned);
@@ -287,11 +300,14 @@
         setTimeout(() => {
             inner.innerHTML = `
                 <div class="ld-spot-head"><div class="ld-spot-name fit-one-line">${name}</div></div>
-                ${t.image ? `<img src="${esc(t.image)}" alt="" class="ld-spot-photo">` : `<div class="ld-spot-initial">${esc(t.initial)}</div>`}
-                <div class="ld-spot-info">
-                <div class="ld-spot-sub">ID: <b>${esc(t.teacher_no)}</b>${t.shift_in ? ' &nbsp;·&nbsp; Shift: ' + esc(t.shift_in) + ' - ' + esc(t.shift_out || '') : ''}</div>
-                ${times}
-                </div>`;
+                <div class="ld-spot-photo-wrap">
+                    ${t.image
+                        ? `<div class="ld-spot-frame"><div class="ld-spot-bg"></div><img src="${esc(t.image)}" alt="" class="ld-spot-photo"></div>`
+                        : `<div class="ld-spot-initial">${esc(t.initial)}</div>`}
+                </div>
+                <div class="ld-spot-info">${info}</div>`;
+            const bg = inner.querySelector('.ld-spot-bg');
+            if (bg) bg.style.backgroundImage = 'url(' + JSON.stringify(t.image) + ')';
             inner.classList.remove('fade');
             if (window.fitOneLine) window.fitOneLine();
         }, 250);
