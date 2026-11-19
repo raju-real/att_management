@@ -198,3 +198,9 @@
 .tb-card.upcoming .tb-time { color: #38bdf8; font-size: 14px; letter-spacing: 1px; text-transform: uppercase; }
 .tb-card.upcoming .tb-tag { background: rgba(56,189,248,.15); color: #0ea5e9; }
 .tb-controls select[data-tb="department"], .tb-controls select[data-tb="shift"] { max-width: 190px; }
+
+/* ── On leave (approved leave, no punch) ── */
+.tb-card.leave::after { background: #f59e0b; }
+.tb-card.leave .tb-photo { --ring1: #f59e0b; --ring2: #fde68a; }
+.tb-card.leave .tb-time { color: #d97706; font-size: 14px; letter-spacing: 1px; text-transform: uppercase; }
+.tb-card.leave .tb-tag { background: rgba(245,158,11,.15); color: #b45309; }

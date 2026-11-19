@@ -22,6 +22,7 @@
 @include('attendance.sheet._letterhead', ['sheet' => $sheet, 'section' => $section, 'mode' => $mode])
 
 {{-- ── Attendance grid ── --}}
+@include('partials.status_legend', ['mode' => $mode])
 <table class="ms-table" style="width:100%;border-collapse:collapse;{{ $fs }}">
     <thead>
         <tr>
@@ -34,6 +35,7 @@
             @endforeach
             <th style="{{ $th }}">Total<br>Present</th>
             <th style="{{ $th }}">Total<br>Absent</th>
+            <th style="{{ $th }}">Total<br>Leave</th>
             <th style="{{ $th }}">Total<br>Late</th>
             <th style="{{ $th }}">Over<br>Time</th>
             <th style="{{ $th }}">Attendance<br>Percentage %</th>
@@ -53,6 +55,8 @@
                         <td style="{{ $td }}{{ $c['late'] ? 'color:#dc2626;font-weight:bold;' : '' }}{{ $day['holiday'] ? $hol : '' }}">{{ $c['in'] }}</td>
                     @elseif($c['type'] === 'absent')
                         <td style="{{ $td }}color:#dc2626;font-weight:bold;">A</td>
+                    @elseif($c['type'] === 'leave')
+                        <td style="{{ $td }}color:#d97706;font-weight:bold;" title="{{ $c['leave_type'] }}">L</td>
                     @elseif($c['type'] === 'holiday')
                         <td style="{{ $td }}{{ $hol }}color:#6b7280;">H</td>
                     @else
@@ -61,6 +65,7 @@
                 @endforeach
                 <td style="{{ $td }}font-weight:bold;" rowspan="2">{{ $t['present'] }}</td>
                 <td style="{{ $td }}font-weight:bold;{{ $t['absent'] ? 'color:#dc2626;' : '' }}" rowspan="2">{{ $t['absent'] }}</td>
+                <td style="{{ $td }}font-weight:bold;{{ $t['leave'] ? 'color:#d97706;' : '' }}" rowspan="2">{{ $t['leave'] }}</td>
                 <td style="{{ $td }}font-weight:bold;{{ $t['late'] ? 'color:#dc2626;' : '' }}" rowspan="2">{{ $t['late'] }}</td>
                 <td style="{{ $td }}" rowspan="2">{{ $t['overtime'] }}</td>
                 <td style="{{ $td }}font-weight:bold;" rowspan="2">{{ $t['percent'] === null ? '-' : $t['percent'] . '%' }}</td>
@@ -80,14 +85,14 @@
                 @endforeach
             </tr>
         @empty
-            <tr><td style="{{ $td }}padding:12px;" colspan="{{ 9 + count($sheet['days']) }}">No teachers/staff in this shift.</td></tr>
+            <tr><td style="{{ $td }}padding:12px;" colspan="{{ 10 + count($sheet['days']) }}">No teachers/staff in this shift.</td></tr>
         @endforelse
     </tbody>
 </table>
 <div style="{{ $mode === 'pdf' ? 'font-size:7pt;' : 'font-size:11px;' }}color:#555;margin-top:4px;">
-    A = Absent &nbsp;·&nbsp; H = Holiday &nbsp;·&nbsp; <span style="color:#dc2626;font-weight:bold;">Red</span> = Late in / Early out
+    In / out time = Present &nbsp;·&nbsp; A = Absent &nbsp;·&nbsp; L = Leave &nbsp;·&nbsp; H = Holiday &nbsp;·&nbsp; <span style="color:#dc2626;font-weight:bold;">Red</span> = Late in / Early out
     &nbsp;·&nbsp; - = Missing punch &nbsp;·&nbsp; + = Next day (night shift) &nbsp;·&nbsp; Working days: {{ $section['working_days'] ?? $sheet['working_days'] }}
-    &nbsp;·&nbsp; Over Time = worked after shift out time (h:mm)
+    &nbsp;·&nbsp; Over Time = worked after shift out time (h:mm) &nbsp;·&nbsp; % leaves out leave days
 </div>
 
 @include('attendance.sheet._signatures', ['mode' => $mode])

@@ -18,10 +18,11 @@ use Illuminate\Support\Carbon;
  *  - Total Absent      = no punch on a working day (shift already started)
  *  - Total Late Present= present but late
  *  - Total Late        = sum of late time (h:mm)
- *  - Total Leave       = no leave module yet → "-"
+ *  - Total Leave       = on an approved leave (Configuration → Leave Entry), no punch
  *
  * Not counted as present or absent: "shift not started yet" (today only)
  * and "holiday" — shown as separate columns so every row adds up.
+ * Present % = present ÷ (employees − leave − not started − holiday).
  */
 class DailyReportService
 {
@@ -70,9 +71,11 @@ class DailyReportService
             'absent'       => $list->where('status', 'absent')->count(),
             'late_present' => $late->count(),
             'late_time'    => $minutes > 0 ? sprintf('%d:%02d', intdiv($minutes, 60), $minutes % 60) : '-',
+            'leave'        => $list->where('status', 'leave')->count(),
             'upcoming'     => $list->where('status', 'upcoming')->count(),
             'holiday'      => $list->where('status', 'holiday')->count(),
-            'percent'      => self::percent($present->count(), $list->count() - $list->whereIn('status', ['upcoming', 'holiday'])->count()),
+            // people on leave, not started yet or on holiday are not expected to attend
+            'percent'      => self::percent($present->count(), $list->count() - $list->whereIn('status', ['leave', 'upcoming', 'holiday'])->count()),
         ];
     }
 

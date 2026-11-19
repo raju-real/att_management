@@ -9,7 +9,8 @@ use Illuminate\Support\Carbon;
 /**
  * "Month & Day Wise Summary" — the monthly teacher attendance sheet:
  * one section per shift, two rows per teacher (In Time / Out Time), one
- * column per day, then Total Present / Absent / Late / Over Time / %.
+ * column per day, then Total Present / Absent / Leave / Late / Over Time / %.
+ * Day cells: in/out time (P), A = absent, L = leave, H = holiday.
  *
  * Built from AttendanceReportService::dailyQuery(), so work dates, night
  * shifts, late / early-out rules are exactly the same as every other
@@ -102,6 +103,9 @@ class MonthlySheetService
             'user_type' => 'teacher', 'department_id' => $deptId, 'shift_id' => $shiftId, 'institute_id' => $institute,
         ]))->get()->keyBy(fn ($r) => $r->teacher_id . '|' . $r->att_date); // device IDs repeat across institutes
 
+        // approved leaves in the range: [teacher_id][date] => ['type' => .., 'code' => ..]
+        $leaves = \App\Services\LeaveService::dayMap($start->toDateString(), $end->toDateString(), $institute, $teachers->pluck('id')->all());
+
         $sections = [];
         // one section per shift (per institute + shift when the admin views all institutes)
         foreach ($teachers->groupBy(fn ($t) => (int) $t->institute_id . '|' . (int) ($t->shift_id ?? 0)) as $group) {
@@ -120,7 +124,7 @@ class MonthlySheetService
             ];
 
             foreach ($group->values() as $i => $t) {
-                $section['teachers'][] = self::teacherLine($i + 1, $t, $sectionDays, $rows, $sectionWorking);
+                $section['teachers'][] = self::teacherLine($i + 1, $t, $sectionDays, $rows, $sectionWorking, $leaves[$t->id] ?? []);
             }
             $sections[] = $section;
         }
@@ -150,10 +154,10 @@ class MonthlySheetService
         ];
     }
 
-    protected static function teacherLine(int $sl, $t, array $days, $rows, int $workingDays): array
+    protected static function teacherLine(int $sl, $t, array $days, $rows, int $workingDays, array $leave = []): array
     {
         $cells = [];
-        $present = $presentOnWorkingDays = $absent = $late = $overtime = 0;
+        $present = $presentOnWorkingDays = $absent = $leaveDays = $late = $overtime = 0;
 
         foreach ($days as $d => $day) {
             $r = $rows->get($t->id . '|' . $day['date']);
@@ -181,6 +185,9 @@ class MonthlySheetService
                 $cells[$d] = ['type' => 'future'];
             } elseif ($day['holiday']) {
                 $cells[$d] = ['type' => 'holiday'];
+            } elseif (isset($leave[$day['date']])) {
+                $leaveDays++;
+                $cells[$d] = ['type' => 'leave', 'leave_type' => $leave[$day['date']]['type']];
             } else {
                 $absent++;
                 $cells[$d] = ['type' => 'absent'];
@@ -196,9 +203,11 @@ class MonthlySheetService
             'cells'       => $cells,
             'present'     => $present,
             'absent'      => $absent,
+            'leave'       => $leaveDays,
             'late'        => $late,
             'overtime'    => $overtime > 0 ? sprintf('%d:%02d', intdiv($overtime, 60), $overtime % 60) : '-',
-            'percent'     => $workingDays > 0 ? round(min(100, $presentOnWorkingDays / $workingDays * 100), 1) : null,
+            // leave days are not expected attendance
+            'percent'     => $workingDays - $leaveDays > 0 ? round(min(100, $presentOnWorkingDays / ($workingDays - $leaveDays) * 100), 1) : null,
         ];
     }
 

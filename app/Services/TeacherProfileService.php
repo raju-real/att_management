@@ -16,12 +16,12 @@ use Carbon\CarbonPeriod;
  * Per month:
  *  - Total Present = days with attendance
  *  - Total Absent  = working days (no weekly / office holiday, not in the
- *                    future, not before the joining date) without attendance
+ *                    future, not before the joining date) without attendance or leave
  *  - Total Late    = sum of late time (h:mm)
  *  - Late Present  = days present but late
  *  - Over Time     = time worked after the shift out time (h:mm)
- *  - Leave         = no leave module yet → "-"
- *  - Percentage    = present on working days / working days
+ *  - Leave         = working days on an approved leave, without attendance
+ *  - Percentage    = present on working days / (working days − leave days)
  */
 class TeacherProfileService
 {
@@ -47,16 +47,17 @@ class TeacherProfileService
             ->keyBy('att_date');
 
         $holiday = holidayChecker($teacher->institute_id); // the teacher's own institute
+        $leaves  = \App\Services\LeaveService::dayMap($start->toDateString(), $end->toDateString(), $teacher->institute_id, [$teacher->id])[$teacher->id] ?? [];
         $joining = $teacher->joining_date ? Carbon::parse($teacher->joining_date)->startOfDay() : null;
 
         $months = [];
-        $total  = ['present' => 0, 'absent' => 0, 'late_min' => 0, 'late_days' => 0, 'ot_min' => 0, 'working' => 0, 'present_working' => 0];
+        $total  = ['present' => 0, 'absent' => 0, 'leave' => 0, 'late_min' => 0, 'late_days' => 0, 'ot_min' => 0, 'working' => 0, 'present_working' => 0];
 
         foreach (range(1, 12) as $m) {
             $mStart = Carbon::create($year, $m, 1);
             $mEnd   = $mStart->copy()->endOfMonth();
 
-            $present = $absent = $lateMin = $lateDays = $otMin = $working = $presentWorking = 0;
+            $present = $absent = $leave = $lateMin = $lateDays = $otMin = $working = $presentWorking = 0;
             $started = $mStart->lte($today);
 
             if ($started) {
@@ -81,6 +82,8 @@ class TeacherProfileService
                         if ($r->out_time && $r->sched_out && $r->out_time > $r->sched_out) {
                             $otMin += (int) floor((strtotime($r->out_time) - strtotime($r->sched_out)) / 60);
                         }
+                    } elseif ($counts && isset($leaves[$date])) {
+                        $leave++;
                     } elseif ($counts) {
                         $absent++;
                     }
@@ -95,12 +98,12 @@ class TeacherProfileService
                 'late'       => $started ? self::hm($lateMin) : null,
                 'late_days'  => $started ? $lateDays : null,
                 'overtime'   => $started ? self::hm($otMin) : null,
-                'leave'      => null,
-                'percent'    => $started && $working > 0 ? round(min(100, $presentWorking / $working * 100), 1) : null,
+                'leave'      => $started ? $leave : null,
+                'percent'    => $started && $working - $leave > 0 ? round(min(100, $presentWorking / ($working - $leave) * 100), 1) : null,
                 'working'    => $working,
             ];
 
-            foreach (['present' => $present, 'absent' => $absent, 'late_min' => $lateMin, 'late_days' => $lateDays,
+            foreach (['present' => $present, 'absent' => $absent, 'leave' => $leave, 'late_min' => $lateMin, 'late_days' => $lateDays,
                       'ot_min' => $otMin, 'working' => $working, 'present_working' => $presentWorking] as $k => $v) {
                 $total[$k] += $v;
             }
@@ -112,11 +115,12 @@ class TeacherProfileService
             'total'  => [
                 'present'   => $total['present'],
                 'absent'    => $total['absent'],
+                'leave'     => $total['leave'],
                 'late'      => self::hm($total['late_min']),
                 'late_days' => $total['late_days'],
                 'overtime'  => self::hm($total['ot_min']),
                 'working'   => $total['working'],
-                'percent'   => $total['working'] > 0 ? round(min(100, $total['present_working'] / $total['working'] * 100), 1) : null,
+                'percent'   => $total['working'] - $total['leave'] > 0 ? round(min(100, $total['present_working'] / ($total['working'] - $total['leave']) * 100), 1) : null,
             ],
         ];
     }

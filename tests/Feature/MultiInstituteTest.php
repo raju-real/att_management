@@ -187,7 +187,7 @@ class MultiInstituteTest extends TestCase
             ->assertSessionHasErrors('department_id');
         $this->post('/teachers', ['institute_id' => $c->id, 'name' => 'Gamma Teacher', 'teacher_no' => '101', 'department_id' => $dc->id])
             ->assertRedirect(route('teachers.index'));
-        $this->assertSame(3, Teacher::where('teacher_no', '101')->count());
+        $this->assertSame(3, Teacher::where('teacher_no', '101')->whereIn('institute_id', [$this->a->id, $this->b->id, $c->id])->count());
 
         // institute CRUD
         $this->post('/institutes', ['name' => 'Delta', 'email' => 'delta@test.local', 'status' => 'active',
@@ -415,7 +415,9 @@ class MultiInstituteTest extends TestCase
 
         // Month & Day sheet, all institutes: each section uses its own holidays
         $sheet = MonthlySheetService::buildRange('2026-10-11', '2026-10-17');
-        $bySection = collect($sheet['sections'])->keyBy(fn ($s) => str_contains($s['title'], 'Renamed') ? 'a' : 'b');
+        // only this test's two institutes (the database may hold others)
+        $bySection = collect($sheet['sections'])->filter(fn ($s) => str_contains($s['title'], 'Renamed') || str_contains($s['title'], 'Beta'))
+            ->keyBy(fn ($s) => str_contains($s['title'], 'Renamed') ? 'a' : 'b');
         $this->assertTrue($bySection['a']['days']['2026-10-11']['holiday']);   // Sunday: Alpha off
         $this->assertFalse($bySection['b']['days']['2026-10-11']['holiday']);
         $this->assertTrue($bySection['b']['days']['2026-10-12']['holiday']);   // Monday: Beta off
@@ -633,5 +635,90 @@ class MultiInstituteTest extends TestCase
         $this->assertSame(['dashboard'], $clerk->fresh()->permissions);
         $this->delete('/institutes/' . $this->a->id);
         $this->assertTrue(User::whereKey($this->a->id)->exists());
+    }
+
+    public function test_leave_management_and_reports(): void
+    {
+        // Alpha: Friday is the only weekly holiday, no office holidays
+        $this->saveSettings($this->a, ['weekly_holidays' => ['Friday'], 'office_holidays' => json_encode([])]);
+        $teacher = Teacher::withoutGlobalScopes()->where('institute_id', $this->a->id)->firstOrFail();
+
+        // two working days in a row, both in the past (and not crossing a month, for the sheet)
+        $d1 = Carbon::today()->subDays(5);
+        while ($d1->isFriday() || $d1->copy()->addDay()->isFriday() || $d1->month !== $d1->copy()->addDay()->month) {
+            $d1->subDay();
+        }
+        $d2 = $d1->copy()->addDay();
+
+        // ── types and entries, institute's own ──
+        $this->actingAs($this->a);
+        $this->get('/leave-types')->assertOk();
+        $this->post('/leave-types', ['name' => 'Casual Leave', 'code' => 'cl', 'days_per_year' => 10, 'status' => 'active'])
+            ->assertRedirect(route('leave-types.index'));
+        $type = \App\Models\LeaveType::where('name', 'Casual Leave')->firstOrFail();
+        $this->assertSame('CL', $type->code);
+        $this->assertSame($this->a->id, (int) $type->institute_id);
+        $this->post('/leave-types', ['name' => 'Casual Leave', 'status' => 'active'])->assertSessionHasErrors('name');
+
+        $this->get('/leaves/create')->assertOk()->assertSee('Teacher A')->assertSee('Casual Leave');
+        $this->post('/leaves', ['teacher_id' => $teacher->id, 'leave_type_id' => $type->id,
+            'from_date' => $d1->toDateString(), 'to_date' => $d2->toDateString(), 'reason' => 'Fever'])
+            ->assertRedirect(route('leaves.index'))->assertSessionHasNoErrors();
+        $leave = \App\Models\Leave::firstOrFail();
+        $this->assertSame(2, $leave->days);
+        // overlapping dates for the same person are refused
+        $this->post('/leaves', ['teacher_id' => $teacher->id, 'leave_type_id' => $type->id,
+            'from_date' => $d2->toDateString(), 'to_date' => $d2->toDateString()])->assertSessionHasErrors('from_date');
+        // a range with a Friday in it does not count the Friday
+        $fri = Carbon::today()->addWeeks(2)->next(Carbon::FRIDAY);
+        $this->assertSame(2, \App\Services\LeaveService::countDays($this->a->id, $fri->copy()->subDay()->toDateString(), $fri->copy()->addDay()->toDateString()));
+        $this->get('/leaves')->assertOk()->assertSee('Teacher A')->assertSee('Fever');
+
+        // another institute neither sees nor uses them
+        $this->actingAs($this->b);
+        $this->get('/leaves')->assertOk()->assertDontSee('Fever');
+        $this->get('/leaves/' . $leave->id . '/edit')->assertNotFound();
+        $teacherB = Teacher::withoutGlobalScopes()->where('institute_id', $this->b->id)->firstOrFail();
+        $this->post('/leaves', ['teacher_id' => $teacherB->id, 'leave_type_id' => $type->id,
+            'from_date' => $d1->toDateString(), 'to_date' => $d1->toDateString()])->assertSessionHasErrors('leave_type_id');
+
+        // ── reports: L on the leave day; a punch on a leave day still counts as present ──
+        Auth::logout();
+        $this->punch($this->dev['A']->serial_no, '101', $d2->toDateString() . ' 07:55:00')->assertOk();
+        $this->actingAs($this->a);
+
+        $board1 = collect(Report::teacherBoard($d1->toDateString())['teachers'])->firstWhere('id', $teacher->id);
+        $this->assertSame('leave', $board1['status']);
+        $this->assertSame('Casual Leave', $board1['leave_type']);
+        $this->assertSame('on_time', collect(Report::teacherBoard($d2->toDateString())['teachers'])->firstWhere('id', $teacher->id)['status']);
+        $this->assertSame(1, Report::teacherBoard($d1->toDateString())['summary']['leave']);
+
+        $daily = \App\Services\DailyReportService::build($this->a->id, $d1->toDateString());
+        $this->assertSame(1, $daily['total']['leave']);
+        $this->assertSame(0, $daily['total']['absent']);
+        $this->get('/attendance-daily-report?date=' . $d1->toDateString())->assertOk()->assertSee('Leave');
+
+        $sheet = MonthlySheetService::buildRange($d1->toDateString(), $d2->toDateString(), []);
+        $line  = $sheet['sections'][0]['teachers'][0];
+        $this->assertSame('leave', $line['cells'][$d1->toDateString()]['type']);
+        $this->assertSame('present', $line['cells'][$d2->toDateString()]['type']);
+        $this->assertSame([1, 0, 1], [$line['present'], $line['absent'], $line['leave']]);
+        $this->assertEquals(100, $line['percent']); // the leave day is not expected attendance
+        $this->get('/attendance-month-day-summary?from_date=' . $d1->toDateString() . '&to_date=' . $d2->toDateString())
+            ->assertOk()->assertSee('L = Leave', false);
+
+        $counts = \App\Services\LeaveService::teacherCounts($d1->toDateString(), $d2->toDateString(), $this->a->id)[$teacher->id];
+        $this->assertSame(['working' => 2, 'present' => 1, 'leave' => 1, 'absent' => 0], $counts);
+        $this->get('/attendance-monthly-summary?from_date=' . $d1->toDateString() . '&to_date=' . $d2->toDateString())->assertOk();
+
+        $year = \App\Services\TeacherProfileService::yearly($teacher, $d1->year);
+        $this->assertSame(1, $year['months'][$d1->month]['leave']);
+        $this->get('/teacher-profiles/' . $teacher->id . '?year=' . $d1->year)->assertOk();
+
+        // a type in use is not deleted; the leave is
+        $this->delete('/leave-types/' . $type->id);
+        $this->assertNotNull($type->fresh());
+        $this->delete('/leaves/' . $leave->id)->assertRedirect(route('leaves.index'));
+        $this->assertSame('absent', collect(Report::teacherBoard($d1->toDateString())['teachers'])->firstWhere('id', $teacher->id)['status']);
     }
 }

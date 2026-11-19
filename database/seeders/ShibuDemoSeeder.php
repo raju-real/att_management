@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\File;
 
 /**
  * Demo data for "Shibu High School": shifts, departments, a device, teachers/staff
- * with photos, students, and attendance punches.
+ * with photos, students, leave types + a few leaves, and attendance punches.
  *
  *   php artisan db:seed --class=ShibuDemoSeeder        → today's attendance
  *   php artisan demo:attendance                        → the same
@@ -90,6 +90,7 @@ class ShibuDemoSeeder extends Seeder
         });
         $this->say('info', 'Shifts, departments, device, ' . count(self::PEOPLE) . ' teachers/staff (with photos) and ' . count(self::STUDENTS) . ' students are ready.');
 
+        $this->leaves($iid);
         $this->attendance($iid);
     }
 
@@ -174,6 +175,63 @@ class ShibuDemoSeeder extends Seeder
         }
     }
 
+    // ───────────────────────────── leave ─────────────────────────────
+
+    /** teacher_no => [type, days before the seeded date the leave starts, length in calendar days] */
+    private const LEAVES = [
+        '105' => ['Casual Leave', 0, 2],    // on leave on the seeded date (today)
+        '110' => ['Medical Leave', 6, 3],
+        '116' => ['Casual Leave', 12, 1],
+        '104' => ['Earned Leave', 20, 2],
+    ];
+
+    /** demo leave days: [teacher_no => [Y-m-d => true]] — no punches are made on them */
+    private array $leaveDays = [];
+
+    private function leaves(int $iid): void
+    {
+        $now  = now();
+        $type = [];
+        foreach (['Casual Leave' => ['CL', 10], 'Medical Leave' => ['ML', 14], 'Earned Leave' => ['EL', 20]] as $name => [$code, $perYear]) {
+            $key = ['institute_id' => $iid, 'name' => $name];
+            DB::table('leave_types')->updateOrInsert($key, ['code' => $code, 'days_per_year' => $perYear, 'status' => 'active', 'deleted_at' => null, 'updated_at' => $now]);
+            DB::table('leave_types')->where($key)->whereNull('created_at')->update(['created_at' => $now]);
+            $type[$name] = (int) DB::table('leave_types')->where($key)->value('id');
+        }
+
+        // demo leaves are replaced on every run (marked by their reason)
+        DB::table('leaves')->where('institute_id', $iid)->where('reason', 'like', 'Demo:%')->delete();
+        $last = Carbon::parse(self::$date ?: today()->toDateString());
+        foreach (self::LEAVES as $no => [$name, $back, $length]) {
+            $tid = DB::table('teachers')->where('institute_id', $iid)->where('teacher_no', $no)->value('id');
+            if (! $tid) {
+                continue;
+            }
+            // start on a working day, and cover $length working days (holidays in between are skipped)
+            $isHoliday = holidayChecker($iid);
+            $from = $last->copy()->subDays($back);
+            while ($isHoliday($from)) {
+                $from->subDay();
+            }
+            $to = $from->copy();
+            for ($n = 1; $n < $length; $n++) {
+                do {
+                    $to->addDay();
+                } while ($isHoliday($to));
+            }
+            DB::table('leaves')->insert([
+                'institute_id' => $iid, 'teacher_id' => $tid, 'leave_type_id' => $type[$name],
+                'from_date' => $from->toDateString(), 'to_date' => $to->toDateString(),
+                'days' => \App\Services\LeaveService::countDays($iid, $from->toDateString(), $to->toDateString()),
+                'reason' => 'Demo: ' . strtolower($name), 'created_by' => $iid, 'created_at' => $now, 'updated_at' => $now,
+            ]);
+            for ($d = $from->copy(); $d->lte($to); $d->addDay()) {
+                $this->leaveDays[$no][$d->toDateString()] = true;
+            }
+        }
+        $this->say('info', 'Leave types (Casual, Medical, Earned) and ' . count(self::LEAVES) . ' demo leaves are ready.');
+    }
+
     // ───────────────────────────── attendance ─────────────────────────────
 
     private function attendance(int $iid): void
@@ -222,8 +280,8 @@ class ShibuDemoSeeder extends Seeder
 
         foreach (self::PEOPLE as $no => [, , $dep]) {
             $roll = mt_rand(1, 100);
-            if ($roll <= 12) {
-                continue;                                   // ~12% absent
+            if ($roll <= 12 || isset($this->leaveDays[$no][$day->toDateString()])) {
+                continue;                                   // ~12% absent, or on leave
             }
             [$in, $out] = self::SHIFTS[self::DEPARTMENTS[$dep]];
             $start = Carbon::parse($day->toDateString() . ' ' . $in);

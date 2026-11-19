@@ -112,6 +112,7 @@
 
     {{-- ── Attendance of the year ── --}}
     <div class="sec" style="page-break-inside:avoid">Attendance Report - {{ $attendance['year'] }}</div>
+    @include('partials.status_legend', ['mode' => $pdf ? 'pdf' : 'web'])
     <table class="g" style="page-break-inside:avoid">
         <thead>
             <tr>
@@ -129,7 +130,7 @@
                         <td>{{ $m['late'] }}</td>
                         <td style="{{ $m['late_days'] ? 'color:#dc2626;' : '' }}">{{ $m['late_days'] }}</td>
                         <td>{{ $m['overtime'] }}</td>
-                        <td>-</td>
+                        <td style="{{ $m['leave'] ? 'color:#d97706;font-weight:bold;' : '' }}">{{ $m['leave'] }}</td>
                         <td>{{ $m['percent'] === null ? '-' : $m['percent'] . '%' }}</td>
                     @else
                         <td colspan="7" class="muted">&nbsp;</td>
@@ -143,13 +144,14 @@
                 <td>{{ $attendance['total']['late'] }}</td>
                 <td>{{ $attendance['total']['late_days'] }}</td>
                 <td>{{ $attendance['total']['overtime'] }}</td>
-                <td>-</td>
+                <td>{{ $attendance['total']['leave'] }}</td>
                 <td>{{ $attendance['total']['percent'] === null ? '-' : $attendance['total']['percent'] . '%' }}</td>
             </tr>
         </tbody>
     </table>
     <div style="font-size:{{ $pdf ? '6.8pt' : '12px' }};color:#666;margin-top:2px;">
-        Absent = working days without attendance (holidays, future days and days before joining not counted) &middot;
+        Absent = working days without attendance or leave (holidays, future days and days before joining not counted) &middot;
+        Leave = days on approved leave &middot; Percentage leaves out leave days &middot;
         Total Late = late time (h:mm) &middot; Late Present = days late &middot; Over Time = worked after shift out time
     </div>
 

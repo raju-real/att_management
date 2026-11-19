@@ -166,9 +166,11 @@ class AttendanceController extends Controller
             ? [$institute => $working_days]
             : \App\Models\User::institutes()->pluck('id')
                 ->mapWithKeys(fn ($id) => [$id => Report::workingDays($from_date, $to_date, $id)])->all();
+        // teachers/staff: present / leave / absent per working day (leave is not absent)
+        $dayCounts = \App\Services\LeaveService::teacherCounts($from_date, $to_date, $institute);
 
         if ($request->get('export') === 'csv') {
-            return $this->exportSummary($filters, $from_date, $to_date, $working_days, $workingByInstitute);
+            return $this->exportSummary($filters, $from_date, $to_date, $working_days, $workingByInstitute, $dayCounts);
         }
 
         $perPage = in_array((int) $request->per_page, [25, 50, 100, 200], true) ? (int) $request->per_page : 50;
@@ -177,16 +179,16 @@ class AttendanceController extends Controller
 
         return view('attendance.monthly_summary', array_merge(
             $this->filterOptions(),
-            compact('summary', 'totals', 'from_date', 'to_date', 'working_days', 'workingByInstitute')
+            compact('summary', 'totals', 'from_date', 'to_date', 'working_days', 'workingByInstitute', 'dayCounts')
         ));
     }
 
-    protected function exportSummary(array $filters, string $from, string $to, int $workingDays, array $workingByInstitute): StreamedResponse
+    protected function exportSummary(array $filters, string $from, string $to, int $workingDays, array $workingByInstitute, array $dayCounts = []): StreamedResponse
     {
         $rows = Report::monthlySummaryForExport($filters);
 
         return $this->csv("attendance_summary_{$from}_to_{$to}.csv",
-            ['Institute', 'User Type', 'ID', 'Name', 'Department', 'Shift', 'Shift In', 'Shift Out', 'Working Days', 'Present Days', 'Absent Days',
+            ['Institute', 'User Type', 'ID', 'Name', 'Department', 'Shift', 'Shift In', 'Shift Out', 'Working Days', 'Present Days', 'Absent Days', 'Leave Days',
              'On Time (days)', 'Late In (days)', 'Total Late', 'Early Out (days)', 'Total Early Out', 'Missing In/Out (days)',
              'Outside Shift Punches', 'Earliest In', 'Average In', 'Total Working Hours'],
             $rows,
@@ -201,7 +203,9 @@ class AttendanceController extends Controller
                 Report::shiftClock($r->std_out, $r->std_in),
                 $workingByInstitute[$r->institute_id] ?? $workingDays,
                 $r->present_days,
-                max(0, ($workingByInstitute[$r->institute_id] ?? $workingDays) - (int) $r->present_days),
+                isset($dayCounts[$r->teacher_id]) ? $dayCounts[$r->teacher_id]['absent']
+                    : max(0, ($workingByInstitute[$r->institute_id] ?? $workingDays) - (int) $r->present_days),
+                isset($dayCounts[$r->teacher_id]) ? $dayCounts[$r->teacher_id]['leave'] : '-',
                 (int) $r->early_in_days,
                 (int) $r->late_days,
                 Report::minutesToHm((int) $r->late_minutes),

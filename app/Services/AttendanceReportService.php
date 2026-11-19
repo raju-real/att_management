@@ -526,9 +526,12 @@ class AttendanceReportService
 
         $fmt = fn ($time) => $time ? Carbon::parse($time)->format('h:i A') : null;
 
+        // approved leaves of these teachers on the date (and the day before, see above)
+        $leaves = \App\Services\LeaveService::dayMap($from, $date, $institute, $teachers->pluck('id')->all());
+
         // each teacher follows their own institute's default times and holidays
         $configs = [];
-        $list = $teachers->map(function ($t) use ($rows, $fmt, $date, $isToday, $now, &$configs) {
+        $list = $teachers->map(function ($t) use ($rows, $leaves, $fmt, $date, $isToday, $now, &$configs) {
             $iid = (int) $t->institute_id;
             $cfg = $configs[$iid] ??= (object) ['settings' => instituteSettings($iid ?: null), 'isHoliday' => holidayChecker($iid ?: null)];
             $siteIn  = $cfg->settings->in_time ?? null;
@@ -555,14 +558,17 @@ class AttendanceReportService
                     }
                 }
             }
-            $r = $rows->get($t->id . '|' . $workDate);
+            $r     = $rows->get($t->id . '|' . $workDate);
+            $leave = $leaves[$t->id][$workDate] ?? null;
 
+            // P (present) wins, then H (holiday), L (leave), then upcoming / A (absent)
             if ($r) {
                 $status = $r->is_late ? 'late' : 'on_time';
             } else {
                 $schedIn = $stdIn ? Carbon::parse($workDate . ' ' . $stdIn) : null;
                 $status  = ($cfg->isHoliday)($workDate) ? 'holiday' // no duty, so not absent
-                    : (($isToday && $schedIn && $now->lt($schedIn)) ? 'upcoming' : 'absent');
+                    : ($leave ? 'leave'
+                    : (($isToday && $schedIn && $now->lt($schedIn)) ? 'upcoming' : 'absent'));
             }
 
             $plus = fn ($dt) => $dt && Carbon::parse($dt)->toDateString() > $workDate ? ' +1' : '';
@@ -581,6 +587,7 @@ class AttendanceReportService
                 'shift_out'    => $stdOut ? $fmt($stdOut) . ($stdIn && $stdOut <= $stdIn ? ' +1' : '') : null,
                 'work_date'    => $workDate,
                 'status'       => $status,
+                'leave_type'   => $status === 'leave' ? $leave['type'] : null,
                 'in_time'      => $r && $r->in_time ? $fmt($r->in_time) . $plus($r->in_time) : null,
                 'out_time'     => $r && $r->out_time ? $fmt($r->out_time) . $plus($r->out_time) : null,
                 'missing_in'   => (bool) ($r->missing_in ?? false),
@@ -599,6 +606,7 @@ class AttendanceReportService
             'on_time'   => $list->where('status', 'on_time')->count(),
             'early_out' => $list->where('early_out', true)->count(),
             'absent'    => $list->where('status', 'absent')->count(),
+            'leave'     => $list->where('status', 'leave')->count(),
             'upcoming'  => $list->where('status', 'upcoming')->count(),
             'holiday'   => $list->where('status', 'holiday')->count(),
         ];

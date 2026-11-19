@@ -33,7 +33,7 @@
         margin-bottom: 8px; font-weight: 600; font-size: 14px; background: #f8fafc; border: 1px solid #eef2f7; }
     .ld-stat b { font-size: 20px; font-variant-numeric: tabular-nums; }
     .ld-stat.present b { color: #047857; } .ld-stat.absent b { color: #b91c1c; }
-    .ld-stat.late b { color: #d97706; } .ld-stat.leave b { color: #6b7280; } .ld-stat.pct b { color: #4338ca; }
+    .ld-stat.late b { color: #d97706; } .ld-stat.leave b { color: #d97706; } .ld-stat.pct b { color: #4338ca; }
     .ld-bar { height: 8px; border-radius: 6px; background: #fee2e2; overflow: hidden; margin-top: 4px; }
     .ld-bar > div { height: 100%; background: linear-gradient(90deg, #10b981, #059669); transition: width .6s ease; }
 
@@ -204,7 +204,7 @@
                     <div class="ld-stat present">Total Present <b data-ld="present">0</b></div>
                     <div class="ld-stat absent">Total Absent <b data-ld="absent">0</b></div>
                     <div class="ld-stat late">Total Late <b data-ld="late">0</b></div>
-                    <div class="ld-stat leave" title="No leave module yet">Total Leave <b data-ld="leave">-</b></div>
+                    <div class="ld-stat leave" title="On an approved leave today (Configuration → Leave Entry)">Total Leave <b data-ld="leave">0</b></div>
                     <div class="ld-stat pct">Percentage <b data-ld="pct">0%</b></div>
                     <div class="ld-bar"><div data-ld="bar" style="width:0%"></div></div>
                     <div class="small text-muted mt-2 ld-updated">
@@ -394,12 +394,14 @@
                 const s = data.summary || {};
                 const list = data.teachers || [];
                 holidayCount = s.holiday || 0;
-                const counted = Math.max(0, (s.total || 0) - (s.upcoming || 0) - holidayCount); // not started yet / holiday → not counted
+                // not started yet / holiday / on leave → not expected today, so not counted
+                const counted = Math.max(0, (s.total || 0) - (s.upcoming || 0) - holidayCount - (s.leave || 0));
                 const pct = counted ? Math.round((s.present || 0) / counted * 1000) / 10 : 0;
 
                 $('date').textContent = data.date || '';
                 $('present').textContent = s.present || 0;
                 $('absent').textContent = s.absent || 0;
+                $('leave').textContent = s.leave || 0;
                 $('late').textContent = s.late || 0;
                 $('pct').textContent = pct + '%';
                 $('bar').style.width = pct + '%';

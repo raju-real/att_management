@@ -19,7 +19,8 @@
         'on_time'   => ['On Time', '#10b981', 'First punch at or before the shift in-time'],
         'late'      => ['Late In', '#ef4444', 'First punch after the shift in-time'],
         'early_out' => ['Early Out', '#f59e0b', 'Last punch before the shift out-time'],
-        'absent'    => ['Absent', '#64748b', 'No punch on this date'],
+        'absent'    => ['Absent', '#64748b', 'No punch and no leave on this working day'],
+        'leave'     => ['On Leave', '#f59e0b', 'On an approved leave (Configuration → Leave Entry)'],
         'upcoming'  => ['Upcoming', '#38bdf8', 'Shift has not started yet (today only)'],
         'holiday'   => ['Holiday', '#a78bfa', 'Weekly or office holiday of the institute'],
     ];

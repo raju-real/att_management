@@ -30,6 +30,7 @@
     .g .mm { color: #4338ca; font-size: 5.5pt; }
     .g .h { background-color: #e5e7eb; color: #6b7280; }
     .g .r { color: #dc2626; font-weight: bold; }
+    .g .lv { color: #d97706; font-weight: bold; }
     .g .b { font-weight: bold; }
     .g .tt { white-space: nowrap; width: 11mm; }
     .lg { font-size: 7pt; color: #555; margin-top: 4px; }
@@ -61,22 +62,24 @@
             <td style="text-align:right;width:16%;"><b>Working days:</b> {{ $section['working_days'] ?? $sheet['working_days'] }}</td>
         </tr>
     </table>
+    @include('partials.status_legend', ['mode' => 'pdf'])
 @elseif($part === 'table')
     <table class="g">
         <thead>
             <tr>
                 <th class="c-sl">SL<br>No</th><th class="c-id">ID<br>No</th><th class="l w">Teacher/Staff Name</th><th class="tt">Time<br>Table</th>
                 @foreach(($section['days'] ?? $sheet['days']) as $day)<th class="{{ $sheet['day_count'] >= 28 ? 'd' : '' }}{{ $day['holiday'] ? ' h' : '' }}">@if($day['month_mark'])<span class="mm">{{ $day['month_mark'] }}</span><br>@endif{{ $day['day'] }}<br>{{ $day['abbr'] }}</th>@endforeach
-                <th class="c-tot">Total<br>Present</th><th class="c-tot">Total<br>Absent</th><th class="c-tot">Total<br>Late</th><th class="c-tot">Over<br>Time</th><th class="c-pc">Attendance<br>Percentage %</th>
+                <th class="c-tot">Total<br>Present</th><th class="c-tot">Total<br>Absent</th><th class="c-tot">Total<br>Leave</th><th class="c-tot">Total<br>Late</th><th class="c-tot">Over<br>Time</th><th class="c-pc">Attendance<br>Percentage %</th>
             </tr>
         </thead>
         <tbody>
         @foreach($teachers as $t)
             <tr>
                 <td rowspan="2">{{ $t['sl'] }}</td><td rowspan="2">{{ $t['no'] }}</td><td rowspan="2" class="l">{{ $t['name'] }}</td><td class="tt">In Time</td>
-                @foreach(($section['days'] ?? $sheet['days']) as $d => $day)@php $c = $t['cells'][$d]; @endphp@if($c['type'] === 'present')<td class="{{ $c['late'] ? 'r' : '' }}{{ $day['holiday'] ? ' h' : '' }}">{{ $c['in'] }}</td>@elseif($c['type'] === 'absent')<td class="r">A</td>@elseif($c['type'] === 'holiday')<td class="h">H</td>@else<td></td>@endif @endforeach
+                @foreach(($section['days'] ?? $sheet['days']) as $d => $day)@php $c = $t['cells'][$d]; @endphp@if($c['type'] === 'present')<td class="{{ $c['late'] ? 'r' : '' }}{{ $day['holiday'] ? ' h' : '' }}">{{ $c['in'] }}</td>@elseif($c['type'] === 'absent')<td class="r">A</td>@elseif($c['type'] === 'leave')<td class="lv">L</td>@elseif($c['type'] === 'holiday')<td class="h">H</td>@else<td></td>@endif @endforeach
                 <td rowspan="2" class="b">{{ $t['present'] }}</td>
                 <td rowspan="2" class="b{{ $t['absent'] ? ' r' : '' }}">{{ $t['absent'] }}</td>
+                <td rowspan="2" class="b{{ $t['leave'] ? ' lv' : '' }}">{{ $t['leave'] }}</td>
                 <td rowspan="2" class="b{{ $t['late'] ? ' r' : '' }}">{{ $t['late'] }}</td>
                 <td rowspan="2">{{ $t['overtime'] }}</td>
                 <td rowspan="2" class="b">{{ $t['percent'] === null ? '-' : $t['percent'] . '%' }}</td>
@@ -89,9 +92,9 @@
         </tbody>
     </table>
 @elseif($part === 'legend')
-    <div class="lg">A = Absent &nbsp;·&nbsp; H = Holiday &nbsp;·&nbsp; <span style="color:#dc2626;font-weight:bold;">Red</span> = Late in / Early out
+    <div class="lg">In / out time = Present &nbsp;·&nbsp; A = Absent &nbsp;·&nbsp; L = Leave &nbsp;·&nbsp; H = Holiday &nbsp;·&nbsp; <span style="color:#dc2626;font-weight:bold;">Red</span> = Late in / Early out
         &nbsp;·&nbsp; - = Missing punch &nbsp;·&nbsp; + = Next day (night shift) &nbsp;·&nbsp; Working days: {{ $section['working_days'] ?? $sheet['working_days'] }}
-        &nbsp;·&nbsp; Over Time = worked after shift out time (h:mm)</div>
+        &nbsp;·&nbsp; Over Time = worked after shift out time (h:mm) &nbsp;·&nbsp; % leaves out leave days</div>
 @elseif($part === 'signatures')
     <table class="sg">
         <tr>

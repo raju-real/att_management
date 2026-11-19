@@ -59,6 +59,8 @@
     @if($report['is_holiday'])
         <div class="hol">Holiday of this institute: nobody is counted absent.</div>
     @endif
+    @include('partials.status_legend', ['mode' => $pdf ? 'pdf' : 'web'])
+    <div style="height:4px"></div>
 
     <table class="g">
         <thead>
@@ -86,7 +88,7 @@
                     <td class="{{ $row['absent'] ? 'r' : '' }}">{{ $row['absent'] }}</td>
                     <td class="{{ $row['late_present'] ? 'r' : '' }}">{{ $row['late_present'] }}</td>
                     <td>{{ $row['late_time'] }}</td>
-                    <td>-</td>
+                    <td style="{{ $row['leave'] ? 'color:#d97706;font-weight:bold;' : '' }}">{{ $row['leave'] }}</td>
                     @if($showUpcoming)<td>{{ $row['upcoming'] }}</td>@endif
                     @if($showHoliday)<td>{{ $row['holiday'] }}</td>@endif
                     <td>{{ $row['percent'] === null ? '-' : $row['percent'] . '%' }}</td>
@@ -101,7 +103,7 @@
                 <td>{{ $t['absent'] }}</td>
                 <td>{{ $t['late_present'] }}</td>
                 <td>{{ $t['late_time'] }}</td>
-                <td>-</td>
+                <td>{{ $t['leave'] }}</td>
                 @if($showUpcoming)<td>{{ $t['upcoming'] }}</td>@endif
                 @if($showHoliday)<td>{{ $t['holiday'] }}</td>@endif
                 <td>{{ $t['percent'] === null ? '-' : $t['percent'] . '%' }}</td>
@@ -109,7 +111,7 @@
         </tbody>
     </table>
     <div class="note">
-        Total Late Present = present but late &middot; Total Late = total late time (h:mm) &middot; Leave: no leave module yet
+        Total Late Present = present but late &middot; Total Late = total late time (h:mm) &middot; Total Leave = on approved leave &middot; Present % leaves out people on leave
         @if($showUpcoming) &middot; Shift Not Started = shift begins later today (not yet absent)@endif
     </div>
 

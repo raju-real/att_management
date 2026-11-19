@@ -89,6 +89,9 @@ Route::middleware(['auth', 'permission'])->group(function () {
     // Department & Shift (teacher timing config)
     Route::resource('departments', \App\Http\Controllers\DepartmentController::class)->except('show');
     Route::resource('shifts', \App\Http\Controllers\ShiftController::class)->except('show');
+    // Leave management (types + leave entries per teacher/staff)
+    Route::resource('leave-types', \App\Http\Controllers\LeaveTypeController::class)->except('show');
+    Route::resource('leaves', \App\Http\Controllers\LeaveController::class)->except('show');
     // Attendance manage
     Route::controller(AttendanceController::class)->group(function () {
         Route::post('attendance-sync-background', 'syncBackground')->name('attendance.sync.background');

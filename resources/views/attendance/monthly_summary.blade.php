@@ -183,6 +183,7 @@
             <h5 class="card-title mb-0"><i class="fas fa-calendar-check mr-2"></i>Person-wise Summary</h5>
             <small class="text-muted">{{ number_format($summary->total()) }} person(s)</small>
         </div>
+        <div class="px-3 pt-2">@include('partials.status_legend', ['mode' => 'web'])</div>
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table rpt-table mb-0">
@@ -193,7 +194,8 @@
                             <th>ID</th>
                             <th>Department / Shift</th>
                             <th class="text-center">Present</th>
-                            <th class="text-center">Absent</th>
+                            <th class="text-center" title="Working days without attendance or leave">Absent</th>
+                            <th class="text-center" title="Days on approved leave (teachers/staff)">Leave</th>
                             <th class="text-center" title="Days the first punch was at or before the late count time">On Time</th>
                             <th class="text-center" title="Days arrived after shift in-time">Late In</th>
                             <th class="text-center">Total Late</th>
@@ -207,7 +209,10 @@
                     <tbody>
                         @forelse($summary as $row)
                             @php
-                                $absent  = max(0, ($workingByInstitute[$row->institute_id] ?? $working_days) - (int) $row->present_days);
+                                // teachers/staff: from the day-by-day count (leave and holidays are not absent)
+                                $dc      = $row->teacher_id ? ($dayCounts[$row->teacher_id] ?? null) : null;
+                                $absent  = $dc ? $dc['absent'] : max(0, ($workingByInstitute[$row->institute_id] ?? $working_days) - (int) $row->present_days);
+                                $leave   = $dc ? $dc['leave'] : null;
                                 // offset from shift start, so it also works for night shifts (00:10 is late for 22:00)
                                 $avgLate = $row->std_in && $row->avg_in && ($off = \App\Models\Shift::secondsAfter($row->std_in, $row->avg_in)) > 0 && $off < 43200;
                             @endphp
@@ -236,6 +241,7 @@
                                 </td>
                                 <td class="text-center"><span class="rpt-pill blue">{{ $row->present_days }}</span></td>
                                 <td class="text-center"><span class="rpt-pill {{ $absent ? 'red' : 'gray' }}">{{ $absent }}</span></td>
+                                <td class="text-center">@if($leave === null)<span class="text-muted">-</span>@else<span class="rpt-pill {{ $leave ? 'amber' : 'gray' }}">{{ $leave }}</span>@endif</td>
                                 <td class="text-center"><span class="rpt-pill green">{{ (int) $row->early_in_days }}</span></td>
                                 <td class="text-center"><span class="rpt-pill {{ $row->late_days ? 'red' : 'gray' }}">{{ (int) $row->late_days }}</span></td>
                                 <td class="text-center text-nowrap {{ $row->late_minutes ? 'text-danger font-weight-bold' : 'text-muted' }}">{{ $hm($row->late_minutes) }}</td>
@@ -257,7 +263,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="14" class="text-center py-5 text-muted">
+                                <td colspan="15" class="text-center py-5 text-muted">
                                     <i class="fas fa-inbox fa-3x d-block mb-3" style="opacity:.3"></i>
                                     No attendance found for the selected filters.
                                 </td>
